@@ -1,26 +1,295 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
 @import "tailwindcss";
 
+/* OpenDyslexic */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@latest/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@latest/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ── Base CSS Variables (Ocean theme by default) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg-primary: #0C1B33;
+  --color-bg-surface: #1E293B;
+  --color-brand: #0891B2;
+  --color-brand-secondary: #06B6D4;
+  --color-accent-gold: #F59E0B;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F97316;
+  --color-text-primary: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --word-size: 20px;
+  --font-family: 'Nunito', sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Theme Overrides ── */
+[data-theme="ocean"] {
+  --color-bg-primary: #0C1B33;
+  --color-bg-surface: #1E293B;
+  --color-brand: #0891B2;
+  --color-brand-secondary: #06B6D4;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="space"] {
+  --color-bg-primary: #030712;
+  --color-bg-surface: #0F172A;
+  --color-brand: #7C3AED;
+  --color-brand-secondary: #A78BFA;
+}
+
+[data-theme="forest"] {
+  --color-bg-primary: #1A0A2E;
+  --color-bg-surface: #14532D;
+  --color-brand: #15803D;
+  --color-brand-secondary: #4ADE80;
+}
+
+[data-theme="candy"] {
+  --color-bg-primary: #FFF7ED;
+  --color-bg-surface: #FFFFFF;
+  --color-brand: #DB2777;
+  --color-brand-secondary: #F472B6;
+  --color-text-primary: #1E293B;
+  --color-text-muted: #64748B;
+}
+
+[data-theme="classic"] {
+  --color-bg-primary: #FFFBF5;
+  --color-bg-surface: #F8FAFC;
+  --color-brand: #2563EB;
+  --color-brand-secondary: #60A5FA;
+  --color-text-primary: #1E293B;
+  --color-text-muted: #64748B;
+}
+
+/* OpenDyslexic font mode */
+.font-opendyslexic {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+.font-opendyslexic * {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+/* ── Base Styles ── */
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-family);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Word Card Animations ── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(5px); }
+  75% { transform: translateX(-2px); }
+  90% { transform: translateX(2px); }
+}
+
+@keyframes sparkle {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+@keyframes coinFloat {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes firefly {
+  0% { transform: translate(0, 0); opacity: 0.3; }
+  25% { transform: translate(20px, -15px); opacity: 0.8; }
+  50% { transform: translate(-10px, -30px); opacity: 0.5; }
+  75% { transform: translate(15px, -10px); opacity: 0.9; }
+  100% { transform: translate(0, 0); opacity: 0.3; }
+}
+
+@keyframes wave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float-cloud {
+  from { transform: translateX(-200px); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  to { transform: translateX(calc(100vw + 200px)); opacity: 0; }
+}
+
+/* ── 3D Dice ── */
+.dice-scene {
+  width: 80px;
+  height: 80px;
+  perspective: 300px;
+}
+
+.dice-cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.1s;
+}
+
+.dice-face {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+  backdrop-filter: blur(4px);
+  user-select: none;
+}
+
+.dice-face-front  { transform: rotateY(0deg) translateZ(40px); }
+.dice-face-back   { transform: rotateY(180deg) translateZ(40px); }
+.dice-face-right  { transform: rotateY(90deg) translateZ(40px); }
+.dice-face-left   { transform: rotateY(-90deg) translateZ(40px); }
+.dice-face-top    { transform: rotateX(90deg) translateZ(40px); }
+.dice-face-bottom { transform: rotateX(-90deg) translateZ(40px); }
+
+/* Dot patterns */
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.dots-grid {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+/* ── Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-text-muted); border-radius: 3px; }
+
+/* ── Focus visible ── */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* ── Touch targets ── */
+button, [role="button"], a, input, select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ── Background effects per theme ── */
+.theme-bg-ocean {
+  background: linear-gradient(180deg, #0C1B33 0%, #0C2340 50%, #0C1B33 100%);
+  background-size: 200% 200%;
+  animation: wave 8s ease infinite;
+}
+
+.theme-bg-space {
+  background: #030712;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-bg-forest {
+  background: linear-gradient(180deg, #1A0A2E 0%, #0D1A0D 100%);
+}
+
+.theme-bg-candy {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FDF2F8 50%, #FFF7ED 100%);
+}
+
+.theme-bg-classic {
+  background: #FFFBF5;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 31px,
+    #e2e8f0 31px,
+    #e2e8f0 32px
+  );
+}
+
+/* Star field for space theme */
+.star-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, white, transparent),
+    radial-gradient(1px 1px at 80% 5%, white, transparent),
+    radial-gradient(1px 1px at 50% 70%, white, transparent),
+    radial-gradient(1px 1px at 30% 90%, white, transparent),
+    radial-gradient(1px 1px at 70% 40%, white, transparent),
+    radial-gradient(1px 1px at 20% 60%, white, transparent),
+    radial-gradient(1px 1px at 90% 80%, white, transparent),
+    radial-gradient(1px 1px at 60% 15%, white, transparent),
+    radial-gradient(1px 1px at 40% 50%, white, transparent),
+    radial-gradient(1px 1px at 15% 45%, white, transparent),
+    radial-gradient(2px 2px at 25% 30%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(2px 2px at 75% 65%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(2px 2px at 55% 85%, rgba(255,255,255,0.6), transparent);
+  animation: twinkle 3s ease-in-out infinite;
 }
