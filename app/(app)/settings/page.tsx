@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { UserButton } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -432,11 +433,7 @@ export default function SettingsPage() {
           🔐 Account
         </h2>
         <div className="flex items-center gap-3 mb-4">
-          {process.env.NEXT_PUBLIC_E2E_MODE !== "true" && (() => {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const { UserButton } = require("@clerk/nextjs");
-            return <UserButton />;
-          })()}
+          {process.env.NEXT_PUBLIC_E2E_MODE !== "true" && <UserButton />}
           <div>
             <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>
               {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}
