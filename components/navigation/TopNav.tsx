@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
@@ -63,19 +64,15 @@ export default function TopNav() {
         >
           <Settings size={18} />
         </Link>
-        {!IS_E2E && (() => {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { UserButton } = require("@clerk/nextjs");
-          return (
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-8 h-8",
-                },
-              }}
-            />
-          );
-        })()}
+        {!IS_E2E && (
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "w-8 h-8",
+              },
+            }}
+          />
+        )}
       </div>
     </nav>
   );
