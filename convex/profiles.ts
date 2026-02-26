@@ -158,11 +158,36 @@ export const completedBoard = mutation({
 
     const newHistory = [...profile.accuracyHistory, args.accuracy].slice(-10);
 
+    // Streak logic: compare UTC calendar days
+    const now = Date.now();
+    const MS_PER_DAY = 86_400_000;
+    const toUTCDay = (ts) => {
+      const d = new Date(ts);
+      return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    };
+
+    let newStreak = profile.streakDays;
+    if (!profile.lastPlayedAt) {
+      newStreak = 1;
+    } else {
+      const dayDiff = (toUTCDay(now) - toUTCDay(profile.lastPlayedAt)) / MS_PER_DAY;
+      if (dayDiff === 0) {
+        // Already played today — keep streak
+      } else if (dayDiff === 1) {
+        // Consecutive day — extend streak
+        newStreak = profile.streakDays + 1;
+      } else {
+        // Gap of 2+ days — reset
+        newStreak = 1;
+      }
+    }
+
     await ctx.db.patch(args.profileId, {
       boardsClearedAtLevel: profile.boardsClearedAtLevel + 1,
       totalBoardsCleared: profile.totalBoardsCleared + 1,
       accuracyHistory: newHistory,
-      lastPlayedAt: Date.now(),
+      streakDays: newStreak,
+      lastPlayedAt: now,
     });
   },
 });
