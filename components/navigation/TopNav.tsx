@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+
+const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
 
 const navItems = [
   { href: "/play", label: "Play", icon: Dices },
@@ -19,12 +20,11 @@ export default function TopNav() {
 
   return (
     <nav
-      className="sticky top-0 z-50 flex items-center justify-between px-4 py-2 border-b"
+      className="sticky top-0 z-50 flex items-center justify-between px-4 py-2 pt-[max(8px,calc(env(safe-area-inset-top)+8px))] border-b"
       style={{
-        background: "rgba(var(--color-bg-surface), 0.9)",
         borderColor: "rgba(255,255,255,0.08)",
         backdropFilter: "blur(12px)",
-        backgroundColor: "color-mix(in srgb, var(--color-bg-surface) 90%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--color-bg-surface) 92%, transparent)",
       }}
     >
       {/* Logo */}
@@ -39,6 +39,7 @@ export default function TopNav() {
           <Link
             key={href}
             href={href}
+            aria-current={pathname === href ? "page" : undefined}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
               pathname === href
@@ -62,13 +63,19 @@ export default function TopNav() {
         >
           <Settings size={18} />
         </Link>
-        <UserButton
-          appearance={{
-            elements: {
-              avatarBox: "w-8 h-8",
-            },
-          }}
-        />
+        {!IS_E2E && (() => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { UserButton } = require("@clerk/nextjs");
+          return (
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8",
+                },
+              }}
+            />
+          );
+        })()}
       </div>
     </nav>
   );

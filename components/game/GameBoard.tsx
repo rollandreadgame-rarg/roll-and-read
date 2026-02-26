@@ -28,7 +28,7 @@ export default function GameBoard({
 }: GameBoardProps) {
   return (
     <div
-      className="flex flex-col gap-2 p-2"
+      className="flex flex-col gap-1.5 p-3"
       role="region"
       aria-label="Game board"
     >

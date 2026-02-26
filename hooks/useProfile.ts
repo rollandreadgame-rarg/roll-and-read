@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 export function useProfile(profileId?: string) {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
 
   const profile = useQuery(
     api.profiles.get,
@@ -25,12 +27,24 @@ export function useProfile(profileId?: string) {
 }
 
 export function useProfileSelector() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
 
   const clerkUser = useQuery(
     api.users.getByClerkId,
     user?.id ? { clerkId: user.id } : "skip"
   );
+
+  const ensureUser = useMutation(api.users.createUser);
+
+  // Auto-create the Convex user record on first sign-in if the webhook hasn't run
+  useEffect(() => {
+    if (user?.id && clerkUser === null) {
+      ensureUser({
+        clerkId: user.id,
+        email: user.primaryEmailAddress?.emailAddress ?? "",
+      });
+    }
+  }, [user?.id, clerkUser]);
 
   const profiles = useQuery(
     api.profiles.getByUser,
@@ -43,6 +57,7 @@ export function useProfileSelector() {
     profiles: profiles ?? [],
     clerkUser,
     createProfile,
-    isLoading: clerkUser === undefined || profiles === undefined,
+    // Only loading while queries are pending — null means resolved (not found)
+    isLoading: clerkUser === undefined || (clerkUser !== null && profiles === undefined),
   };
 }

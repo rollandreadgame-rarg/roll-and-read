@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -15,10 +16,9 @@ import BoardCompleteModal from "@/components/celebrations/BoardCompleteModal";
 import LevelUpOverlay from "@/components/celebrations/LevelUpOverlay";
 import TutorialModal from "@/components/celebrations/TutorialModal";
 import type { WordEntry } from "@/lib/game/boardGenerator";
-import { Id } from "@/convex/_generated/dataModel";
 
 export default function PlayPage() {
-  const { theme } = useTheme();
+  useTheme();
   const [profileId, setProfileId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -131,11 +131,11 @@ export default function PlayPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Main game area */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-2 p-2 lg:p-4 overflow-auto">
+      <div className="flex flex-col lg:flex-row flex-1 gap-3 p-3 lg:p-4 overflow-auto min-h-0">
         {/* Dice Panel — left on desktop, top on mobile */}
-        <div className="lg:w-48 shrink-0">
+        <div className="lg:w-52 shrink-0">
           <div
-            className="rounded-2xl p-2"
+            className="rounded-2xl p-2 h-full"
             style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <DicePanel
@@ -150,7 +150,7 @@ export default function PlayPage() {
 
         {/* Game Board — right on desktop, below dice on mobile */}
         <div
-          className="flex-1 rounded-2xl overflow-hidden"
+          className="flex-1 rounded-2xl min-w-0"
           style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           {/* Level label */}

@@ -1,8 +1,10 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -21,7 +23,8 @@ const AVATARS = ["🦊", "🐻", "🐼", "🦁", "🐯", "🦄", "🐙", "🦋",
 type WordModeType = "real" | "nonsense" | "mixed";
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const router = useRouter();
+  const { user } = useCurrentUser();
   const { theme, setTheme, fontSize, setFontSize, fontFamily, setFontFamily } = useTheme();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -44,6 +47,7 @@ export default function SettingsPage() {
   const selectedProfileId = activeProfileId ?? profiles?.[0]?._id;
   const profile = profiles?.find((p: any) => p._id === selectedProfileId);
   const isPaid = clerkUser?.plan !== "free";
+  const profilesLoading = clerkUser === undefined || (clerkUser !== null && profiles === undefined);
 
   const createProfile = useMutation(api.profiles.create);
   const updateProfile = useMutation(api.profiles.update);
@@ -90,9 +94,21 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col flex-1 p-4 max-w-2xl mx-auto w-full gap-6 pb-16">
-      <h1 className="text-3xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
-        ⚙️ Settings
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
+          ⚙️ Settings
+        </h1>
+        <motion.button
+          onClick={() => router.back()}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.94 }}
+          className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors hover:bg-white/10"
+          style={{ color: "var(--color-text-muted)", border: "1px solid rgba(255,255,255,0.12)" }}
+          aria-label="Close settings"
+        >
+          ✕
+        </motion.button>
+      </div>
 
       {/* Profile Management */}
       <section
@@ -104,6 +120,9 @@ export default function SettingsPage() {
         </h2>
 
         <div className="flex flex-col gap-3 mb-4">
+          {profilesLoading && (
+            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Loading profiles...</p>
+          )}
           {(profiles ?? []).map((p: any) => (
             <div
               key={p._id}
@@ -150,17 +169,19 @@ export default function SettingsPage() {
               <div className="flex gap-1">
                 <button
                   onClick={() => { setEditingProfileId(p._id); setEditName(p.name); }}
+                  aria-label={`Edit ${p.name}`}
                   className="p-2 rounded-lg text-xs hover:bg-white/10 transition-colors"
                   style={{ color: "var(--color-text-muted)" }}
                 >
-                  ✏️
+                  <span aria-hidden="true">✏️</span>
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(p._id)}
+                  aria-label={`Delete ${p.name}`}
                   className="p-2 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
                   style={{ color: "var(--color-error)" }}
                 >
-                  🗑️
+                  <span aria-hidden="true">🗑️</span>
                 </button>
               </div>
             </div>
@@ -255,7 +276,7 @@ export default function SettingsPage() {
                 onClick={() => handleUpdateWordMode(value)}
                 className="flex items-center gap-3 p-3 rounded-xl text-left transition-colors"
                 style={{
-                  background: profile.wordMode === value ? "rgba(var(--color-brand-rgb, 8,145,178), 0.15)" : "rgba(255,255,255,0.04)",
+                  background: profile.wordMode === value ? "color-mix(in srgb, var(--color-brand) 15%, transparent)" : "rgba(255,255,255,0.04)",
                   border: profile.wordMode === value ? "1px solid var(--color-brand)" : "1px solid rgba(255,255,255,0.08)",
                 }}
               >
@@ -293,7 +314,7 @@ export default function SettingsPage() {
               className="flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:brightness-110"
               style={{
                 border: theme === t.id ? "2px solid var(--color-brand)" : "1px solid rgba(255,255,255,0.08)",
-                background: theme === t.id ? "rgba(var(--color-brand-rgb, 8,145,178), 0.1)" : "rgba(255,255,255,0.04)",
+                background: theme === t.id ? "color-mix(in srgb, var(--color-brand) 10%, transparent)" : "rgba(255,255,255,0.04)",
                 position: "relative",
               }}
             >
@@ -346,10 +367,11 @@ export default function SettingsPage() {
 
         {/* Font size */}
         <div>
-          <label className="text-sm font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>
+          <label htmlFor="font-size-range" className="text-sm font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>
             Word Size: {fontSize}px
           </label>
           <input
+            id="font-size-range"
             type="range"
             min={20}
             max={32}
@@ -410,7 +432,11 @@ export default function SettingsPage() {
           🔐 Account
         </h2>
         <div className="flex items-center gap-3 mb-4">
-          <UserButton />
+          {process.env.NEXT_PUBLIC_E2E_MODE !== "true" && (() => {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { UserButton } = require("@clerk/nextjs");
+            return <UserButton />;
+          })()}
           <div>
             <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>
               {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}

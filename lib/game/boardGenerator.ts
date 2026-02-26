@@ -30,25 +30,6 @@ export interface BoardConfig {
   nextLevelPool: WordEntry[];
 }
 
-function getFoilWords(target: WordEntry, allWords: WordEntry[], count: number): WordEntry[] {
-  const sameFamily = allWords.filter(
-    (w) => w._id !== target._id && w.phonicFamily === target.phonicFamily
-  );
-
-  if (sameFamily.length >= count) {
-    return shuffle(sameFamily).slice(0, count);
-  }
-
-  const different = allWords.filter(
-    (w) => w._id !== target._id && !sameFamily.find((s) => s._id === w._id)
-  );
-
-  return [
-    ...shuffle(sameFamily),
-    ...shuffle(different).slice(0, count - sameFamily.length),
-  ];
-}
-
 export function generateBoard(config: BoardConfig): GameBoard {
   const { currentLevel, boardsCleared, wordPool, nextLevelPool } = config;
 
@@ -61,40 +42,49 @@ export function generateBoard(config: BoardConfig): GameBoard {
   const currentRatio = 1 - nextRatio;
 
   const totalNeeded = 30; // 6 rows × 5 words
-  const currentCount = Math.round(totalNeeded * currentRatio);
-  const nextCount = totalNeeded - currentCount;
+  const currentTarget = Math.round(totalNeeded * currentRatio);
+  const nextTarget = totalNeeded - currentTarget;
 
-  const currentWords = shuffle(wordPool).slice(0, Math.min(currentCount, wordPool.length));
-  const nextWords = shuffle(nextLevelPool).slice(0, Math.min(nextCount, nextLevelPool.length));
+  // Build a deduplicated pool respecting blend ratio.
+  // Each _id must appear at most once so clearing a word in one row
+  // never removes it from another row.
+  const seenIds = new Set<string>();
+  const board30: WordEntry[] = [];
 
-  // Pad if not enough words
-  const allWords = shuffle([...currentWords, ...nextWords]);
-  while (allWords.length < totalNeeded && wordPool.length > 0) {
-    allWords.push(shuffle(wordPool)[0]);
+  for (const w of shuffle([...wordPool])) {
+    if (board30.length >= currentTarget) break;
+    if (!seenIds.has(w._id)) {
+      seenIds.add(w._id);
+      board30.push(w);
+    }
   }
 
+  for (const w of shuffle([...nextLevelPool])) {
+    if (board30.length >= currentTarget + nextTarget) break;
+    if (!seenIds.has(w._id)) {
+      seenIds.add(w._id);
+      board30.push(w);
+    }
+  }
+
+  // Pad to 30 from wordPool if blend didn't fill the board
+  for (const w of shuffle([...wordPool])) {
+    if (board30.length >= totalNeeded) break;
+    if (!seenIds.has(w._id)) {
+      seenIds.add(w._id);
+      board30.push(w);
+    }
+  }
+
+  // Shuffle the final 30 unique words
+  const shuffled = shuffle(board30);
+
+  // Partition into 6 rows of 5 — each word appears exactly once on the board
   const rows: GameRow[] = [];
   for (let i = 0; i < 6; i++) {
-    const targetIndex = i * 5;
-    if (targetIndex >= allWords.length) {
-      // Fallback: use any available words
-      const fallbackWords = shuffle(wordPool).slice(0, 5);
-      rows.push({
-        dieNumber: i + 1,
-        words: fallbackWords,
-        cleared: false,
-      });
-      continue;
-    }
-
-    const target = allWords[targetIndex];
-    const poolForFoils = allWords.filter((_, idx) => idx !== targetIndex);
-    const foils = getFoilWords(target, poolForFoils, 4);
-    const rowWords = shuffle([target, ...foils]).slice(0, 5);
-
     rows.push({
       dieNumber: i + 1,
-      words: rowWords,
+      words: shuffled.slice(i * 5, (i + 1) * 5),
       cleared: false,
     });
   }

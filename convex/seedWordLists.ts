@@ -1,5 +1,10 @@
 // @ts-nocheck
 import { mutation } from "./_generated/server";
+import { LEVEL1_WORDS } from "./wordData/level1";
+import { LEVEL2_WORDS } from "./wordData/level2";
+import { LEVEL3_WORDS } from "./wordData/level3";
+import { LEVEL4_WORDS } from "./wordData/level4";
+import { LEVEL5_WORDS } from "./wordData/level5";
 
 // Level coin values
 const COIN_VALUES: Record<number, number> = {
@@ -20,7 +25,7 @@ interface WordEntry {
   phonicPattern: string;
 }
 
-const WORD_DATA: WordEntry[] = [
+const LEVEL1A_TO_1C: WordEntry[] = [
   // ─── LEVEL 1A — Short Vowels a/i + Basic Consonants ───
   { word: "bat", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
   { word: "cat", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
@@ -54,6 +59,30 @@ const WORD_DATA: WordEntry[] = [
   { word: "big", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "fig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "jig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
+  // 1A additions
+  { word: "dab", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ab", phonicPattern: "short-a" },
+  { word: "lab", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ab", phonicPattern: "short-a" },
+  { word: "nab", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ab", phonicPattern: "short-a" },
+  { word: "gap", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
+  { word: "lap", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
+  { word: "rap", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
+  { word: "sap", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
+  { word: "yap", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
+  { word: "lit", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-it", phonicPattern: "short-i" },
+  { word: "pit", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-it", phonicPattern: "short-i" },
+  { word: "wit", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-it", phonicPattern: "short-i" },
+  { word: "lip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
+  { word: "nip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
+  { word: "rip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
+  { word: "sip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
+  { word: "zip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
+  { word: "win", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
+  { word: "pin", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
+  { word: "sin", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
+  { word: "pig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
+  { word: "wig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
+  { word: "rig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
+  { word: "dig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   // 1A nonsense
   { word: "vat", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
   { word: "baf", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-af", phonicPattern: "short-a" },
@@ -106,6 +135,36 @@ const WORD_DATA: WordEntry[] = [
   { word: "get", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
   { word: "bet", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
   { word: "net", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
+  // 1B additions
+  { word: "bog", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-og", phonicPattern: "short-o" },
+  { word: "jog", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-og", phonicPattern: "short-o" },
+  { word: "dot", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ot", phonicPattern: "short-o" },
+  { word: "pot", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ot", phonicPattern: "short-o" },
+  { word: "cot", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ot", phonicPattern: "short-o" },
+  { word: "mop", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-op", phonicPattern: "short-o" },
+  { word: "pop", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-op", phonicPattern: "short-o" },
+  { word: "top", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-op", phonicPattern: "short-o" },
+  { word: "hop", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-op", phonicPattern: "short-o" },
+  { word: "cub", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ub", phonicPattern: "short-u" },
+  { word: "rub", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ub", phonicPattern: "short-u" },
+  { word: "hub", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ub", phonicPattern: "short-u" },
+  { word: "tub", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ub", phonicPattern: "short-u" },
+  { word: "dug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
+  { word: "hug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
+  { word: "jug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
+  { word: "bug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
+  { word: "mug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
+  { word: "gun", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-un", phonicPattern: "short-u" },
+  { word: "pun", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-un", phonicPattern: "short-u" },
+  { word: "gum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
+  { word: "bum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
+  { word: "rum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
+  { word: "pen", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-en", phonicPattern: "short-e" },
+  { word: "jet", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
+  { word: "met", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
+  { word: "pet", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
+  { word: "set", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
+  { word: "wet", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
   // 1B nonsense
   { word: "fob", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ob", phonicPattern: "short-o" },
   { word: "vot", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ot", phonicPattern: "short-o" },
@@ -150,6 +209,40 @@ const WORD_DATA: WordEntry[] = [
   { word: "buff", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uff", phonicPattern: "floss-ff" },
   { word: "jazz", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-azz", phonicPattern: "floss-zz" },
   { word: "fizz", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-izz", phonicPattern: "floss-zz" },
+  // 1C additions
+  { word: "chap", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-ap", phonicPattern: "digraph-ch" },
+  { word: "check", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-eck", phonicPattern: "digraph-ch" },
+  { word: "chess", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-ess", phonicPattern: "digraph-ch" },
+  { word: "chum", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-um", phonicPattern: "digraph-ch" },
+  { word: "shack", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ack", phonicPattern: "digraph-sh" },
+  { word: "shift", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ift", phonicPattern: "digraph-sh" },
+  { word: "shock", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ock", phonicPattern: "digraph-sh" },
+  { word: "shut", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ut", phonicPattern: "digraph-sh" },
+  { word: "thud", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "th-ud", phonicPattern: "digraph-th" },
+  { word: "thick", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "th-ick", phonicPattern: "digraph-th" },
+  { word: "what", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "wh-at", phonicPattern: "digraph-wh" },
+  { word: "which", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "wh-ich", phonicPattern: "digraph-wh" },
+  { word: "all", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "ball", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "call", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "fall", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "tall", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "wall", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-all", phonicPattern: "floss-ll" },
+  { word: "yell", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ell", phonicPattern: "floss-ll" },
+  { word: "bull", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ull", phonicPattern: "floss-ll" },
+  { word: "full", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ull", phonicPattern: "floss-ll" },
+  { word: "pull", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ull", phonicPattern: "floss-ll" },
+  { word: "dull", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ull", phonicPattern: "floss-ll" },
+  { word: "huff", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uff", phonicPattern: "floss-ff" },
+  { word: "riff", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-iff", phonicPattern: "floss-ff" },
+  { word: "buzz", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uzz", phonicPattern: "floss-zz" },
+  { word: "fuzz", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uzz", phonicPattern: "floss-zz" },
+  { word: "miss", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-iss", phonicPattern: "floss-ss" },
+  { word: "hiss", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-iss", phonicPattern: "floss-ss" },
+  { word: "toss", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-oss", phonicPattern: "floss-ss" },
+  { word: "less", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ess", phonicPattern: "floss-ss" },
+  { word: "fuss", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uss", phonicPattern: "floss-ss" },
+  { word: "mess", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ess", phonicPattern: "floss-ss" },
   // 1C nonsense
   { word: "chiv", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-iv", phonicPattern: "digraph-ch" },
   { word: "shup", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-up", phonicPattern: "digraph-sh" },
@@ -160,27 +253,15 @@ const WORD_DATA: WordEntry[] = [
   { word: "ziff", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-iff", phonicPattern: "floss-ff" },
   { word: "fult", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ult", phonicPattern: "floss" },
   { word: "chelt", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-elt", phonicPattern: "digraph-ch" },
+];
 
-  // ─── Levels 1D through 5E follow the same pattern ───
-  // Add entries for 1D (Blends: bl, cl, fl, gl, pl, sl),
-  // 1E (Blends: br, cr, dr, fr, gr, pr, tr),
-  // 1F (Short vowel review + CVC-e intro),
-  // 2A (Long vowel a: a_e, ai, ay),
-  // 2B (Long vowel e: ee, ea, e_e),
-  // 2C (Long vowel i: i_e, igh, ie),
-  // 2D (Long vowel o: o_e, oa, ow),
-  // 2E (Long vowel u: u_e, ue, ew),
-  // 2F (R-controlled vowels: ar, or, er, ir, ur),
-  // 2G (Diphthongs: oi, oy, ou, ow),
-  // 3A (Soft c/g, dge, tch),
-  // 3B (Silent letters: kn, wr, gn, mb),
-  // 3C (Prefixes: un-, re-, pre-, dis-),
-  // 3D (Suffixes: -ing, -ed, -er, -est),
-  // 3E (Compound words),
-  // 3F (Multisyllabic words),
-  // 4A-4D (Advanced patterns and multisyllabic),
-  // 5A-5E (Academic vocabulary and complex patterns)
-  // using the same WordEntry structure above.
+const WORD_DATA: WordEntry[] = [
+  ...LEVEL1A_TO_1C,
+  ...LEVEL1_WORDS,
+  ...LEVEL2_WORDS,
+  ...LEVEL3_WORDS,
+  ...LEVEL4_WORDS,
+  ...LEVEL5_WORDS,
 ];
 
 export const seedWordLists = mutation({
@@ -189,20 +270,18 @@ export const seedWordLists = mutation({
     let inserted = 0;
     let skipped = 0;
 
-    for (const entry of WORD_DATA) {
-      // Check if already exists
-      const existing = await ctx.db
-        .query("word_lists")
-        .withIndex("by_level", (q) => q.eq("level", entry.level))
-        .filter((q) => q.eq(q.field("word"), entry.word))
-        .first();
+    // Read all existing words in one pass to avoid per-word query overhead
+    const allExisting = await ctx.db.query("word_lists").collect();
+    const existingKeys = new Set(allExisting.map((w) => `${w.level}:${w.word}`));
 
-      if (existing) {
+    for (const entry of WORD_DATA) {
+      const key = `${entry.level}:${entry.word}`;
+      if (existingKeys.has(key)) {
         skipped++;
         continue;
       }
-
       await ctx.db.insert("word_lists", entry);
+      existingKeys.add(key); // prevent re-inserting if WORD_DATA has duplicates
       inserted++;
     }
 

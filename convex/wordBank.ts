@@ -34,7 +34,7 @@ export const addWord = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         timesCorrect: existing.timesCorrect + 1,
-        needsPractice: args.needsPractice ? existing.needsPractice : false,
+        needsPractice: args.needsPractice,
       });
       return existing._id;
     }

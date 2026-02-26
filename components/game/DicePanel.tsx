@@ -32,7 +32,6 @@ export default function DicePanel({
             ? { x: [0, -2, 2, -1, 1, 0], transition: { duration: 0.1 } }
             : {}
         }
-        style={{ willChange: "transform" }}
       >
         <Dice3D result={diceResult} isRolling={isRolling} />
       </motion.div>
@@ -44,8 +43,8 @@ export default function DicePanel({
         whileTap={canRoll ? { scale: 0.95 } : {}}
         whileHover={canRoll ? { scale: 1.03 } : {}}
         className={cn(
-          "w-full max-w-[160px] py-3 px-6 rounded-2xl",
-          "text-lg font-extrabold uppercase tracking-wider",
+          "w-full py-3 px-6 rounded-2xl",
+          "text-lg font-extrabold uppercase",
           "transition-all duration-200 select-none",
           "min-h-[56px]",
           canRoll
@@ -82,7 +81,7 @@ export default function DicePanel({
             <div
               key={face}
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center",
+                "size-8 rounded-full flex items-center justify-center",
                 "text-xs font-bold transition-all duration-300",
                 isCleared
                   ? "bg-slate-700 text-slate-500 opacity-50"

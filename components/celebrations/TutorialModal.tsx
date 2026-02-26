@@ -58,6 +58,9 @@ export default function TutorialModal({ show, onClose }: TutorialModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 20 }}
             transition={{ type: "spring", damping: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="How to play tutorial"
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={(e) => e.stopPropagation()}
           >
@@ -87,11 +90,13 @@ export default function TutorialModal({ show, onClose }: TutorialModalProps) {
               </AnimatePresence>
 
               {/* Dots */}
-              <div className="flex justify-center gap-2 mb-6">
+              <div className="flex justify-center gap-2 mb-6" role="list" aria-label="Tutorial progress">
                 {SLIDES.map((_, i) => (
                   <div
                     key={i}
-                    className="w-2 h-2 rounded-full transition-all"
+                    role="listitem"
+                    aria-label={`Step ${i + 1} of ${SLIDES.length}${i === slide ? " (current)" : ""}`}
+                    className="h-2 rounded-full transition-all"
                     style={{
                       background: i === slide ? "var(--color-brand)" : "rgba(255,255,255,0.2)",
                       width: i === slide ? "20px" : "8px",
@@ -103,6 +108,7 @@ export default function TutorialModal({ show, onClose }: TutorialModalProps) {
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
+                  aria-label="Skip tutorial"
                   className="flex-1 py-3 rounded-2xl font-semibold transition-colors hover:bg-white/10"
                   style={{ color: "var(--color-text-muted)", border: "1px solid rgba(255,255,255,0.1)" }}
                 >

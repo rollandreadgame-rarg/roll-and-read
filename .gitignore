@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code context (contains API keys)
+CLAUDE.md
+
+# scripts with hardcoded keys
+/scripts/
+
+# e2e test artifacts
+/e2e-screenshots/
+.playwright-mcp/

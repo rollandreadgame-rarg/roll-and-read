@@ -27,6 +27,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [fontSize, setFontSizeState] = useState(20);
   const [fontFamily, setFontFamilyState] = useState<"nunito" | "opendyslexic">("nunito");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const saved = localStorage.getItem("rar-theme") as Theme | null;
     const savedSize = localStorage.getItem("rar-font-size");
@@ -35,6 +36,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (savedSize) setFontSizeState(parseInt(savedSize));
     if (savedFont) setFontFamilyState(savedFont);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -63,8 +65,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty("--word-size", `${fontSize}px`);
     if (fontFamily === "opendyslexic") {
       document.documentElement.classList.add("font-opendyslexic");
+    } else {
+      document.documentElement.classList.remove("font-opendyslexic");
     }
-  }, []);
+  }, [theme, fontSize, fontFamily]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, fontSize, setFontSize, fontFamily, setFontFamily }}>

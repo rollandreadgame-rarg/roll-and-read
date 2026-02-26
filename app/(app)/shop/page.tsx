@@ -1,8 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -73,12 +74,11 @@ function rollRarity(premium?: boolean): "common" | "uncommon" | "rare" | "legend
 }
 
 export default function ShopPage() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("animals");
   const [revealedStickers, setRevealedStickers] = useState<RevealedSticker[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [revealIndex, setRevealIndex] = useState(-1);
   const [errorMsg, setErrorMsg] = useState("");
 
   const clerkUser = useQuery(
@@ -113,7 +113,6 @@ export default function ShopPage() {
 
     setIsRevealing(true);
     setRevealedStickers([]);
-    setRevealIndex(-1);
     setErrorMsg("");
 
     try {
@@ -122,21 +121,24 @@ export default function ShopPage() {
         amount: cost,
       });
 
+      // Track IDs granted during this purchase to avoid double-granting in multi-sticker packs
+      const grantedThisSession = new Set(ownedIds);
+
       const stickersToReveal: RevealedSticker[] = [];
       for (let i = 0; i < count; i++) {
         const isPremium = packId === "premium";
         const rarity = rollRarity(isPremium);
         const catFilter = packId === "themed" ? selectedCategory : undefined;
 
-        // Find uncollected stickers of this rarity
+        // Find uncollected stickers of this rarity (excluding already granted this session)
         let eligible = allStickers.filter(
           (s: any) =>
             s.rarity === rarity &&
-            !ownedIds.has(s._id) &&
+            !grantedThisSession.has(s._id) &&
             (catFilter ? s.category === catFilter : true)
         );
 
-        // Fallback: any sticker of this rarity
+        // Fallback: any sticker of this rarity (allow duplicates if pool exhausted)
         if (eligible.length === 0) {
           eligible = allStickers.filter(
             (s: any) => s.rarity === rarity && (catFilter ? s.category === catFilter : true)
@@ -148,25 +150,26 @@ export default function ShopPage() {
           eligible = allStickers;
         }
 
+        // eslint-disable-next-line react-hooks/purity
         const picked = eligible[Math.floor(Math.random() * eligible.length)];
         stickersToReveal.push({ name: picked.name, emoji: picked.emoji, rarity: picked.rarity });
 
-        // Grant to profile
-        if (!ownedIds.has(picked._id)) {
+        // Grant to profile only if not already owned
+        if (!grantedThisSession.has(picked._id)) {
           await grantStickerMut({
             profileId: selectedProfile as Id<"profiles">,
             stickerId: picked._id,
           });
+          grantedThisSession.add(picked._id);
         }
       }
 
       // Reveal one by one
       for (let i = 0; i < stickersToReveal.length; i++) {
-        setRevealIndex(i);
         setRevealedStickers(stickersToReveal.slice(0, i + 1));
         await new Promise((r) => setTimeout(r, 600));
       }
-    } catch (err) {
+    } catch {
       setErrorMsg("Something went wrong. Please try again.");
     }
 
@@ -176,11 +179,11 @@ export default function ShopPage() {
   return (
     <div className="flex flex-col flex-1 p-4 max-w-3xl mx-auto w-full">
       <div className="mb-6">
-        <h1 className="text-3xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
+        <h1 className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
           🛍️ Sticker Shop
         </h1>
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold" style={{ color: "var(--color-accent-gold)" }}>
+          <span className="text-2xl font-extrabold tabular-nums" style={{ color: "var(--color-accent-gold)" }}>
             💰 {(profile?.coins ?? 0).toLocaleString()}
           </span>
           <span style={{ color: "var(--color-text-muted)" }}>coins</span>
@@ -232,6 +235,7 @@ export default function ShopPage() {
       <AnimatePresence>
         {errorMsg && (
           <motion.div
+            role="alert"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}

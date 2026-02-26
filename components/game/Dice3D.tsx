@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useAnimation } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 
 interface Dice3DProps {
   result: number | null;
@@ -53,8 +52,6 @@ function DieFace({ number, style }: { number: number; style?: React.CSSPropertie
 }
 
 export default function Dice3D({ result, isRolling }: Dice3DProps) {
-  const controls = useAnimation();
-
   const faceRotations: Record<number, { rotateX: number; rotateY: number }> = {
     1: { rotateX: 0, rotateY: 0 },
     2: { rotateX: 0, rotateY: -90 },
@@ -87,7 +84,7 @@ export default function Dice3D({ result, isRolling }: Dice3DProps) {
                 transition: { duration: 0.3, ease: "easeOut" },
               }
         }
-        style={{ willChange: "transform" }}
+        style={{ willChange: isRolling ? "transform" : "auto" }}
       >
         <DieFace number={1} style={{ transform: "rotateY(0deg) translateZ(40px)" }} />
         <DieFace number={6} style={{ transform: "rotateY(180deg) translateZ(40px)" }} />

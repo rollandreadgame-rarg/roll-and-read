@@ -1,8 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { api } from "@/convex/_generated/api";
@@ -17,7 +18,7 @@ const STAT_CARDS = (profile: { totalBoardsCleared: number; currentLevel: string;
 ];
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
 
   const clerkUser = useQuery(
@@ -56,11 +57,30 @@ export default function DashboardPage() {
 
   const currentLevelIdx = LEVEL_SEQUENCE.indexOf(profile?.currentLevel as typeof LEVEL_SEQUENCE[number]);
 
-  if (!profile) {
+  const isLoading = clerkUser === undefined || (clerkUser !== null && profiles === undefined);
+  const hasNoProfile = !isLoading && !profile;
+
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-4 p-6">
         <div className="text-5xl">📊</div>
         <p style={{ color: "var(--color-text-muted)" }}>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (hasNoProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 gap-4 p-6">
+        <div className="text-5xl">📊</div>
+        <p style={{ color: "var(--color-text-muted)" }}>No profile found.</p>
+        <a
+          href="/play"
+          className="px-6 py-3 rounded-2xl font-bold text-white"
+          style={{ background: "var(--color-brand)" }}
+        >
+          Go to Play
+        </a>
       </div>
     );
   }
@@ -70,10 +90,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+          <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
             📊 Dashboard
           </h1>
-          <p style={{ color: "var(--color-text-muted)" }}>Track reading progress</p>
+          <p className="text-pretty" style={{ color: "var(--color-text-muted)" }}>Track reading progress</p>
         </div>
         <button
           onClick={() => window.print()}
@@ -105,7 +125,7 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {STAT_CARDS(profile).map(({ label, value, icon }) => (
+        {STAT_CARDS(profile!).map(({ label, value, icon }) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, y: 10 }}
@@ -114,7 +134,7 @@ export default function DashboardPage() {
             style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <div className="text-3xl mb-1">{icon}</div>
-            <div className="text-2xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+            <div className="text-2xl font-extrabold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
               {value}
             </div>
             <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</div>

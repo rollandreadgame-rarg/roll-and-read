@@ -68,6 +68,31 @@ export const update = mutation({
 export const remove = mutation({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
+    // Cascade delete related records
+    const wordBankEntries = await ctx.db
+      .query("word_bank")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    for (const entry of wordBankEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
+    const stickers = await ctx.db
+      .query("profile_stickers")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    for (const sticker of stickers) {
+      await ctx.db.delete(sticker._id);
+    }
+
+    const sessions = await ctx.db
+      .query("game_sessions")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    for (const session of sessions) {
+      await ctx.db.delete(session._id);
+    }
+
     await ctx.db.delete(args.profileId);
   },
 });

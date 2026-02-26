@@ -1,9 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 interface StatusBarProps {
   coins: number;
@@ -22,19 +21,16 @@ export default function StatusBar({
 }: StatusBarProps) {
   const [showWordBank, setShowWordBank] = useState(false);
   const [prevCoins, setPrevCoins] = useState(coins);
-  const [coinDelta, setCoinDelta] = useState(0);
 
   if (coins !== prevCoins) {
-    const delta = coins - prevCoins;
     setPrevCoins(coins);
-    if (delta > 0) setCoinDelta(delta);
   }
 
   return (
     <>
       {/* Status Bar */}
       <div
-        className="sticky bottom-0 z-40 flex items-center justify-between px-4 py-3 border-t"
+        className="sticky bottom-0 z-40 flex items-center justify-between px-4 py-3 pb-[max(12px,calc(env(safe-area-inset-bottom)+12px))] border-t"
         style={{
           background: "color-mix(in srgb, var(--color-bg-surface) 95%, transparent)",
           borderColor: "rgba(255,255,255,0.08)",
@@ -48,7 +44,7 @@ export default function StatusBar({
             key={coins}
             initial={{ scale: 1.2 }}
             animate={{ scale: 1 }}
-            className="font-extrabold text-lg"
+            className="font-extrabold text-lg tabular-nums"
             style={{ color: "var(--color-accent-gold)" }}
           >
             {coins.toLocaleString()}

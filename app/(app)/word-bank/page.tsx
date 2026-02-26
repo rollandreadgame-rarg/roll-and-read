@@ -1,12 +1,12 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { getLevelColor } from "@/lib/utils";
 
 const LEVEL_TABS = [
   { label: "All", value: "all" },
@@ -20,7 +20,7 @@ const LEVEL_TABS = [
 type WordMode = "all" | "real" | "nonsense";
 
 export default function WordBankPage() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState("all");
   const [modeFilter, setModeFilter] = useState<WordMode>("all");
@@ -43,24 +43,30 @@ export default function WordBankPage() {
     selectedProfile ? { profileId: selectedProfile as Id<"profiles"> } : "skip"
   );
 
-  const filteredWords = (wordBank ?? []).filter((w: any) => {
-    if (levelFilter !== "all" && !w.level.startsWith(levelFilter)) return false;
-    if (modeFilter === "real" && w.isNonsense) return false;
-    if (modeFilter === "nonsense" && !w.isNonsense) return false;
-    if (search && !w.word.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filteredWords = useMemo(
+    () => (wordBank ?? []).filter((w: any) => {
+      if (levelFilter !== "all" && !w.level.startsWith(levelFilter)) return false;
+      if (modeFilter === "real" && w.isNonsense) return false;
+      if (modeFilter === "nonsense" && !w.isNonsense) return false;
+      if (search && !w.word.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    }),
+    [wordBank, levelFilter, modeFilter, search]
+  );
 
-  const totalValue = (wordBank ?? []).reduce((sum: any, w: any) => sum + w.coinValue, 0);
+  const totalValue = useMemo(
+    () => (wordBank ?? []).reduce((sum: any, w: any) => sum + w.coinValue, 0),
+    [wordBank]
+  );
 
   return (
     <div className="flex flex-col flex-1 p-4 max-w-4xl mx-auto w-full">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
+        <h1 className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
           📚 Word Bank
         </h1>
-        <p style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-pretty" style={{ color: "var(--color-text-muted)" }}>
           You know{" "}
           <strong style={{ color: "var(--color-brand)" }}>{wordBank?.length ?? 0} words</strong>{" "}
           worth{" "}
@@ -98,6 +104,7 @@ export default function WordBankPage() {
         <input
           type="search"
           placeholder="Search words..."
+          aria-label="Search words"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full px-4 py-3 rounded-xl text-base"
@@ -154,7 +161,7 @@ export default function WordBankPage() {
         <div className="flex flex-col items-center justify-center flex-1 gap-4 py-16">
           <div className="text-5xl">📚</div>
           <p className="text-lg font-semibold" style={{ color: "var(--color-text-muted)" }}>
-            {wordBank?.length === 0
+            {(wordBank?.length ?? 0) === 0
               ? "No words yet — roll the dice to start building your collection!"
               : "No words match your filters."}
           </p>

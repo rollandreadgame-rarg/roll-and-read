@@ -34,24 +34,25 @@ export default function GameRow({
   return (
     <motion.div
       layout
-      initial={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
-      transition={{ duration: 0.4, ease: "easeIn" }}
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, scaleY: 0 }}
+      transition={{ duration: 0.3, ease: "easeIn" }}
+      style={{ transformOrigin: "top center" }}
       className={cn(
-        "flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200",
+        "flex items-center gap-2 px-2 py-2.5 rounded-xl transition-all duration-200",
         isActive
-          ? "bg-indigo-950/40 border border-indigo-400/30"
+          ? "bg-indigo-950/60 border border-indigo-500/50 row-active-pulse"
           : "border border-transparent"
       )}
     >
       {/* Row number */}
       <div
         className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
+          "size-9 rounded-full flex items-center justify-center",
           "text-sm font-bold shrink-0 transition-colors",
           isActive
-            ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/40"
-            : "bg-slate-700 text-slate-400"
+            ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/50"
+            : "bg-slate-700/80 text-slate-400"
         )}
         aria-label={`Row ${row.dieNumber}`}
       >
@@ -59,7 +60,7 @@ export default function GameRow({
       </div>
 
       {/* Word cards */}
-      <div className="flex flex-wrap gap-2 flex-1">
+      <div className="flex flex-wrap gap-2 flex-1 min-w-0">
         <AnimatePresence mode="popLayout">
           {activeWords.map((word) => (
             <WordCard

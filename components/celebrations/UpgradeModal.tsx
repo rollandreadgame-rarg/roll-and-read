@@ -25,6 +25,9 @@ export default function UpgradeModal({ show, reason, onClose }: UpgradeModalProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 20 }}
             transition={{ type: "spring", damping: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Upgrade to premium"
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             onClick={(e) => e.stopPropagation()}
           >
@@ -34,15 +37,15 @@ export default function UpgradeModal({ show, reason, onClose }: UpgradeModalProp
             >
               <div className="text-6xl mb-4">🚀</div>
               <h2
-                className="text-2xl font-extrabold mb-2"
+                className="text-2xl font-extrabold mb-2 text-balance"
                 style={{ color: "var(--color-text-primary)" }}
               >
                 Ready for the full adventure?
               </h2>
-              <p className="mb-2" style={{ color: "var(--color-text-muted)" }}>
+              <p className="mb-2 text-pretty" style={{ color: "var(--color-text-muted)" }}>
                 {reason}
               </p>
-              <p className="mb-6 text-sm" style={{ color: "var(--color-text-muted)" }}>
+              <p className="mb-6 text-sm text-pretty" style={{ color: "var(--color-text-muted)" }}>
                 Upgrade to unlock all 5 levels, all themes, and the full sticker collection!
               </p>
               <div className="flex flex-col gap-3">

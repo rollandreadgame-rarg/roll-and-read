@@ -1,8 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
@@ -24,7 +25,7 @@ const RARITY_STYLES: Record<string, { border: string; shadow: string; label: str
 };
 
 export default function StickerBookPage() {
-  const { user } = useUser();
+  const { user } = useCurrentUser();
   const [activeCategory, setActiveCategory] = useState("animals");
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export default function StickerBookPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+          <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
             🎴 Sticker Book
           </h1>
           <p style={{ color: "var(--color-text-muted)" }}>
@@ -213,7 +214,7 @@ export default function StickerBookPage() {
         <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>
           {earned} / {total} collected
         </span>
-        <span style={{ color: "var(--color-accent-gold)", fontWeight: 700 }}>
+        <span className="tabular-nums" style={{ color: "var(--color-accent-gold)", fontWeight: 700 }}>
           💰 {(profile?.coins ?? 0).toLocaleString()} coins
         </span>
         <Link

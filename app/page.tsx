@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 const FEATURES = [
   {
@@ -61,7 +62,14 @@ const PRICING = [
   },
 ];
 
-export default function LandingPage() {
+const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
+
+export default async function LandingPage() {
+  if (!IS_E2E) {
+    const { userId } = await auth();
+    if (userId) redirect("/play");
+  }
+
   return (
     <div
       style={{

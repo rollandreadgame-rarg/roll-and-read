@@ -3,7 +3,7 @@
 import { Howl, Howler } from "howler";
 
 let initialized = false;
-let sfx: Record<string, Howl> = {};
+const sfx: Record<string, Howl> = {};
 
 // Create silent placeholder audio data URL (1 second of silence)
 // This allows the game to function even without actual audio files

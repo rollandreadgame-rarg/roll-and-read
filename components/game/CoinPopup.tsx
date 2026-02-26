@@ -16,7 +16,7 @@ export default function CoinPopup({ amount, x, y, id }: CoinPopupProps) {
       initial={{ opacity: 1, y: 0, scale: 1 }}
       animate={{ opacity: 0, y: -60, scale: 0.5 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="fixed z-50 pointer-events-none font-extrabold text-sm"
+      className="fixed z-50 pointer-events-none font-extrabold text-sm tabular-nums"
       style={{
         left: x,
         top: y,

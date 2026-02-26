@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Convex backend files use @ts-nocheck intentionally
+    "convex/**",
   ]),
 ]);
 

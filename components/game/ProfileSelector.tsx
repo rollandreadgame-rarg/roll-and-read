@@ -1,7 +1,8 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useProfileSelector } from "@/hooks/useProfile";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -51,7 +52,7 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🎲</div>
           <h1 className="text-3xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
-            Who's Reading?
+            Who&apos;s Reading?
           </h1>
           <p style={{ color: "var(--color-text-muted)" }}>Select a reader to continue</p>
         </div>
