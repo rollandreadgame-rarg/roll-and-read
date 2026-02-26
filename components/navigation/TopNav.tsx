@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2 } from "lucide-react";
+import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/sticker-book", label: "Stickers", icon: Star },
   { href: "/shop", label: "Shop", icon: ShoppingBag },
   { href: "/dashboard", label: "Progress", icon: BarChart2 },
+  { href: "/teacher", label: "Teacher", icon: GraduationCap },
 ];
 
 export default function TopNav() {
