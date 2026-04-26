@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { PROFILE_LIMITS, isLevelAllowed } from "./subscriptionConfig";
 
 export const getByUser = query({
   args: { userId: v.id("users") },
@@ -26,6 +27,21 @@ export const create = mutation({
     avatarEmoji: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    const existing = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const limit = PROFILE_LIMITS[user.plan];
+    if (existing.length >= limit) {
+      throw new Error(
+        `PROFILE_LIMIT_REACHED: Your ${user.plan} plan allows ${limit} profile${limit === 1 ? "" : "s"}. Upgrade to add more.`
+      );
+    }
+
     return await ctx.db.insert("profiles", {
       userId: args.userId,
       name: args.name,
@@ -137,6 +153,15 @@ export const advanceLevel = mutation({
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
     if (!profile) throw new Error("Profile not found");
+
+    const user = await ctx.db.get(profile.userId);
+    if (!user) throw new Error("User not found");
+
+    if (!isLevelAllowed(user.plan, args.nextLevel)) {
+      throw new Error(
+        `LEVEL_LOCKED: Your ${user.plan} plan only includes Level 1. Upgrade to unlock ${args.nextLevel}.`
+      );
+    }
 
     await ctx.db.patch(args.profileId, {
       currentLevel: args.nextLevel,

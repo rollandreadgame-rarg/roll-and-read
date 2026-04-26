@@ -13,9 +13,16 @@ export default defineSchema({
     ),
     clerkSubscriptionId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_clerk_id", ["clerkId"]),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_stripe_customer", ["stripeCustomerId"]),
 
   profiles: defineTable({
     userId: v.id("users"),
