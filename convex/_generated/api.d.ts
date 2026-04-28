@@ -14,6 +14,8 @@ import type * as profiles from "../profiles.js";
 import type * as seedStickers from "../seedStickers.js";
 import type * as seedWordLists from "../seedWordLists.js";
 import type * as stickersDb from "../stickersDb.js";
+import type * as subscriptionConfig from "../subscriptionConfig.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 import type * as wordBank from "../wordBank.js";
 import type * as wordData_level1 from "../wordData/level1.js";
@@ -36,6 +38,8 @@ declare const fullApi: ApiFromModules<{
   seedStickers: typeof seedStickers;
   seedWordLists: typeof seedWordLists;
   stickersDb: typeof stickersDb;
+  subscriptionConfig: typeof subscriptionConfig;
+  subscriptions: typeof subscriptions;
   users: typeof users;
   wordBank: typeof wordBank;
   "wordData/level1": typeof wordData_level1;
