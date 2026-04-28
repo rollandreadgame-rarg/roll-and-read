@@ -50,7 +50,7 @@ export default function UpgradeModal({ show, reason, onClose }: UpgradeModalProp
               </p>
               <div className="flex flex-col gap-3">
                 <motion.a
-                  href="/settings#subscription"
+                  href="/billing"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-3 rounded-2xl font-extrabold text-white text-center"

@@ -44,11 +44,18 @@ export default function SettingsPage() {
     api.profiles.getByUser,
     clerkUser?._id ? { userId: clerkUser._id } : "skip"
   );
+  const subscription = useQuery(
+    api.subscriptions.getByClerkId,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
 
   const selectedProfileId = activeProfileId ?? profiles?.[0]?._id;
   const profile = profiles?.find((p: any) => p._id === selectedProfileId);
   const isPaid = clerkUser?.plan !== "free";
   const profilesLoading = clerkUser === undefined || (clerkUser !== null && profiles === undefined);
+  const profileCount = profiles?.length ?? 0;
+  const profileLimit = subscription?.profileLimit ?? 1;
+  const atProfileCap = profileCount >= profileLimit;
 
   const createProfile = useMutation(api.profiles.create);
   const updateProfile = useMutation(api.profiles.update);
@@ -216,13 +223,26 @@ export default function SettingsPage() {
 
         {/* Create new */}
         {!isCreating ? (
-          <button
-            onClick={() => setIsCreating(true)}
-            className="w-full py-2.5 rounded-xl font-semibold transition-colors hover:bg-white/10"
-            style={{ border: "2px dashed rgba(255,255,255,0.15)", color: "var(--color-text-muted)" }}
-          >
-            + Add Reader
-          </button>
+          atProfileCap ? (
+            <a
+              href="/billing"
+              className="w-full block py-2.5 rounded-xl font-semibold text-center text-white"
+              style={{
+                background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
+              }}
+            >
+              ✨ Upgrade to add more readers ({profileCount}/{profileLimit} used)
+            </a>
+          ) : (
+            <button
+              onClick={() => setIsCreating(true)}
+              className="w-full py-2.5 rounded-xl font-semibold transition-colors hover:bg-white/10"
+              style={{ border: "2px dashed rgba(255,255,255,0.15)", color: "var(--color-text-muted)" }}
+            >
+              + Add Reader ({profileCount}/{profileLimit})
+            </button>
+          )
         ) : (
           <div className="p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -408,19 +428,20 @@ export default function SettingsPage() {
         </p>
         {!isPaid ? (
           <a
-            href="/settings#upgrade"
+            href="/billing"
             className="block w-full py-3 rounded-xl text-center font-bold text-white"
             style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}
           >
-            ✨ Upgrade to Individual — $7.99/mo
+            ✨ Upgrade — From $7.99/mo
           </a>
         ) : (
-          <button
-            className="w-full py-3 rounded-xl font-semibold transition-colors hover:bg-white/10"
-            style={{ border: "1px solid rgba(255,255,255,0.15)", color: "var(--color-text-muted)" }}
+          <a
+            href="/billing"
+            className="block w-full py-3 rounded-xl text-center font-semibold transition-colors hover:bg-white/10"
+            style={{ border: "1px solid rgba(255,255,255,0.15)", color: "var(--color-text-primary)" }}
           >
             Manage Subscription
-          </button>
+          </a>
         )}
       </section>
 
@@ -476,7 +497,7 @@ export default function SettingsPage() {
                 </p>
                 <div className="flex flex-col gap-3">
                   <a
-                    href="#upgrade"
+                    href="/billing"
                     onClick={() => setShowUpgradeModal(false)}
                     className="w-full py-3 rounded-2xl font-extrabold text-white text-center"
                     style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}

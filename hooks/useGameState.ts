@@ -93,6 +93,7 @@ export function useGameState(profileId: string | null) {
   const [recentWords, setRecentWords] = useState<RecentWord[]>([]);
   const [localCoins, setLocalCoins] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showLevelLocked, setShowLevelLocked] = useState(false);
 
   // Celebration state
   const [showRowBanner, setShowRowBanner] = useState(false);
@@ -118,17 +119,31 @@ export function useGameState(profileId: string | null) {
   });
   const rowWordCountRef = useRef<{ words: number; coins: number }>({ words: 0, coins: 0 });
 
-  // Mutation wrapper: retry once, then surface error
+  // Mutation wrapper: retry once, then surface error.
+  // Tier-gating errors thrown by the backend (LEVEL_LOCKED, PROFILE_LIMIT_REACHED)
+  // surface as an upgrade prompt rather than a generic save error.
   const safeMutate = useCallback(
     async <T,>(fn: () => Promise<T>, label: string): Promise<T | undefined> => {
+      const isGatingError = (err: unknown) =>
+        err instanceof Error &&
+        (err.message.includes("LEVEL_LOCKED") || err.message.includes("PROFILE_LIMIT_REACHED"));
+
       try {
         return await fn();
-      } catch {
+      } catch (e) {
+        if (isGatingError(e)) {
+          setShowLevelLocked(true);
+          return undefined;
+        }
         // Retry once
         try {
           return await fn();
-        } catch (e) {
-          console.error(`[${label}] mutation failed after retry:`, e);
+        } catch (retryErr) {
+          if (isGatingError(retryErr)) {
+            setShowLevelLocked(true);
+            return undefined;
+          }
+          console.error(`[${label}] mutation failed after retry:`, retryErr);
           setSaveError("Couldn't save — check your connection");
           setTimeout(() => setSaveError(null), 4000);
           return undefined;
@@ -538,6 +553,8 @@ export function useGameState(profileId: string | null) {
     showLevelUp,
     levelUpData,
     saveError,
+    showLevelLocked,
+    dismissLevelLocked: () => setShowLevelLocked(false),
     // Actions
     startNewBoard,
     rollDice,

@@ -15,6 +15,7 @@ import RowClearBanner from "@/components/celebrations/RowClearBanner";
 import BoardCompleteModal from "@/components/celebrations/BoardCompleteModal";
 import LevelUpOverlay from "@/components/celebrations/LevelUpOverlay";
 import TutorialModal from "@/components/celebrations/TutorialModal";
+import UpgradeModal from "@/components/celebrations/UpgradeModal";
 import type { WordEntry } from "@/lib/game/boardGenerator";
 
 export default function PlayPage() {
@@ -48,6 +49,8 @@ export default function PlayPage() {
     boardCompleteData,
     showLevelUp,
     levelUpData,
+    showLevelLocked,
+    dismissLevelLocked,
     startNewBoard,
     rollDice,
     handleWordTap,
@@ -234,6 +237,12 @@ export default function PlayPage() {
       <TutorialModal
         show={showTutorial}
         onClose={handleTutorialClose}
+      />
+
+      <UpgradeModal
+        show={showLevelLocked}
+        reason="You've finished Level 1! Upgrade to unlock Levels 2–5 with all sublevels and the full word library."
+        onClose={dismissLevelLocked}
       />
     </div>
   );
