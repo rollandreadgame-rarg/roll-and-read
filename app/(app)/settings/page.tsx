@@ -26,7 +26,18 @@ type WordModeType = "real" | "nonsense" | "mixed";
 export default function SettingsPage() {
   const router = useRouter();
   const { user } = useCurrentUser();
-  const { theme, setTheme, fontSize, setFontSize, fontFamily, setFontFamily } = useTheme();
+  const {
+    theme,
+    setTheme,
+    fontSize,
+    setFontSize,
+    fontFamily,
+    setFontFamily,
+    soundMuted,
+    setSoundMuted,
+    soundVolume,
+    setSoundVolume,
+  } = useTheme();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -412,6 +423,66 @@ export default function SettingsPage() {
           >
             cat · ship · bright
           </div>
+        </div>
+      </section>
+
+      {/* Sound */}
+      <section
+        className="rounded-2xl p-5"
+        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
+          🔊 Sound
+        </h2>
+
+        <div className="flex items-center justify-between mb-4">
+          <label
+            htmlFor="sound-mute-toggle"
+            className="text-sm font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            Mute all sound
+          </label>
+          <button
+            id="sound-mute-toggle"
+            role="switch"
+            aria-checked={soundMuted}
+            onClick={() => setSoundMuted(!soundMuted)}
+            className="relative w-12 h-7 rounded-full transition-colors"
+            style={{
+              background: soundMuted ? "rgba(239,68,68,0.7)" : "var(--color-brand)",
+            }}
+          >
+            <span
+              className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform"
+              style={{
+                transform: soundMuted ? "translateX(20px)" : "translateX(0)",
+              }}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+
+        <div>
+          <label
+            htmlFor="sound-volume-range"
+            className="text-sm font-semibold mb-2 block"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Volume: {Math.round(soundVolume * 100)}%
+          </label>
+          <input
+            id="sound-volume-range"
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={Math.round(soundVolume * 100)}
+            onChange={(e) => setSoundVolume(Number(e.target.value) / 100)}
+            disabled={soundMuted}
+            className="w-full disabled:opacity-50"
+            style={{ accentColor: "var(--color-brand)" }}
+          />
         </div>
       </section>
 

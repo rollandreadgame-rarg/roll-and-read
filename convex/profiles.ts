@@ -214,5 +214,11 @@ export const completedBoard = mutation({
       streakDays: newStreak,
       lastPlayedAt: now,
     });
+
+    return {
+      newStreakDays: newStreak,
+      previousStreakDays: profile.streakDays,
+      totalBoardsCleared: profile.totalBoardsCleared + 1,
+    };
   },
 });

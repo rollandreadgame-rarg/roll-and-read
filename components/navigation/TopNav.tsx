@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap, CreditCard } from "lucide-react";
+import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap, CreditCard, Target } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
 
 const navItems = [
   { href: "/play", label: "Play", icon: Dices },
+  { href: "/practice", label: "Practice", icon: Target },
   { href: "/word-bank", label: "Words", icon: BookOpen },
   { href: "/sticker-book", label: "Stickers", icon: Star },
   { href: "/shop", label: "Shop", icon: ShoppingBag },

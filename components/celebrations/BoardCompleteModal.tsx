@@ -7,6 +7,13 @@ import confetti from "canvas-confetti";
 import Sparkles from "@/components/ui/sparkles";
 import ShimmerButton from "@/components/ui/shimmer-button";
 
+interface EarnedSticker {
+  name: string;
+  emoji: string;
+  rarity: string;
+  reason: string;
+}
+
 interface BoardCompleteModalProps {
   show: boolean;
   wordsAdded: number;
@@ -14,8 +21,16 @@ interface BoardCompleteModalProps {
   accuracy: number;
   streakDays: number;
   theme: string;
+  earnedStickers?: EarnedSticker[];
   onPlayAgain: () => void;
 }
+
+const RARITY_GLOW: Record<string, string> = {
+  common: "rgba(148,163,184,0.5)",
+  uncommon: "rgba(74,222,128,0.6)",
+  rare: "rgba(96,165,250,0.7)",
+  legendary: "rgba(245,158,11,0.8)",
+};
 
 const MASCOTS: Record<string, string> = {
   ocean: "🐙",
@@ -40,6 +55,7 @@ export default function BoardCompleteModal({
   accuracy,
   streakDays,
   theme,
+  earnedStickers = [],
   onPlayAgain,
 }: BoardCompleteModalProps) {
   const mascot = MASCOTS[theme] ?? "🎉";
@@ -123,6 +139,56 @@ export default function BoardCompleteModal({
               >
                 Amazing reading! Keep it up!
               </motion.p>
+
+              {/* Earned stickers (only when at least one milestone fired) */}
+              {earnedStickers.length > 0 && (
+                <motion.div
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.45 }}
+                  className="mb-5 relative z-10"
+                >
+                  <div
+                    className="text-xs uppercase tracking-wide mb-2 font-bold"
+                    style={{ color: "var(--color-accent-gold)" }}
+                  >
+                    ✨ New stickers earned!
+                  </div>
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    {earnedStickers.map((s, i) => (
+                      <motion.div
+                        key={`${s.name}-${i}`}
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: [0, 1.25, 1], rotate: [-45, 10, 0] }}
+                        transition={{
+                          delay: 0.55 + i * 0.18,
+                          duration: 0.55,
+                          ease: "backOut",
+                        }}
+                        className="flex flex-col items-center"
+                      >
+                        <div
+                          className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl"
+                          style={{
+                            background: "rgba(255,255,255,0.08)",
+                            border: "2px solid rgba(255,255,255,0.15)",
+                            boxShadow: `0 0 24px ${RARITY_GLOW[s.rarity] ?? RARITY_GLOW.common}`,
+                          }}
+                          aria-label={`${s.name} sticker`}
+                        >
+                          {s.emoji}
+                        </div>
+                        <div
+                          className="mt-1 text-[10px] font-semibold max-w-[80px] text-center text-balance"
+                          style={{ color: "var(--color-text-muted)" }}
+                        >
+                          {s.reason}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Stats */}
               <motion.div

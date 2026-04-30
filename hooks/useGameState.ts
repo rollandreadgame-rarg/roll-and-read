@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { generateBoard, checkLevelAdvancement, type GameBoard, type WordEntry } from "@/lib/game/boardGenerator";
+import { getMilestonesForBoard, type MilestoneTrigger } from "@/lib/game/milestones";
 import { getNextLevel } from "@/lib/utils";
 import { speakWord } from "@/lib/tts/webSpeechTTS";
 import { playSound } from "@/lib/audio/soundManager";
@@ -72,6 +73,7 @@ export function useGameState(profileId: string | null) {
   const advanceLevelMut = useMutation(api.profiles.advanceLevel);
   const saveSessionMut = useMutation(api.gameSessions.save);
   const updateProfileMut = useMutation(api.profiles.update);
+  const awardMilestoneStickerMut = useMutation(api.stickersDb.awardMilestoneSticker);
 
   // Local game state
   const [board, setBoard] = useState<GameBoard | null>(null);
@@ -99,10 +101,16 @@ export function useGameState(profileId: string | null) {
   const [showRowBanner, setShowRowBanner] = useState(false);
   const [rowBannerData, setRowBannerData] = useState({ words: 0, coins: 0 });
   const [showBoardComplete, setShowBoardComplete] = useState(false);
-  const [boardCompleteData, setBoardCompleteData] = useState({
+  const [boardCompleteData, setBoardCompleteData] = useState<{
+    wordsAdded: number;
+    coinsEarned: number;
+    accuracy: number;
+    earnedStickers: { name: string; emoji: string; rarity: string; reason: string }[];
+  }>({
     wordsAdded: 0,
     coinsEarned: 0,
     accuracy: 0,
+    earnedStickers: [],
   });
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState({ newLevel: "" });
@@ -456,18 +464,62 @@ export function useGameState(profileId: string | null) {
 
       await sleep(500);
 
+      // Determine if this board triggers a level-up before showing the modal
+      // so we can roll the level-up sticker into the same award batch.
+      const newBoardsCleared = (profile.boardsClearedAtLevel || 0) + 1;
+      const newHistory = [...(profile.accuracyHistory || []), accuracy].slice(-10);
+      const isLevelUp =
+        checkLevelAdvancement(newBoardsCleared, newHistory) &&
+        getNextLevel(profile.currentLevel) !== null;
+
+      // Mutate the streak first so we know previous→new streak before rendering.
+      const streakResult = await safeMutate(
+        () => completedBoardMut({ profileId: profileId as Id<"profiles">, accuracy }),
+        "completedBoard"
+      );
+
+      const milestones: MilestoneTrigger[] = streakResult
+        ? getMilestonesForBoard({
+            totalBoardsCleared: streakResult.totalBoardsCleared,
+            accuracy,
+            previousStreakDays: streakResult.previousStreakDays,
+            newStreakDays: streakResult.newStreakDays,
+            isLevelUp,
+          })
+        : [];
+
+      // Grant stickers in parallel; collect successful awards for the modal.
+      const grantResults = await Promise.all(
+        milestones.map(async (m) => {
+          const granted = await safeMutate(
+            () => awardMilestoneStickerMut({
+              profileId: profileId as Id<"profiles">,
+              preferredRarity: m.rarity,
+            }),
+            `awardSticker:${m.type}`
+          );
+          if (!granted) return null;
+          return {
+            name: granted.name,
+            emoji: granted.emoji,
+            rarity: granted.rarity,
+            reason: m.label,
+          };
+        })
+      );
+      const earnedStickers = grantResults.filter(
+        (g): g is NonNullable<typeof g> => g !== null
+      );
+
+      if (earnedStickers.length > 0) playSound("stickerReveal");
+
       setBoardCompleteData({
         wordsAdded: sess.wordsCorrect,
         coinsEarned: sess.coinsEarned,
         accuracy,
+        earnedStickers,
       });
       setShowBoardComplete(true);
-
-      // Save to Convex
-      safeMutate(
-        () => completedBoardMut({ profileId: profileId as Id<"profiles">, accuracy }),
-        "completedBoard"
-      );
 
       safeMutate(
         () => saveSessionMut({
@@ -480,16 +532,13 @@ export function useGameState(profileId: string | null) {
           wordsSkipped: sess.wordsSkipped,
           hintsUsed: sess.hintsUsed,
           coinsEarned: sess.coinsEarned,
-          stickersEarned: 0,
+          stickersEarned: earnedStickers.length,
           duration,
         }),
         "saveSession"
       );
 
-      // Check for level advancement
-      const newBoardsCleared = (profile.boardsClearedAtLevel || 0) + 1;
-      const newHistory = [...(profile.accuracyHistory || []), accuracy].slice(-10);
-      if (checkLevelAdvancement(newBoardsCleared, newHistory)) {
+      if (isLevelUp) {
         const next = getNextLevel(profile.currentLevel);
         if (next) {
           setTimeout(async () => {

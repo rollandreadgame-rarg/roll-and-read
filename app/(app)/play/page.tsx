@@ -225,6 +225,7 @@ export default function PlayPage() {
         accuracy={boardCompleteData.accuracy}
         streakDays={profile?.streakDays ?? 0}
         theme={profile?.selectedTheme ?? "ocean"}
+        earnedStickers={boardCompleteData.earnedStickers}
         onPlayAgain={handlePlayAgain}
       />
 

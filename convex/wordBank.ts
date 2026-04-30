@@ -63,3 +63,21 @@ export const getTotalValue = query({
     return words.reduce((sum, w) => sum + w.coinValue, 0);
   },
 });
+
+// Mark a single word as no-longer-needing-practice (Practice mode "Got it" tap).
+export const markPracticed = mutation({
+  args: {
+    wordBankId: v.id("word_bank"),
+    stillNeedsPractice: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.wordBankId);
+    if (!existing) throw new Error("Word bank entry not found");
+    await ctx.db.patch(args.wordBankId, {
+      needsPractice: args.stillNeedsPractice,
+      timesCorrect: args.stillNeedsPractice
+        ? existing.timesCorrect
+        : existing.timesCorrect + 1,
+    });
+  },
+});

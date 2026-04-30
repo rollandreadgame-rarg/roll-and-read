@@ -53,6 +53,10 @@ export function setMasterVolume(volume: number): void {
   Howler.volume(volume);
 }
 
+export function setMuted(muted: boolean): void {
+  Howler.mute(muted);
+}
+
 export function stopAll(): void {
   Howler.stop();
 }
