@@ -16,12 +16,14 @@ import BoardCompleteModal from "@/components/celebrations/BoardCompleteModal";
 import LevelUpOverlay from "@/components/celebrations/LevelUpOverlay";
 import TutorialModal from "@/components/celebrations/TutorialModal";
 import UpgradeModal from "@/components/celebrations/UpgradeModal";
+import NonsenseCoachmark from "@/components/celebrations/NonsenseCoachmark";
 import type { WordEntry } from "@/lib/game/boardGenerator";
 
 export default function PlayPage() {
   useTheme();
   const [profileId, setProfileId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showNonsenseTip, setShowNonsenseTip] = useState(false);
 
   const wordRefs = useRef<Record<string, React.RefObject<HTMLButtonElement | null>>>({});
 
@@ -53,6 +55,7 @@ export default function PlayPage() {
     dismissLevelLocked,
     startNewBoard,
     rollDice,
+    repeatWord,
     handleWordTap,
     handlePlayAgain,
     handleLevelUpClose,
@@ -75,6 +78,27 @@ export default function PlayPage() {
     }
   }, [profile?.hasSeenTutorial]);
 
+  // Does the current board contain any silly (nonsense) words?
+  const boardHasNonsense =
+    !!board?.rows?.some((r) => r.words.some((w) => w.isNonsense));
+
+  // First-time coaching for silly words — shown once per profile, and never
+  // while the tutorial is up so the two don't overlap.
+  useEffect(() => {
+    if (!profileId || !boardHasNonsense || showTutorial) return;
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(`nonsenseTipSeen:${profileId}`)) {
+      setShowNonsenseTip(true);
+    }
+  }, [profileId, boardHasNonsense, showTutorial]);
+
+  const dismissNonsenseTip = useCallback(() => {
+    setShowNonsenseTip(false);
+    if (profileId && typeof window !== "undefined") {
+      localStorage.setItem(`nonsenseTipSeen:${profileId}`, "1");
+    }
+  }, [profileId]);
+
   // Sync theme from profile
   useEffect(() => {
     if (profile?.selectedTheme) {
@@ -82,17 +106,22 @@ export default function PlayPage() {
     }
   }, [profile?.selectedTheme]);
 
-  // Keyboard support: Spacebar to roll
+  // Keyboard support: Spacebar rolls when idle, and repeats the current word
+  // while a row is active (you can't roll again until the row is cleared).
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !isRolling && activeRow === null && board) {
-        e.preventDefault();
+      if (e.code !== "Space" || isRolling || !board) return;
+      // preventDefault also stops Space from "clicking" a focused word card.
+      e.preventDefault();
+      if (activeRow === null) {
         rollDice();
+      } else {
+        repeatWord();
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [isRolling, activeRow, board, rollDice]);
+  }, [isRolling, activeRow, board, rollDice, repeatWord]);
 
   const handleWordTapWithRect = useCallback(
     (word: WordEntry) => {
@@ -147,6 +176,8 @@ export default function PlayPage() {
               clearedFaces={clearedRows}
               onRoll={rollDice}
               disabled={activeRow !== null || isRolling}
+              rowActive={activeRow !== null}
+              onRepeat={repeatWord}
             />
           </div>
         </div>
@@ -161,19 +192,40 @@ export default function PlayPage() {
             className="flex items-center justify-between px-4 py-2 border-b"
             style={{ borderColor: "rgba(255,255,255,0.06)" }}
           >
-            <span className="text-sm font-semibold" style={{ color: "var(--color-text-muted)" }}>
-              {profile?.name ? `${profile.name}'s Board` : "Game Board"}
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-semibold truncate" style={{ color: "var(--color-text-muted)" }}>
+                {profile?.name ? `${profile.name}'s Board` : "Game Board"}
+              </span>
+              {boardHasNonsense && (
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 shrink-0"
+                  style={{
+                    background: "rgba(139,92,246,0.15)",
+                    color: "var(--color-text-muted)",
+                    border: "1px dashed rgba(139,92,246,0.6)",
+                  }}
+                  title="Cards with an alien are silly (not real) words — just sound them out"
+                >
+                  <span aria-hidden="true">👽</span>
+                  <span className="hidden sm:inline">silly word = sound it out</span>
+                  <span className="sm:hidden">silly word</span>
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {activeRow !== null && (
-                <motion.span
+                <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="text-sm font-bold"
+                  whileTap={{ scale: 0.94 }}
+                  onClick={repeatWord}
+                  className="text-sm font-bold cursor-pointer"
                   style={{ color: "var(--color-brand)" }}
+                  aria-label="Hear the word again"
+                  title="Tap to hear the word again"
                 >
                   🎧 Listen & Tap!
-                </motion.span>
+                </motion.button>
               )}
               <span
                 className="text-xs px-2 py-1 rounded-full font-bold text-white"
@@ -245,6 +297,8 @@ export default function PlayPage() {
         reason="You've finished Level 1! Upgrade to unlock Levels 2–5 with all sublevels and the full word library."
         onClose={dismissLevelLocked}
       />
+
+      <NonsenseCoachmark show={showNonsenseTip} onDismiss={dismissNonsenseTip} />
     </div>
   );
 }

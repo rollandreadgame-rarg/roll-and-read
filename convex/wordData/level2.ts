@@ -247,7 +247,6 @@ export const LEVEL2_WORDS: WordEntry[] = [
   { word: "toad", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "oa", phonicPattern: "vowel-team-oa" },
   { word: "toe", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "oe", phonicPattern: "vowel-team-oa" },
   { word: "foe", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "oe", phonicPattern: "vowel-team-oa" },
-  { word: "hoe", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "oe", phonicPattern: "vowel-team-oa" },
   { word: "row", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "ow-long", phonicPattern: "vowel-team-ow-long" },
   { word: "low", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "ow-long", phonicPattern: "vowel-team-ow-long" },
   { word: "show", isNonsense: false, level: "2E", levelNumber: 2, coinValue: 8, phonicFamily: "ow-long", phonicPattern: "vowel-team-ow-long" },

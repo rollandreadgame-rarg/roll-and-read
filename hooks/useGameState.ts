@@ -242,6 +242,13 @@ export function useGameState(profileId: string | null) {
     speakWord(target.word);
   }, [isRolling, board, activeRow, clearedRows, clearedWords]);
 
+  // Re-speak the word the player is currently looking for (spacebar / on-screen
+  // "Hear it again" button). No-op unless a row is active and not mid-roll.
+  const repeatWord = useCallback(() => {
+    if (activeRow === null || !currentTarget || isRolling) return;
+    speakWord(currentTarget.word);
+  }, [activeRow, currentTarget, isRolling]);
+
   // Handle word tap
   const handleWordTap = useCallback(
     async (tappedWord: WordEntry, cardRect?: DOMRect) => {
@@ -607,6 +614,7 @@ export function useGameState(profileId: string | null) {
     // Actions
     startNewBoard,
     rollDice,
+    repeatWord,
     handleWordTap,
     handlePlayAgain,
     handleLevelUpClose,

@@ -50,13 +50,16 @@ export default function WordCard({
       whileTap={isActive ? { scale: 0.94 } : {}}
       onClick={() => isActive && !isCorrect && onTap(word)}
       disabled={!isActive || isCorrect}
-      aria-label={`Word card: ${word.word}${word.isNonsense ? " (nonsense word)" : ""}`}
+      aria-label={`Word card: ${word.word}${word.isNonsense ? " — silly word, sound it out" : ""}`}
       role="button"
       className={cn(
         "relative min-h-[56px] px-3 py-2 rounded-xl flex-1 basis-[72px]",
         "font-bold select-none cursor-pointer",
         "border-2 transition-all duration-150",
         "flex items-center justify-center",
+        // Silly (nonsense) words get a dashed border so they read as "not real"
+        // even in grayscale / for colorblind kids — layers on top of the state color below.
+        word.isNonsense && "border-dashed",
         !isActive && "cursor-not-allowed",
         // Inactive
         !isActive && !isCorrect &&
@@ -93,6 +96,23 @@ export default function WordCard({
           : undefined,
       }}
     >
+      {/* Silly (nonsense) word: "outer space" backdrop so the whole slot reads as
+          an alien/not-real word. Hidden on correct so the success burst stays clean. */}
+      {word.isNonsense && !isCorrect && (
+        <span
+          className="absolute inset-0 rounded-xl pointer-events-none overflow-hidden"
+          aria-hidden="true"
+          style={{
+            // Flat, uniform dark-purple space tint. No top highlight or inset
+            // "stars" — those rendered as a thick light band crowding the word.
+            // A faint glow sits low/center so the top stays dark for contrast.
+            background:
+              "radial-gradient(circle at 50% 95%, rgba(129,140,248,0.18) 0%, transparent 55%)," +
+              "linear-gradient(180deg, #2c0a54 0%, #371263 100%)",
+          }}
+        />
+      )}
+
       {/* Shimmer on active hover */}
       {isActive && !isCorrect && (
         <span
@@ -118,18 +138,45 @@ export default function WordCard({
         )}
       </AnimatePresence>
 
-      {/* Word text */}
-      <span className="relative z-10">{word.word}</span>
+      {/* Word text — for silly words, add a dark text-shadow so the bold letters
+          stay high-contrast and legible over the purple space backdrop. */}
+      <span
+        className="relative z-10"
+        style={
+          word.isNonsense
+            ? { textShadow: "0 1px 2px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.85)" }
+            : undefined
+        }
+      >
+        {word.word}
+      </span>
 
-      {/* Nonsense word marker */}
+      {/* Silly (nonsense) word markers. Two redundant, hard-to-miss cues:
+          a big alien (top-left) for non-readers/ELLs, and the ✦ star (top-right)
+          kept as a secondary signifier. */}
       {word.isNonsense && (
-        <span
-          className="absolute top-1 right-1.5 font-bold text-amber-400"
-          aria-hidden="true"
-          style={{ fontSize: "10px" }}
-        >
-          ✦
-        </span>
+        <>
+          <span
+            className="absolute -top-1 -left-1 z-20 flex items-center justify-center rounded-full bg-violet-600 shadow-md ring-1 ring-white/80"
+            aria-hidden="true"
+            title="Silly word — not a real word, just sound it out!"
+            style={{
+              width: "20px",
+              height: "20px",
+              fontSize: "13px",
+              lineHeight: 1,
+            }}
+          >
+            👽
+          </span>
+          <span
+            className="absolute top-1 right-1.5 z-20 font-bold text-amber-300"
+            aria-hidden="true"
+            style={{ fontSize: "11px" }}
+          >
+            ✦
+          </span>
+        </>
       )}
     </motion.button>
   );

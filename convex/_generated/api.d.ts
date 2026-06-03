@@ -10,6 +10,7 @@
 
 import type * as e2eSetup from "../e2eSetup.js";
 import type * as gameSessions from "../gameSessions.js";
+import type * as maintenance from "../maintenance.js";
 import type * as profiles from "../profiles.js";
 import type * as seedStickers from "../seedStickers.js";
 import type * as seedWordLists from "../seedWordLists.js";
@@ -34,6 +35,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   e2eSetup: typeof e2eSetup;
   gameSessions: typeof gameSessions;
+  maintenance: typeof maintenance;
   profiles: typeof profiles;
   seedStickers: typeof seedStickers;
   seedWordLists: typeof seedWordLists;

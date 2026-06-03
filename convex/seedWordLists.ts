@@ -96,7 +96,6 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "bim", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-im", phonicPattern: "short-i" },
   { word: "zit", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-it", phonicPattern: "short-i" },
   { word: "tig", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
-  { word: "nig", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "vip", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
   { word: "dilt", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ilt", phonicPattern: "short-i" },
 

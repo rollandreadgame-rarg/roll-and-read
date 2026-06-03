@@ -10,6 +10,8 @@ interface DicePanelProps {
   clearedFaces: number[];
   onRoll: () => void;
   disabled: boolean;
+  rowActive: boolean;
+  onRepeat: () => void;
 }
 
 const ALL_FACES = [1, 2, 3, 4, 5, 6];
@@ -20,8 +22,13 @@ export default function DicePanel({
   clearedFaces,
   onRoll,
   disabled,
+  rowActive,
+  onRepeat,
 }: DicePanelProps) {
   const canRoll = !isRolling && !disabled;
+  // While a row is active you can't roll again — so the Roll button's spot
+  // becomes the "Hear it again" replay button instead.
+  const showRepeat = rowActive && !isRolling;
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -36,30 +43,30 @@ export default function DicePanel({
         <Dice3D result={diceResult} isRolling={isRolling} />
       </motion.div>
 
-      {/* Roll Button */}
+      {/* Roll Button — becomes "Hear it again" while a row is active */}
       <motion.button
-        onClick={onRoll}
-        disabled={!canRoll}
-        whileTap={canRoll ? { scale: 0.95 } : {}}
-        whileHover={canRoll ? { scale: 1.03 } : {}}
+        onClick={showRepeat ? onRepeat : onRoll}
+        disabled={showRepeat ? false : !canRoll}
+        whileTap={canRoll || showRepeat ? { scale: 0.95 } : {}}
+        whileHover={canRoll || showRepeat ? { scale: 1.03 } : {}}
         className={cn(
           "w-full py-3 px-6 rounded-2xl",
           "text-lg font-extrabold uppercase",
           "transition-all duration-200 select-none",
           "min-h-[56px]",
-          canRoll
+          canRoll || showRepeat
             ? "text-white shadow-lg shadow-indigo-600/40 hover:shadow-indigo-500/60 cursor-pointer"
             : "opacity-50 cursor-not-allowed text-slate-400 bg-slate-700 border border-slate-600"
         )}
         style={
-          canRoll
+          canRoll || showRepeat
             ? {
                 background:
                   "linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-secondary) 100%)",
               }
             : {}
         }
-        aria-label="Roll the dice"
+        aria-label={showRepeat ? "Hear the word again" : "Roll the dice"}
       >
         {isRolling ? (
           <motion.span
@@ -68,10 +75,22 @@ export default function DicePanel({
           >
             Rolling...
           </motion.span>
+        ) : showRepeat ? (
+          "🔊 Hear it again"
         ) : (
           "🎲 Roll!"
         )}
       </motion.button>
+
+      {/* Written instruction: how to repeat the spoken word */}
+      {showRepeat && (
+        <p
+          className="text-center text-sm font-semibold -mt-1 px-2"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          Press the space bar to hear the word again
+        </p>
+      )}
 
       {/* Face indicators */}
       <div className="flex gap-2" role="group" aria-label="Dice face status">
