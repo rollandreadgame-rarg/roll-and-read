@@ -1,6 +1,30 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+
+/**
+ * Read-only diagnostic: how many words are in the table, whether the given
+ * words exist (case-insensitive), and the full list of nonsense words at 1A.
+ */
+export const inspectWords = query({
+  args: { words: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const targets = new Set(args.words.map((w) => w.toLowerCase()));
+    const all = await ctx.db.query("word_lists").collect();
+    const matches = all
+      .filter((d) => targets.has(d.word.toLowerCase()))
+      .map((d) => ({ word: d.word, level: d.level, isNonsense: d.isNonsense }));
+    const level1ANonsense = all
+      .filter((d) => d.level === "1A" && d.isNonsense)
+      .map((d) => d.word)
+      .sort();
+    return {
+      totalWordLists: all.length,
+      matchesForTargets: matches,
+      level1ANonsenseWords: level1ANonsense,
+    };
+  },
+});
 
 /**
  * Permanently remove words (by exact text, case-insensitive) from the live
