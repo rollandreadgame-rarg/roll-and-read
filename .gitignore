@@ -51,4 +51,4 @@ CLAUDE.md
 .playwright-mcp/
 
 # Sticker pipeline intermediate artifacts
-scripts/out/
+tools/stickers/out/
