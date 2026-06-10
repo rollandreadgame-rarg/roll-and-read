@@ -32,6 +32,18 @@ test("cleanName also strips a repeated subcategory token when present", () => {
   );
 });
 
+test("cleanName tolerates misspelled/extension-fused variant suffixes", () => {
+  assert.equal(cleanName("sticker_holiday & celebration_Cat Stealing Cake darkt.svg", "Holiday & Celebration", "Birthday Cakes"), "Cat Stealing Cake");
+  assert.equal(cleanName("sticker_food_pizza_Skateboarding Pizza darksvg.svg", "Food", "PIZZA"), "Skateboarding Pizza");
+  assert.equal(cleanName("sticker_nature_Volcano Mountain high contrat.svg", "Nature", "MOUNTAINS"), "Volcano Mountain");
+  assert.equal(cleanName("sticker_toys and fun_Classic Teddy high congtrast.svg", "Toys & Fun", "TEDDY BEARS"), "Classic Teddy");
+  assert.equal(cleanName("sticker_adventure and travel_Treasure Map Pirate light svg.svg", "Adventure and Travel", "Maps"), "Treasure Map Pirate");
+});
+
+test("cleanName preserves a legit trailing 'Lights' (not a variant)", () => {
+  assert.equal(cleanName("sticker_holiday & celebration_Snowman With Lights_light.svg", "Holiday & Celebration", "Snowmen"), "Snowman With Lights");
+});
+
 test("slugify is filesystem + url safe and stable", () => {
   assert.equal(slugify("Animals", "CAT", "Birthday Cat"), "animals_cat_birthday-cat");
   assert.equal(slugify("Food", "ICE CREAM CONES", "Mint Cone"), "food_ice-cream-cones_mint-cone");

@@ -28,6 +28,15 @@ export function cleanName(filename, category = "", subcategory = "") {
     if (i === pTokens.length) s = sTokens.slice(i).join(" ");
   }
 
+  // Second pass: tolerate misspelled / extension-fused variant suffixes the
+  // first pass misses ("darkt", "darks", "darksvg", "lightt", "lightsvg",
+  // "light svg", "high contrat/congtrast/cotrast", trailing stray "svg").
+  // Carefully NOT matching legit words like "Lights".
+  s = s.replace(
+    /[ _.\-]*(?:high[ _]*co\w*|dark(?:t|s|svg)|light(?:t|svg)|(?:dark|light)[ _]+svg|svg)[ _.]*$/i,
+    ""
+  );
+
   s = s.replace(/[_.\-]+$/g, "");
   return s.replace(/\s+/g, " ").trim();
 }
