@@ -1,5 +1,6 @@
 // components/celebrations/PickCategoryModal.tsx
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "convex/react";
