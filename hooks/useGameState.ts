@@ -105,7 +105,7 @@ export function useGameState(profileId: string | null) {
     wordsAdded: number;
     coinsEarned: number;
     accuracy: number;
-    earnedStickers: { name: string; emoji: string; rarity: string; reason: string }[];
+    earnedStickers: { name: string; emoji?: string; rarity: string; reason: string }[];
   }>({
     wordsAdded: 0,
     coinsEarned: 0,

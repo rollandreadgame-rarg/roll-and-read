@@ -48,7 +48,7 @@ const CATEGORIES = ["animals", "space", "ocean", "fantasy", "characters"];
 
 type RevealedSticker = {
   name: string;
-  emoji: string;
+  emoji?: string;
   rarity: string;
 };
 
