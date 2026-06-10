@@ -12,6 +12,14 @@
 
 **Prerequisite — external accounts:** Task 0 requires you (Nadir) to create the R2 bucket and paste credentials. Everything else is mechanical.
 
+> **Execution status (2026-06-10):** Tasks 0–5 COMPLETE on branch
+> `feature/real-sticker-catalog` (599 stickers on R2, catalog JSON committed).
+> **Tasks 6–8 (schema deploy + reset + seed) are DEFERRED** — per Nadir's call
+> they run as part of Plan 2 (UI swap), so the live Shop/Book pages never show a
+> broken window. Execute Tasks 6–8 below at the start of Plan 2. NOTE: prefer
+> seeding WITHOUT `resetStickers` (keep the old 50 emoji active) until Plan 2's UI
+> switch is ready, then retire the old seed.
+
 > **Path note (during execution):** the legacy `/scripts/` dir is git-ignored (it
 > holds key-bearing Python scripts), so the pipeline scripts live under
 > **`tools/stickers/`** instead. Every `scripts/...` path below maps to
