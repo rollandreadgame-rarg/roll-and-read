@@ -1,21 +1,17 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { CATEGORIES } from "@/lib/stickers/categories";
+import StickerImage from "@/components/stickers/StickerImage";
 
-const CATEGORY_TABS = [
-  { label: "Animals 🐾", value: "animals" },
-  { label: "Space 🚀", value: "space" },
-  { label: "Ocean 🌊", value: "ocean" },
-  { label: "Fantasy 🧙", value: "fantasy" },
-  { label: "Characters ⭐", value: "characters" },
-];
+const CATEGORY_TABS = CATEGORIES.map((c) => ({ label: `${c.label} ${c.icon}`, value: c.key }));
 
 const RARITY_STYLES: Record<string, { border: string; shadow: string; label: string }> = {
   common: { border: "#6B7280", shadow: "none", label: "Common" },
@@ -26,7 +22,7 @@ const RARITY_STYLES: Record<string, { border: string; shadow: string; label: str
 
 export default function StickerBookPage() {
   const { user } = useCurrentUser();
-  const [activeCategory, setActiveCategory] = useState("animals");
+  const [activeCategory, setActiveCategory] = useState<string>(CATEGORIES[0].key);
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
 
@@ -52,8 +48,20 @@ export default function StickerBookPage() {
     (s: any) => s.category === activeCategory
   );
 
+  // Group the active category's stickers by subcategory for browsable sections.
+  const grouped = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const s of categoryStickers) {
+      const k = s.subcategory || "Other";
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(s);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [categoryStickers]);
+
   const earned = ownedStickerIds.size;
-  const total = allStickers?.length ?? 200;
+  // Count only the real catalog (image-bearing); legacy emoji rows are retired in a later step.
+  const total = (allStickers ?? []).filter((s: any) => s.imageThumbUrl).length || (allStickers?.length ?? 0);
 
   const profile = profiles?.find((p: any) => p._id === selectedProfile);
 
@@ -114,62 +122,57 @@ export default function StickerBookPage() {
         ))}
       </div>
 
-      {/* Sticker Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mb-6">
-        <AnimatePresence mode="popLayout">
-          {categoryStickers.map((sticker: any, i: number) => {
-            const owned = ownedStickerIds.has(sticker._id);
-            const style = RARITY_STYLES[sticker.rarity] ?? RARITY_STYLES.common;
+      {/* Sticker Grid, grouped by subcategory */}
+      <div className="mb-6">
+        {grouped.map(([sub, stickers]) => (
+          <div key={sub} className="mb-6">
+            <h3
+              className="text-sm font-bold mb-2 capitalize"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {sub.toLowerCase()}
+            </h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {stickers.map((sticker: any, i: number) => {
+                const owned = ownedStickerIds.has(sticker._id);
+                const style = RARITY_STYLES[sticker.rarity] ?? RARITY_STYLES.common;
 
-            return (
-              <motion.button
-                key={sticker._id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedSticker(selectedSticker === sticker._id ? null : sticker._id)}
-                className="aspect-square rounded-2xl flex flex-col items-center justify-center p-2 relative"
-                style={{
-                  background: owned
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(255,255,255,0.03)",
-                  border: `2px solid ${owned ? style.border : "rgba(255,255,255,0.1)"}`,
-                  boxShadow: owned ? style.shadow : "none",
-                  cursor: "pointer",
-                }}
-                aria-label={owned ? sticker.name : "Unknown sticker"}
-              >
-                {owned ? (
-                  <>
-                    <span
-                      className="text-3xl"
-                      style={{
-                        animation:
-                          selectedSticker === sticker._id
-                            ? "wiggle 0.4s ease-in-out"
-                            : "none",
-                      }}
-                    >
-                      {sticker.emoji}
-                    </span>
-                    {sticker.rarity === "legendary" && (
-                      <span
-                        className="absolute top-1 right-1 text-xs"
-                        style={{ color: "#F59E0B" }}
-                      >
-                        ✦
-                      </span>
+                return (
+                  <motion.button
+                    key={sticker._id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedSticker(selectedSticker === sticker._id ? null : sticker._id)}
+                    className="aspect-square rounded-2xl flex items-center justify-center p-2 relative"
+                    style={{
+                      background: owned ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)",
+                      border: `2px solid ${owned ? style.border : "rgba(255,255,255,0.1)"}`,
+                      boxShadow: owned ? style.shadow : "none",
+                      cursor: "pointer",
+                    }}
+                    aria-label={owned ? sticker.name : "Unknown sticker"}
+                  >
+                    {owned ? (
+                      <>
+                        <StickerImage src={sticker.imageThumbUrl} emoji={sticker.emoji} alt={sticker.name} />
+                        {sticker.rarity === "legendary" && (
+                          <span className="absolute top-1 right-1 text-xs" style={{ color: "#F59E0B" }}>
+                            ✦
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-3xl opacity-20">❓</span>
                     )}
-                  </>
-                ) : (
-                  <span className="text-3xl opacity-20">❓</span>
-                )}
-              </motion.button>
-            );
-          })}
-        </AnimatePresence>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Selected sticker info */}
@@ -186,7 +189,9 @@ export default function StickerBookPage() {
               className="rounded-2xl p-4 flex items-center gap-4 mb-4"
               style={{ background: "var(--color-bg-surface)", border: `1px solid ${style.border}44` }}
             >
-              <span className="text-5xl">{sticker.emoji}</span>
+              <div className="w-20 h-20 shrink-0">
+                <StickerImage src={sticker.imageFullUrl} emoji={sticker.emoji} alt={sticker.name} />
+              </div>
               <div>
                 <div className="font-bold text-lg" style={{ color: "var(--color-text-primary)" }}>
                   {sticker.name}
