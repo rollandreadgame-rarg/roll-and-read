@@ -1077,8 +1077,15 @@ git commit -m "feat: wire PickCategoryModal + reward queue into play page"
 - Modify: `convex/adminStickers.ts` (add `removeLegacyStickers`)
 
 > Now that all UI reads the real catalog, delete the old emoji rows (the ones with
-> no `imageThumbUrl`) and any `profile_stickers` pointing at them. Run AFTER the UI
-> tasks so there is never a window where the pages reference deleted data.
+> no `imageThumbUrl`) and any `profile_stickers` pointing at them.
+>
+> **⚠️ CRITICAL ORDERING (learned the hard way):** This must run only AFTER the new
+> UI is **deployed to PRODUCTION** (merged to `main` → Vercel live), NOT merely
+> committed to the feature branch. Production Vercel and local dev share the SAME
+> Convex deployment (`adamant-hound-452`). Removing legacy while production still
+> runs old `main` code breaks production's Shop/Sticker-Book (they reference old
+> categories/emoji). If you hit this: re-run `seedStickers:seedStickers` to restore
+> the legacy 50, deploy the branch, THEN remove legacy.
 
 - [ ] **Step 1: Add the mutation**
 
