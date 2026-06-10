@@ -1,13 +1,33 @@
-// scripts/lib/sticker-slug.mjs
+// tools/stickers/lib/sticker-slug.mjs
 
-// Strip the "sticker_<category>_" prefix, the variant suffix (light/dark/high
-// contrast), and any extension(s) like ".ai.svg" or "..svg". Returns the human
-// design name, trimmed.
-export function cleanName(filename) {
+// Strip the "sticker_" prefix, the known category (and a repeated subcategory
+// token when present — both may contain spaces, e.g. "Adventure and Travel"),
+// the variant suffix (light/dark/high contrast), and any extension(s) like
+// ".ai.svg" or "..svg". Returns the human design name, trimmed.
+//
+// Category/subcategory come from the folder path, which is more reliable than
+// guessing the prefix length from the filename alone.
+export function cleanName(filename, category = "", subcategory = "") {
+  const norm = (x) =>
+    String(x).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+
   let s = filename;
   s = s.replace(/\.(ai\.)?svg$/i, "");           // .svg / .ai.svg
   s = s.replace(/[ _.\-]*(high[ _]*contrast|light|dark|contrast)[ _.s]*$/i, "");
-  s = s.replace(/^sticker[_ ]+[a-z &]+?[_ ]+/i, ""); // sticker_animals_
+  s = s.replace(/^sticker[_ ]+/i, "");           // leading "sticker_"
+
+  // Strip leading category, then a leading repeat of the subcategory, token by
+  // token — only when the whole prefix matches (so real names are never eaten).
+  for (const pre of [category, subcategory]) {
+    const p = norm(pre);
+    if (!p) continue;
+    const pTokens = p.split(" ");
+    const sTokens = s.split(/[_ ]+/).filter(Boolean);
+    let i = 0;
+    while (i < pTokens.length && i < sTokens.length && norm(sTokens[i]) === pTokens[i]) i++;
+    if (i === pTokens.length) s = sTokens.slice(i).join(" ");
+  }
+
   s = s.replace(/[_.\-]+$/g, "");
   return s.replace(/\s+/g, " ").trim();
 }

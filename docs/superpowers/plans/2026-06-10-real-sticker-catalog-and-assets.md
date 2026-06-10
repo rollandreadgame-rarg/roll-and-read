@@ -12,6 +12,12 @@
 
 **Prerequisite — external accounts:** Task 0 requires you (Nadir) to create the R2 bucket and paste credentials. Everything else is mechanical.
 
+> **Path note (during execution):** the legacy `/scripts/` dir is git-ignored (it
+> holds key-bearing Python scripts), so the pipeline scripts live under
+> **`tools/stickers/`** instead. Every `scripts/...` path below maps to
+> `tools/stickers/...`, and `scripts/out/` → `tools/stickers/out/`. In
+> `process-stickers.mjs`, the repo root is two levels up (`../../convex/...`).
+
 ---
 
 ## File Structure
