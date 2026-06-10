@@ -9,7 +9,7 @@ import ShimmerButton from "@/components/ui/shimmer-button";
 
 interface EarnedSticker {
   name: string;
-  emoji: string;
+  emoji?: string;
   rarity: string;
   reason: string;
 }
