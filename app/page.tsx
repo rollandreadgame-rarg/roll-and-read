@@ -425,8 +425,9 @@ export default async function LandingPage() {
         <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
           <Link href="/sign-in" style={{ color: "#94A3B8", textDecoration: "none" }}>Sign In</Link>
           <Link href="/sign-up" style={{ color: "#94A3B8", textDecoration: "none" }}>Sign Up</Link>
-          <span style={{ color: "#475569" }}>Privacy Policy</span>
-          <span style={{ color: "#475569" }}>Contact</span>
+          <Link href="/privacy" style={{ color: "#94A3B8", textDecoration: "none" }}>Privacy Policy</Link>
+          <Link href="/terms" style={{ color: "#94A3B8", textDecoration: "none" }}>Terms</Link>
+          <a href="mailto:support@rollandreadgame.com" style={{ color: "#94A3B8", textDecoration: "none" }}>Contact</a>
         </div>
         <div style={{ marginTop: "16px", fontSize: "12px", color: "#475569" }}>
           © 2026 Roll and Read. All rights reserved.
