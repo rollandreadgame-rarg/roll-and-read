@@ -24,6 +24,12 @@ export function initAudio(): void {
     coin: "/audio/coin.mp3",
     stickerReveal: "/audio/sticker-reveal.mp3",
     wordFly: "/audio/word-fly.mp3",
+    packAppear: "/audio/pack-appear.mp3",
+    packPick: "/audio/pack-pick.mp3",
+    revealBuild: "/audio/reveal-build.mp3",
+    revealCommon: "/audio/reveal-common.mp3",
+    revealRare: "/audio/reveal-rare.mp3",
+    revealLegendary: "/audio/reveal-legendary.mp3",
   };
 
   for (const [key, src] of Object.entries(audioFiles)) {

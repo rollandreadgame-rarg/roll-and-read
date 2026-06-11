@@ -73,7 +73,6 @@ export function useGameState(profileId: string | null) {
   const advanceLevelMut = useMutation(api.profiles.advanceLevel);
   const saveSessionMut = useMutation(api.gameSessions.save);
   const updateProfileMut = useMutation(api.profiles.update);
-  const awardMilestoneStickerMut = useMutation(api.stickersDb.awardMilestoneSticker);
 
   // Local game state
   const [board, setBoard] = useState<GameBoard | null>(null);
@@ -105,15 +104,21 @@ export function useGameState(profileId: string | null) {
     wordsAdded: number;
     coinsEarned: number;
     accuracy: number;
-    earnedStickers: { name: string; emoji: string; rarity: string; reason: string }[];
+    pendingRewardCount: number;
   }>({
     wordsAdded: 0,
     coinsEarned: 0,
     accuracy: 0,
-    earnedStickers: [],
+    pendingRewardCount: 0,
   });
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState({ newLevel: "" });
+
+  // Reward-choice queue: milestones become "pick a category" prompts after the
+  // board-complete modal. Level-up is deferred until the picks are claimed.
+  const [pendingRewards, setPendingRewards] = useState<MilestoneTrigger[]>([]);
+  const [showPickCategory, setShowPickCategory] = useState(false);
+  const deferredLevelUpRef = useRef<string | null>(null);
 
   // Session tracking
   const sessionRef = useRef<SessionStats>({
@@ -495,36 +500,16 @@ export function useGameState(profileId: string | null) {
           })
         : [];
 
-      // Grant stickers in parallel; collect successful awards for the modal.
-      const grantResults = await Promise.all(
-        milestones.map(async (m) => {
-          const granted = await safeMutate(
-            () => awardMilestoneStickerMut({
-              profileId: profileId as Id<"profiles">,
-              preferredRarity: m.rarity,
-            }),
-            `awardSticker:${m.type}`
-          );
-          if (!granted) return null;
-          return {
-            name: granted.name,
-            emoji: granted.emoji,
-            rarity: granted.rarity,
-            reason: m.label,
-          };
-        })
-      );
-      const earnedStickers = grantResults.filter(
-        (g): g is NonNullable<typeof g> => g !== null
-      );
-
-      if (earnedStickers.length > 0) playSound("stickerReveal");
+      // Do NOT auto-grant. Queue the milestone choices for the pick flow, and
+      // stash the level-up so it fires only after every reward is claimed.
+      setPendingRewards(milestones);
+      deferredLevelUpRef.current = isLevelUp ? getNextLevel(profile.currentLevel) : null;
 
       setBoardCompleteData({
         wordsAdded: sess.wordsCorrect,
         coinsEarned: sess.coinsEarned,
         accuracy,
-        earnedStickers,
+        pendingRewardCount: milestones.length,
       });
       setShowBoardComplete(true);
 
@@ -539,36 +524,53 @@ export function useGameState(profileId: string | null) {
           wordsSkipped: sess.wordsSkipped,
           hintsUsed: sess.hintsUsed,
           coinsEarned: sess.coinsEarned,
-          stickersEarned: earnedStickers.length,
+          stickersEarned: milestones.length,
           duration,
         }),
         "saveSession"
       );
-
-      if (isLevelUp) {
-        const next = getNextLevel(profile.currentLevel);
-        if (next) {
-          setTimeout(async () => {
-            setShowBoardComplete(false);
-            await sleep(300);
-            setLevelUpData({ newLevel: next });
-            setShowLevelUp(true);
-            safeMutate(
-              () => advanceLevelMut({ profileId: profileId as Id<"profiles">, nextLevel: next }),
-              "advanceLevel"
-            );
-            playSound("levelUp");
-          }, 3000);
-        }
-      }
     },
     [profile, profileId]
   );
 
-  const handlePlayAgain = useCallback(() => {
+  // After the reward queue empties, resolve a deferred level-up or start a new board.
+  const resolveAfterRewards = useCallback(() => {
+    const next = deferredLevelUpRef.current;
+    if (next) {
+      deferredLevelUpRef.current = null;
+      setLevelUpData({ newLevel: next });
+      setShowLevelUp(true);
+      safeMutate(
+        () => advanceLevelMut({ profileId: profileId as Id<"profiles">, nextLevel: next }),
+        "advanceLevel"
+      );
+      playSound("levelUp");
+    } else {
+      startNewBoard();
+    }
+  }, [profileId, startNewBoard]);
+
+  // Board-complete modal primary button: start the pick sequence, or move on.
+  const handleBoardCompletePrimary = useCallback(() => {
     setShowBoardComplete(false);
-    startNewBoard();
-  }, [startNewBoard]);
+    if (pendingRewards.length > 0) {
+      setShowPickCategory(true);
+    } else {
+      resolveAfterRewards();
+    }
+  }, [pendingRewards, resolveAfterRewards]);
+
+  // Advance the reward queue; when it empties, resolve level-up / new board.
+  const handleRewardClaimed = useCallback(() => {
+    setPendingRewards((prev) => {
+      const next = prev.slice(1);
+      if (next.length === 0) {
+        setShowPickCategory(false);
+        setTimeout(resolveAfterRewards, 50); // let the modal unmount cleanly
+      }
+      return next;
+    });
+  }, [resolveAfterRewards]);
 
   const handleLevelUpClose = useCallback(() => {
     setShowLevelUp(false);
@@ -611,12 +613,16 @@ export function useGameState(profileId: string | null) {
     saveError,
     showLevelLocked,
     dismissLevelLocked: () => setShowLevelLocked(false),
+    // Reward picking
+    pendingRewards,
+    showPickCategory,
+    handleBoardCompletePrimary,
+    handleRewardClaimed,
     // Actions
     startNewBoard,
     rollDice,
     repeatWord,
     handleWordTap,
-    handlePlayAgain,
     handleLevelUpClose,
     markTutorialSeen,
     isReady: !!wordPool && !!profile,

@@ -49,3 +49,6 @@ CLAUDE.md
 # e2e test artifacts
 /e2e-screenshots/
 .playwright-mcp/
+
+# Sticker pipeline intermediate artifacts
+tools/stickers/out/

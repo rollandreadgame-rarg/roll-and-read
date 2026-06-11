@@ -7,6 +7,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { CATEGORIES as CATALOG_CATEGORIES } from "@/lib/stickers/categories";
+import StickerImage from "@/components/stickers/StickerImage";
 
 const PACKS = [
   {
@@ -44,11 +46,12 @@ const PACKS = [
   },
 ];
 
-const CATEGORIES = ["animals", "space", "ocean", "fantasy", "characters"];
+const CATEGORIES = CATALOG_CATEGORIES.map((c) => c.key);
 
 type RevealedSticker = {
   name: string;
-  emoji: string;
+  emoji?: string;
+  imageFullUrl?: string;
   rarity: string;
 };
 
@@ -76,7 +79,7 @@ function rollRarity(premium?: boolean): "common" | "uncommon" | "rare" | "legend
 export default function ShopPage() {
   const { user } = useCurrentUser();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState("animals");
+  const [selectedCategory, setSelectedCategory] = useState<string>(CATALOG_CATEGORIES[0].key);
   const [revealedStickers, setRevealedStickers] = useState<RevealedSticker[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -152,7 +155,12 @@ export default function ShopPage() {
 
         // eslint-disable-next-line react-hooks/purity
         const picked = eligible[Math.floor(Math.random() * eligible.length)];
-        stickersToReveal.push({ name: picked.name, emoji: picked.emoji, rarity: picked.rarity });
+        stickersToReveal.push({
+          name: picked.name,
+          emoji: picked.emoji,
+          imageFullUrl: picked.imageFullUrl,
+          rarity: picked.rarity,
+        });
 
         // Grant to profile only if not already owned
         if (!grantedThisSession.has(picked._id)) {
@@ -320,14 +328,14 @@ export default function ShopPage() {
                   className="flex flex-col items-center gap-2"
                 >
                   <div
-                    className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl"
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center p-1"
                     style={{
                       border: `2px solid ${RARITY_COLORS[s.rarity] ?? "#6B7280"}`,
                       boxShadow: `0 0 16px ${RARITY_COLORS[s.rarity] ?? "#6B7280"}44`,
                       background: "rgba(255,255,255,0.05)",
                     }}
                   >
-                    {s.emoji}
+                    <StickerImage src={s.imageFullUrl} emoji={s.emoji} alt={s.name} />
                   </div>
                   <div className="text-xs font-bold" style={{ color: "var(--color-text-primary)" }}>
                     {s.name}

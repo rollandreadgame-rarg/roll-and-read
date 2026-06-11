@@ -80,3 +80,54 @@ export const awardMilestoneSticker = mutation({
     return null;
   },
 });
+
+// Grant a random UNOWNED sticker from a chosen category, preferring the requested
+// rarity and falling through tiers within that category, then any unowned in it.
+// Returns the granted sticker, or null if the category is fully collected.
+export const awardStickerFromCategory = mutation({
+  args: {
+    profileId: v.id("profiles"),
+    category: v.string(),
+    preferredRarity: v.union(
+      v.literal("common"),
+      v.literal("uncommon"),
+      v.literal("rare"),
+      v.literal("legendary")
+    ),
+  },
+  handler: async (ctx, args) => {
+    const owned = await ctx.db
+      .query("profile_stickers")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    const ownedIds = new Set(owned.map((ps) => String(ps.stickerId)));
+
+    const inCategory = await ctx.db
+      .query("stickers")
+      .withIndex("by_category", (q) => q.eq("category", args.category))
+      .collect();
+    const unowned = inCategory.filter((s) => !ownedIds.has(String(s._id)));
+    if (unowned.length === 0) return null;
+
+    // Prefer the requested rarity, then degrade, then upgrade — so a high-tier
+    // milestone still grants *something* from this category.
+    const tiers = ["legendary", "rare", "uncommon", "common"];
+    const startIdx = tiers.indexOf(args.preferredRarity);
+    const order = [...tiers.slice(startIdx), ...tiers.slice(0, startIdx)];
+
+    let pickPool = [];
+    for (const rarity of order) {
+      pickPool = unowned.filter((s) => s.rarity === rarity);
+      if (pickPool.length) break;
+    }
+    if (!pickPool.length) pickPool = unowned;
+
+    const picked = pickPool[Math.floor(Math.random() * pickPool.length)];
+    await ctx.db.insert("profile_stickers", {
+      profileId: args.profileId,
+      stickerId: picked._id,
+      earnedAt: Date.now(),
+    });
+    return picked;
+  },
+});

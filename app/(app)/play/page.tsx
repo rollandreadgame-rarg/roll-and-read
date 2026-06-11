@@ -3,6 +3,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useGameState } from "@/hooks/useGameState";
 import { useTheme } from "@/providers/ThemeProvider";
 import { initAudio } from "@/lib/audio/soundManager";
@@ -13,6 +16,7 @@ import StatusBar from "@/components/game/StatusBar";
 import CoinPopup from "@/components/game/CoinPopup";
 import RowClearBanner from "@/components/celebrations/RowClearBanner";
 import BoardCompleteModal from "@/components/celebrations/BoardCompleteModal";
+import PickCategoryModal from "@/components/celebrations/PickCategoryModal";
 import LevelUpOverlay from "@/components/celebrations/LevelUpOverlay";
 import TutorialModal from "@/components/celebrations/TutorialModal";
 import UpgradeModal from "@/components/celebrations/UpgradeModal";
@@ -28,6 +32,16 @@ export default function PlayPage() {
   const wordRefs = useRef<Record<string, React.RefObject<HTMLButtonElement | null>>>({});
 
   const gameState = useGameState(profileId);
+
+  // Catalog + owned ids for the reward-pick flow.
+  const allStickers = useQuery(api.stickersDb.getAll);
+  const profileStickers = useQuery(
+    api.stickersDb.getForProfile,
+    profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
+  );
+  const ownedStickerIds = new Set(
+    (profileStickers ?? []).map((ps: { stickerId: string }) => ps.stickerId)
+  );
 
   const {
     profile,
@@ -53,11 +67,14 @@ export default function PlayPage() {
     levelUpData,
     showLevelLocked,
     dismissLevelLocked,
+    pendingRewards,
+    showPickCategory,
+    handleBoardCompletePrimary,
+    handleRewardClaimed,
     startNewBoard,
     rollDice,
     repeatWord,
     handleWordTap,
-    handlePlayAgain,
     handleLevelUpClose,
     markTutorialSeen,
     isReady,
@@ -277,8 +294,18 @@ export default function PlayPage() {
         accuracy={boardCompleteData.accuracy}
         streakDays={profile?.streakDays ?? 0}
         theme={profile?.selectedTheme ?? "ocean"}
-        earnedStickers={boardCompleteData.earnedStickers}
-        onPlayAgain={handlePlayAgain}
+        pendingRewardCount={boardCompleteData.pendingRewardCount}
+        onPrimary={handleBoardCompletePrimary}
+      />
+
+      <PickCategoryModal
+        show={showPickCategory}
+        profileId={profileId}
+        reward={pendingRewards[0] ?? null}
+        remaining={pendingRewards.length}
+        allStickers={allStickers}
+        ownedStickerIds={ownedStickerIds}
+        onClaimed={handleRewardClaimed}
       />
 
       <LevelUpOverlay

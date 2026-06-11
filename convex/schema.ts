@@ -75,19 +75,24 @@ export default defineSchema({
   stickers: defineTable({
     name: v.string(),
     category: v.string(),
+    subcategory: v.optional(v.string()),
     rarity: v.union(
       v.literal("common"),
       v.literal("uncommon"),
       v.literal("rare"),
       v.literal("legendary")
     ),
-    emoji: v.string(),
+    emoji: v.optional(v.string()),
+    imageThumbUrl: v.optional(v.string()),
+    imageFullUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
     coinCost: v.number(),
     isAnimated: v.boolean(),
     isPaidOnly: v.boolean(),
   })
     .index("by_category", ["category"])
-    .index("by_rarity", ["rarity"]),
+    .index("by_rarity", ["rarity"])
+    .index("by_subcategory", ["subcategory"]),
 
   profile_stickers: defineTable({
     profileId: v.id("profiles"),
