@@ -1,14 +1,17 @@
 // components/celebrations/PickCategoryModal.tsx
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { pickRewardTrio } from "@/lib/stickers/packConfig";
 import { categoryMeta } from "@/lib/stickers/categories";
+import { playSound } from "@/lib/audio/soundManager";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import StickerImage from "@/components/stickers/StickerImage";
+import StickerReveal from "@/components/celebrations/StickerReveal";
 
 interface Reward { rarity: "common" | "uncommon" | "rare" | "legendary"; label: string }
 interface Props {
@@ -21,16 +24,19 @@ interface Props {
   onClaimed: () => void;             // advance the queue
 }
 
-const RARITY_COLORS: Record<string, string> = {
-  common: "#6B7280", uncommon: "#3B82F6", rare: "#A855F7", legendary: "#F59E0B",
-};
-
 export default function PickCategoryModal({
   show, profileId, reward, remaining, allStickers, ownedStickerIds, onClaimed,
 }: Props) {
   const award = useMutation(api.stickersDb.awardStickerFromCategory);
   const [revealed, setRevealed] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Whoosh the packs in whenever a fresh pick screen appears.
+  useEffect(() => {
+    if (show && !revealed) playSound("packAppear");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, reward]);
 
   // Build the trio once per reward. A representative image per category = the
   // first sticker in that category (owned-agnostic).
@@ -51,6 +57,7 @@ export default function PickCategoryModal({
 
   const handlePick = async (category: string) => {
     if (!profileId || busy) return;
+    playSound("packPick");
     setBusy(true);
     const granted = await award({
       profileId: profileId as Id<"profiles">,
@@ -81,7 +88,7 @@ export default function PickCategoryModal({
             className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           >
             <div
-              className="relative w-full max-w-sm rounded-3xl p-7 text-center"
+              className="relative w-full max-w-lg rounded-[28px] p-8 text-center"
               style={{
                 background: "linear-gradient(160deg, var(--color-bg-surface) 0%, rgba(30,41,59,0.95) 100%)",
                 border: "1px solid rgba(255,255,255,0.12)",
@@ -93,7 +100,7 @@ export default function PickCategoryModal({
                   <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-accent-gold)" }}>
                     {reward.label}
                   </div>
-                  <h2 className="text-2xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
+                  <h2 className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
                     🎉 Pick a pack!
                   </h2>
                   {remaining > 1 && (
@@ -101,21 +108,31 @@ export default function PickCategoryModal({
                       {remaining} rewards to pick
                     </div>
                   )}
-                  <div className="grid grid-cols-3 gap-3 mt-4">
-                    {trio.map((c: any) => (
+                  <div className="grid grid-cols-3 gap-4 mt-6">
+                    {trio.map((c: any, i: number) => (
                       <motion.button
                         key={c.category}
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, y: 24, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={reducedMotion
+                          ? { duration: 0.15 }
+                          : { type: "spring", damping: 14, stiffness: 260, delay: 0.12 + i * 0.09 }}
+                        whileHover={{ scale: 1.06, y: -4 }}
+                        whileTap={{ scale: 0.94 }}
                         disabled={busy}
                         onClick={() => handlePick(c.category)}
-                        className="rounded-2xl p-3 flex flex-col items-center gap-2"
-                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                        className="rounded-3xl p-4 flex flex-col items-center gap-2"
+                        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)" }}
                         aria-label={`Pick ${c.label}`}
                       >
-                        <div className="w-14 h-14">
-                          <StickerImage src={c.sample?.imageThumbUrl} emoji={c.icon} alt={c.label} />
-                        </div>
-                        <div className="text-[11px] font-bold leading-tight" style={{ color: "var(--color-text-primary)" }}>
+                        <motion.div
+                          className="w-20 h-20"
+                          animate={reducedMotion ? {} : { y: [0, -5, 0] }}
+                          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
+                        >
+                          <StickerImage src={c.sample?.imageThumbUrl} emoji={c.icon} alt={c.label} sizePx={80} />
+                        </motion.div>
+                        <div className="text-sm font-bold leading-tight" style={{ color: "var(--color-text-primary)" }}>
                           {c.label}
                         </div>
                       </motion.button>
@@ -123,36 +140,12 @@ export default function PickCategoryModal({
                   </div>
                 </>
               ) : (
-                <>
-                  <h2 className="text-2xl font-extrabold mb-4" style={{ color: "var(--color-accent-gold)" }}>
-                    ✨ You got!
-                  </h2>
-                  <motion.div
-                    initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", damping: 12 }}
-                    className="w-32 h-32 mx-auto rounded-3xl flex items-center justify-center p-2"
-                    style={{
-                      border: `3px solid ${RARITY_COLORS[revealed.rarity] ?? "#6B7280"}`,
-                      boxShadow: `0 0 28px ${RARITY_COLORS[revealed.rarity] ?? "#6B7280"}66`,
-                      background: "rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <StickerImage src={revealed.imageFullUrl} emoji={revealed.emoji} alt={revealed.name} sizePx={128} />
-                  </motion.div>
-                  <div className="mt-3 font-extrabold text-lg" style={{ color: "var(--color-text-primary)" }}>
-                    {revealed.name}
-                  </div>
-                  <div className="text-sm font-semibold capitalize mb-5" style={{ color: RARITY_COLORS[revealed.rarity] }}>
-                    {revealed.rarity}
-                  </div>
-                  <button
-                    onClick={handleNext}
-                    className="w-full py-3 rounded-2xl font-extrabold text-white"
-                    style={{ background: "linear-gradient(135deg, var(--color-brand), var(--color-brand-secondary))" }}
-                  >
-                    {remaining > 1 ? "Next 🎁" : "Done!"}
-                  </button>
-                </>
+                <StickerReveal
+                  sticker={revealed}
+                  remaining={remaining}
+                  reducedMotion={reducedMotion}
+                  onNext={handleNext}
+                />
               )}
             </div>
           </motion.div>
