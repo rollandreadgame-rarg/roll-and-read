@@ -4,10 +4,12 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useParentGate } from "@/providers/ParentGateProvider";
 import PinInput from "./PinInput";
 
 export default function ParentPinSetup({ onDone }: { onDone?: () => void }) {
   const setPin = useMutation(api.parentPin.setParentPin);
+  const { markUnlocked } = useParentGate();
   const [first, setFirst] = useState("");
   const [confirm, setConfirm] = useState("");
   const [stage, setStage] = useState<"enter" | "confirm">("enter");
@@ -18,7 +20,8 @@ export default function ParentPinSetup({ onDone }: { onDone?: () => void }) {
   const onConfirm = async (v: string) => {
     if (v !== first) { setError("PINs don't match — try again."); setConfirm(""); setFirst(""); setStage("enter"); return; }
     const res = await setPin({ pin: v });
-    if (res.ok) { setDone(true); onDone?.(); }
+    // Stay unlocked right after creating the PIN so the user isn't immediately challenged.
+    if (res.ok) { markUnlocked(); setDone(true); onDone?.(); }
   };
 
   if (done) {
