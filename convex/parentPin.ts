@@ -66,8 +66,19 @@ export const changeParentPin = mutation({
   handler: async (ctx, args) => {
     if (!isValidPinFormat(args.newPin)) throw new Error("PIN must be 4 digits");
     const user = await requireUser(ctx);
+    const now = Date.now();
+    if (isLockedOut(user.parentPinLockedUntil, now)) {
+      return { ok: false, lockedUntil: user.parentPinLockedUntil };
+    }
     const current = await hashPin(user._id, args.currentPin);
-    if (current !== user.parentPinHash) return { ok: false };
+    if (current !== user.parentPinHash) {
+      const next = registerFailure(user.parentPinAttempts, now);
+      await ctx.db.patch(user._id, {
+        parentPinAttempts: next.lockedUntil ? 0 : next.attempts,
+        parentPinLockedUntil: next.lockedUntil,
+      });
+      return { ok: false, lockedUntil: next.lockedUntil || undefined };
+    }
     const parentPinHash = await hashPin(user._id, args.newPin);
     await ctx.db.patch(user._id, {
       parentPinHash,
@@ -83,8 +94,19 @@ export const removeParentPin = mutation({
   args: { currentPin: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    const now = Date.now();
+    if (isLockedOut(user.parentPinLockedUntil, now)) {
+      return { ok: false, lockedUntil: user.parentPinLockedUntil };
+    }
     const current = await hashPin(user._id, args.currentPin);
-    if (current !== user.parentPinHash) return { ok: false };
+    if (current !== user.parentPinHash) {
+      const next = registerFailure(user.parentPinAttempts, now);
+      await ctx.db.patch(user._id, {
+        parentPinAttempts: next.lockedUntil ? 0 : next.attempts,
+        parentPinLockedUntil: next.lockedUntil,
+      });
+      return { ok: false, lockedUntil: next.lockedUntil || undefined };
+    }
     await ctx.db.patch(user._id, {
       parentPinHash: undefined,
       parentPinAttempts: 0,
