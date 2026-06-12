@@ -13,6 +13,7 @@ import type * as adminTesters from "../adminTesters.js";
 import type * as e2eSetup from "../e2eSetup.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as maintenance from "../maintenance.js";
+import type * as parentPin from "../parentPin.js";
 import type * as profiles from "../profiles.js";
 import type * as seedStickers from "../seedStickers.js";
 import type * as seedStickersReal from "../seedStickersReal.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   e2eSetup: typeof e2eSetup;
   gameSessions: typeof gameSessions;
   maintenance: typeof maintenance;
+  parentPin: typeof parentPin;
   profiles: typeof profiles;
   seedStickers: typeof seedStickers;
   seedStickersReal: typeof seedStickersReal;
