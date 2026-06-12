@@ -5,6 +5,7 @@ import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap,
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import LockButton from "@/components/parent-pin/LockButton";
 
 const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
 
@@ -60,6 +61,7 @@ export default function TopNav() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        <LockButton />
         <Link
           href="/settings"
           className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
