@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useTheme } from "@/providers/ThemeProvider";
+import RequireParentPin from "@/components/parent-pin/RequireParentPin";
 
 const THEMES = [
   { id: "ocean", label: "Ocean Adventure", emoji: "🌊", free: true, desc: "Cool underwater wonder" },
@@ -112,7 +113,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 p-4 max-w-2xl mx-auto w-full gap-6 pb-16">
+    <RequireParentPin><div className="flex flex-col flex-1 p-4 max-w-2xl mx-auto w-full gap-6 pb-16">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
           ⚙️ Settings
@@ -588,6 +589,6 @@ export default function SettingsPage() {
           </>
         )}
       </AnimatePresence>
-    </div>
+    </div></RequireParentPin>
   );
 }
