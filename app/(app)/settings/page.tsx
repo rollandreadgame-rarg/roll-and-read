@@ -11,6 +11,10 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useTheme } from "@/providers/ThemeProvider";
 import RequireParentPin from "@/components/parent-pin/RequireParentPin";
+import { useParentGate } from "@/providers/ParentGateProvider";
+import ParentPinSetup from "@/components/parent-pin/ParentPinSetup";
+import ParentPinNudge from "@/components/parent-pin/ParentPinNudge";
+import PinInput from "@/components/parent-pin/PinInput";
 
 const THEMES = [
   { id: "ocean", label: "Ocean Adventure", emoji: "🌊", free: true, desc: "Cool underwater wonder" },
@@ -69,9 +73,20 @@ export default function SettingsPage() {
   const profileLimit = subscription?.profileLimit ?? 1;
   const atProfileCap = profileCount >= profileLimit;
 
+  const { hasPin } = useParentGate();
+  // Change PIN state
+  const [changeCurrent, setChangeCurrent] = useState("");
+  const [changeNew, setChangeNew] = useState("");
+  const [changeMsg, setChangeMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  // Remove PIN state
+  const [removeCurrent, setRemoveCurrent] = useState("");
+  const [removeMsg, setRemoveMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
   const createProfile = useMutation(api.profiles.create);
   const updateProfile = useMutation(api.profiles.update);
   const removeProfile = useMutation(api.profiles.remove);
+  const changePin = useMutation(api.parentPin.changeParentPin);
+  const removePin = useMutation(api.parentPin.removeParentPin);
 
   const handleCreateProfile = async () => {
     if (!newName.trim() || !clerkUser) return;
@@ -114,6 +129,9 @@ export default function SettingsPage() {
 
   return (
     <RequireParentPin><div className="flex flex-col flex-1 p-4 max-w-2xl mx-auto w-full gap-6 pb-16">
+      <ParentPinNudge onSetUp={() => {
+        document.getElementById("pin-section")?.scrollIntoView({ behavior: "smooth" });
+      }} />
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
           ⚙️ Settings
@@ -514,6 +532,95 @@ export default function SettingsPage() {
           >
             Manage Subscription
           </a>
+        )}
+      </section>
+
+      {/* Grown-up PIN */}
+      <section
+        id="pin-section"
+        className="rounded-2xl p-5"
+        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <h2 className="text-lg font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
+          🔒 Grown-up PIN
+        </h2>
+        <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
+          Parents &amp; teachers can set a PIN to lock Settings, Billing, and the Teacher dashboard.
+        </p>
+
+        {!hasPin ? (
+          <ParentPinSetup />
+        ) : (
+          <div className="flex flex-col gap-6">
+            {/* Change PIN */}
+            <div>
+              <h3 className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Change PIN</h3>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>Current PIN</label>
+                  <PinInput value={changeCurrent} onChange={(v) => { setChangeCurrent(v); setChangeMsg(null); }} ariaLabel="Current PIN" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>New PIN</label>
+                  <PinInput value={changeNew} onChange={(v) => { setChangeNew(v); setChangeMsg(null); }} ariaLabel="New PIN" />
+                </div>
+                <button
+                  disabled={changeCurrent.length < 4 || changeNew.length < 4}
+                  onClick={async () => {
+                    const res = await changePin({ currentPin: changeCurrent, newPin: changeNew });
+                    if (res.ok) {
+                      setChangeMsg({ text: "PIN changed.", ok: true });
+                      setChangeCurrent("");
+                      setChangeNew("");
+                    } else {
+                      setChangeMsg({ text: "That didn't work — check your current PIN.", ok: false });
+                    }
+                  }}
+                  className="py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+                  style={{ background: "var(--color-brand)" }}
+                >
+                  Change PIN
+                </button>
+                <p aria-live="assertive" className="h-5 text-sm text-center"
+                  style={{ color: changeMsg?.ok ? "var(--color-success)" : "#f87171" }}>
+                  {changeMsg?.text ?? ""}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.08)" }} />
+
+            {/* Remove PIN */}
+            <div>
+              <h3 className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Remove PIN</h3>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>Enter current PIN to confirm</label>
+                  <PinInput value={removeCurrent} onChange={(v) => { setRemoveCurrent(v); setRemoveMsg(null); }} ariaLabel="Remove PIN confirmation" />
+                </div>
+                <button
+                  disabled={removeCurrent.length < 4}
+                  onClick={async () => {
+                    const res = await removePin({ currentPin: removeCurrent });
+                    if (res.ok) {
+                      setRemoveMsg({ text: "PIN removed.", ok: true });
+                      setRemoveCurrent("");
+                    } else {
+                      setRemoveMsg({ text: "That didn't work — check your current PIN.", ok: false });
+                    }
+                  }}
+                  className="py-2 rounded-xl text-sm font-bold disabled:opacity-40 transition-opacity"
+                  style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
+                >
+                  Remove PIN
+                </button>
+                <p aria-live="assertive" className="h-5 text-sm text-center"
+                  style={{ color: removeMsg?.ok ? "var(--color-success)" : "#f87171" }}>
+                  {removeMsg?.text ?? ""}
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </section>
 
