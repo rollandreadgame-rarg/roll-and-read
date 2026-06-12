@@ -36,10 +36,15 @@ export const createUser = mutation({
 export const getByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
+    if (!user) return null;
+    // Never expose PIN secrets to the client; expose only whether one exists.
+    const { parentPinHash, parentPinAttempts, parentPinLockedUntil, ...safe } =
+      user;
+    return { ...safe, hasParentPin: Boolean(parentPinHash) };
   },
 });
 

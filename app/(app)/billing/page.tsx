@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { api } from "@/convex/_generated/api";
+import RequireParentPin from "@/components/parent-pin/RequireParentPin";
 
 type Plan = "free" | "individual" | "family" | "classroom";
 
@@ -283,8 +284,10 @@ function BillingPageInner() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="p-8" style={{ color: "var(--color-text-muted)" }}>Loading…</div>}>
-      <BillingPageInner />
-    </Suspense>
+    <RequireParentPin>
+      <Suspense fallback={<div className="p-8" style={{ color: "var(--color-text-muted)" }}>Loading…</div>}>
+        <BillingPageInner />
+      </Suspense>
+    </RequireParentPin>
   );
 }

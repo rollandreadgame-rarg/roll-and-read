@@ -321,3 +321,9 @@ button, [role="button"], a, input, select {
     radial-gradient(2px 2px at 55% 85%, rgba(255,255,255,0.6), transparent);
   animation: twinkle 3s ease-in-out infinite;
 }
+
+@keyframes rar-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}

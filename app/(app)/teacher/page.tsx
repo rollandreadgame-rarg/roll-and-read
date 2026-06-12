@@ -17,6 +17,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { LEVEL_SEQUENCE } from "@/lib/utils";
+import RequireParentPin from "@/components/parent-pin/RequireParentPin";
 
 // ─── ProfileCard ─────────────────────────────────────────────────────────────
 // Separate component so each card calls its own useQuery hooks (Rules of Hooks)
@@ -510,6 +511,7 @@ export default function TeacherPage() {
   }
 
   return (
+    <RequireParentPin>
     <>
       {/* Print styles */}
       <style>{`
@@ -616,5 +618,6 @@ export default function TeacherPage() {
         </div>
       </div>
     </>
+    </RequireParentPin>
   );
 }
