@@ -60,6 +60,7 @@ export function ParentGateProvider({ children }: { children: React.ReactNode }) 
     try {
       const raw = sessionStorage.getItem(UNLOCK_KEY);
       if (raw && Date.now() - Number(raw) < IDLE_MS) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only restore of persisted unlock on mount (sessionStorage is unavailable during SSR)
         setUnlocked(true);
         armIdle();
       } else if (raw) {

@@ -19,10 +19,8 @@ export default function ParentPinPrompt() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
-  const [lockedUntil, setLockedUntil] = useState(0);
+  const [locked, setLocked] = useState(false);
   const [forgot, setForgot] = useState(false);
-
-  const locked = lockedUntil > Date.now();
 
   const submit = async (value: string) => {
     if (locked) return;
@@ -30,7 +28,11 @@ export default function ParentPinPrompt() {
     if (res.ok) { markUnlocked(); return; }
     setPin("");
     setError(res.lockedUntil ? "Too many tries — wait a minute." : "Incorrect PIN.");
-    if (res.lockedUntil) setLockedUntil(res.lockedUntil);
+    if (res.lockedUntil) {
+      setLocked(true);
+      const ms = res.lockedUntil - Date.now();
+      setTimeout(() => setLocked(false), ms > 0 ? ms : 0);
+    }
     if (!reduced) { setShake(true); setTimeout(() => setShake(false), 400); }
   };
 
