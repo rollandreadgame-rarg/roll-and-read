@@ -9,6 +9,7 @@
  */
 
 import type * as adminStickers from "../adminStickers.js";
+import type * as adminTesters from "../adminTesters.js";
 import type * as e2eSetup from "../e2eSetup.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as maintenance from "../maintenance.js";
@@ -36,6 +37,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adminStickers: typeof adminStickers;
+  adminTesters: typeof adminTesters;
   e2eSetup: typeof e2eSetup;
   gameSessions: typeof gameSessions;
   maintenance: typeof maintenance;

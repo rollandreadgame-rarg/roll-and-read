@@ -13,6 +13,7 @@ export default defineSchema({
     ),
     clerkSubscriptionId: v.optional(v.string()),
     subscriptionStatus: v.optional(v.string()),
+    compedTester: v.optional(v.boolean()),
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
     stripePriceId: v.optional(v.string()),
