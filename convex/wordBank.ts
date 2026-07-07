@@ -1,10 +1,12 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireProfileOwner, ownsProfile } from "./authHelpers";
 
 export const getForProfile = query({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
+    if (!(await ownsProfile(ctx, args.profileId))) return [];
     return await ctx.db
       .query("word_bank")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -24,6 +26,7 @@ export const addWord = mutation({
     needsPractice: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     const existing = await ctx.db
       .query("word_bank")
       .withIndex("by_profile_word", (q) =>
@@ -56,6 +59,7 @@ export const addWord = mutation({
 export const getTotalValue = query({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
+    if (!(await ownsProfile(ctx, args.profileId))) return 0;
     const words = await ctx.db
       .query("word_bank")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -73,6 +77,7 @@ export const markPracticed = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.wordBankId);
     if (!existing) throw new Error("Word bank entry not found");
+    await requireProfileOwner(ctx, existing.profileId);
     await ctx.db.patch(args.wordBankId, {
       needsPractice: args.stillNeedsPractice,
       timesCorrect: args.stillNeedsPractice

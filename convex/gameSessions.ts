@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireProfileOwner, ownsProfile } from "./authHelpers";
 
 export const save = mutation({
   args: {
@@ -17,6 +18,7 @@ export const save = mutation({
     duration: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     return await ctx.db.insert("game_sessions", {
       ...args,
       completedAt: Date.now(),
@@ -30,6 +32,7 @@ export const getForProfile = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    if (!(await ownsProfile(ctx, args.profileId))) return [];
     const sessions = await ctx.db
       .query("game_sessions")
       .withIndex("by_profile_date", (q) => q.eq("profileId", args.profileId))

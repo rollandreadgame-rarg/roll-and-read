@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireProfileOwner, ownsProfile } from "./authHelpers";
 
 export const getAll = query({
   args: {},
@@ -12,6 +13,7 @@ export const getAll = query({
 export const getForProfile = query({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
+    if (!(await ownsProfile(ctx, args.profileId))) return [];
     return await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -25,6 +27,7 @@ export const grantSticker = mutation({
     stickerId: v.id("stickers"),
   },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     return await ctx.db.insert("profile_stickers", {
       profileId: args.profileId,
       stickerId: args.stickerId,
@@ -48,6 +51,7 @@ export const awardMilestoneSticker = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     const owned = await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -96,6 +100,7 @@ export const awardStickerFromCategory = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     const owned = await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))

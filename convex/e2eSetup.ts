@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
 /**
  * E2E test setup — ensures a test user and profile exist.
  * Safe to call multiple times (idempotent).
  */
-export const ensureTestUser = mutation({
+export const ensureTestUser = internalMutation({
   args: {},
   handler: async (ctx) => {
     const clerkId = "e2e_test_user";

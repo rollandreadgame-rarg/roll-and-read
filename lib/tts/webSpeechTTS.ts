@@ -61,16 +61,18 @@ function _speakFallback(word: string, rate: number): void {
   if (voice) {
     currentUtterance.voice = voice;
     window.speechSynthesis.speak(currentUtterance);
+  } else if (window.speechSynthesis.getVoices().length > 0) {
+    // Voices are loaded but none preferred — speak now with the default voice.
+    window.speechSynthesis.speak(currentUtterance);
   } else {
-    // Voices not loaded yet — wait for them
+    // Voices not loaded yet — speak exactly once when they arrive. (Speaking
+    // immediately here too would pronounce the word twice.)
     window.speechSynthesis.onvoiceschanged = () => {
       const v = _findPreferredVoice();
       if (v && currentUtterance) currentUtterance.voice = v;
-      window.speechSynthesis.speak(currentUtterance!);
+      if (currentUtterance) window.speechSynthesis.speak(currentUtterance);
       window.speechSynthesis.onvoiceschanged = null;
     };
-    // Speak immediately anyway (will use default voice)
-    window.speechSynthesis.speak(currentUtterance);
   }
 }
 

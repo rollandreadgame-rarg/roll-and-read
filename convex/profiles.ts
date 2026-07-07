@@ -2,13 +2,21 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { PROFILE_LIMITS, isLevelAllowed } from "./subscriptionConfig";
+import {
+  requireUser,
+  requireProfileOwner,
+  getCallerUser,
+  ownsProfile,
+} from "./authHelpers";
 
 export const getByUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getCallerUser(ctx);
+    if (!user || String(user._id) !== String(args.userId)) return [];
     return await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
   },
 });
@@ -16,7 +24,8 @@ export const getByUser = query({
 export const get = query({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.profileId);
+    const owned = await ownsProfile(ctx, args.profileId);
+    return owned ? owned.profile : null;
   },
 });
 
@@ -27,8 +36,8 @@ export const create = mutation({
     avatarEmoji: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) throw new Error("User not found");
+    const user = await requireUser(ctx);
+    if (String(user._id) !== String(args.userId)) throw new Error("Forbidden");
 
     const existing = await ctx.db
       .query("profiles")
@@ -74,6 +83,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { profileId, ...rest } = args;
+    await requireProfileOwner(ctx, profileId);
     const updates = Object.fromEntries(
       Object.entries(rest).filter(([, val]) => val !== undefined)
     );
@@ -84,6 +94,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
     // Cascade delete related records
     const wordBankEntries = await ctx.db
       .query("word_bank")
@@ -119,8 +130,8 @@ export const awardCoins = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) throw new Error("Profile not found");
+    if (args.amount < 0) throw new Error("Amount must be non-negative");
+    const { profile } = await requireProfileOwner(ctx, args.profileId);
 
     await ctx.db.patch(args.profileId, {
       coins: profile.coins + args.amount,
@@ -135,8 +146,7 @@ export const spendCoins = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) throw new Error("Profile not found");
+    const { profile } = await requireProfileOwner(ctx, args.profileId);
     if (profile.coins < args.amount) throw new Error("Insufficient coins");
 
     await ctx.db.patch(args.profileId, {
@@ -151,11 +161,7 @@ export const advanceLevel = mutation({
     nextLevel: v.string(),
   },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) throw new Error("Profile not found");
-
-    const user = await ctx.db.get(profile.userId);
-    if (!user) throw new Error("User not found");
+    const { user, profile } = await requireProfileOwner(ctx, args.profileId);
 
     if (!isLevelAllowed(user.plan, args.nextLevel)) {
       throw new Error(
@@ -167,7 +173,6 @@ export const advanceLevel = mutation({
       currentLevel: args.nextLevel,
       boardsClearedAtLevel: 0,
       accuracyHistory: [],
-      totalBoardsCleared: profile.totalBoardsCleared,
     });
   },
 });
@@ -178,10 +183,9 @@ export const completedBoard = mutation({
     accuracy: v.number(),
   },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) throw new Error("Profile not found");
+    const { profile } = await requireProfileOwner(ctx, args.profileId);
 
-    const newHistory = [...profile.accuracyHistory, args.accuracy].slice(-10);
+    const newHistory = [...(profile.accuracyHistory ?? []), args.accuracy].slice(-10);
 
     // Streak logic: compare UTC calendar days
     const now = Date.now();

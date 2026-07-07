@@ -49,9 +49,15 @@ export default function PinInput({
             if (d) setDigit(i, d);
           }}
           onKeyDown={(e) => {
-            if (e.key === "Backspace" && !value[i] && i > 0) {
-              refs.current[i - 1]?.focus();
-              setDigit(i - 1, "");
+            if (e.key === "Backspace") {
+              // Remove the last entered digit and focus the now-empty slot, so
+              // a mistyped digit can always be deleted and retyped (a filled
+              // cell's own onChange never fires an empty value to clear it).
+              e.preventDefault();
+              if (!value) return;
+              const next = value.slice(0, -1);
+              onChange(next);
+              refs.current[next.length]?.focus();
             }
           }}
           onPaste={(e) => {

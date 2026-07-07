@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
 // Delete the legacy emoji stickers (those with no image) and any profile_stickers
 // pointing at them. Run AFTER the UI reads the real catalog, so there is never a
 // window where the pages reference deleted data. DEV/pre-launch use.
-export const removeLegacyStickers = mutation({
+export const removeLegacyStickers = internalMutation({
   args: {},
   handler: async (ctx) => {
     const all = await ctx.db.query("stickers").collect();

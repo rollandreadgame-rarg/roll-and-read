@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
  * Read-only diagnostic: how many words are in the table, whether the given
  * words exist (case-insensitive), and the full list of nonsense words at 1A.
  */
-export const inspectWords = query({
+export const inspectWords = internalQuery({
   args: { words: v.array(v.string()) },
   handler: async (ctx, args) => {
     const targets = new Set(args.words.map((w) => w.toLowerCase()));
@@ -31,7 +31,7 @@ export const inspectWords = query({
  * word_lists table and any collected copies in word_bank. Used to scrub
  * inappropriate words that were seeded. Safe to re-run (no-ops if absent).
  */
-export const purgeWords = mutation({
+export const purgeWords = internalMutation({
   args: { words: v.array(v.string()) },
   handler: async (ctx, args) => {
     const targets = new Set(args.words.map((w) => w.toLowerCase()));

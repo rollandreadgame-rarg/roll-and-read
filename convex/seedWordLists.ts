@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { LEVEL1_WORDS } from "./wordData/level1";
 import { LEVEL2_WORDS } from "./wordData/level2";
 import { LEVEL3_WORDS } from "./wordData/level3";
@@ -263,7 +263,7 @@ const WORD_DATA: WordEntry[] = [
   ...LEVEL5_WORDS,
 ];
 
-export const seedWordLists = mutation({
+export const seedWordLists = internalMutation({
   args: {},
   handler: async (ctx) => {
     let inserted = 0;

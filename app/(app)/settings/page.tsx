@@ -67,7 +67,9 @@ export default function SettingsPage() {
 
   const selectedProfileId = activeProfileId ?? profiles?.[0]?._id;
   const profile = profiles?.find((p: any) => p._id === selectedProfileId);
-  const isPaid = clerkUser?.plan !== "free";
+  // Treat unknown (still loading) as NOT paid so premium gates aren't briefly
+  // bypassable while clerkUser is undefined.
+  const isPaid = !!clerkUser && clerkUser.plan !== "free";
   const profilesLoading = clerkUser === undefined || (clerkUser !== null && profiles === undefined);
   const profileCount = profiles?.length ?? 0;
   const profileLimit = subscription?.profileLimit ?? 1;

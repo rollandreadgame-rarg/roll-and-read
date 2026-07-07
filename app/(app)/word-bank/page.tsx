@@ -157,7 +157,14 @@ export default function WordBankPage() {
       </div>
 
       {/* Word grid */}
-      {filteredWords.length === 0 ? (
+      {wordBank === undefined ? (
+        <div className="flex flex-col items-center justify-center flex-1 gap-4 py-16">
+          <div className="text-4xl animate-pulse">📚</div>
+          <p className="text-lg font-semibold" style={{ color: "var(--color-text-muted)" }}>
+            Loading your words…
+          </p>
+        </div>
+      ) : filteredWords.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-4 py-16">
           <div className="text-5xl">📚</div>
           <p className="text-lg font-semibold" style={{ color: "var(--color-text-muted)" }}>

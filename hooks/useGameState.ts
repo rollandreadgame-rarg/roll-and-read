@@ -574,6 +574,11 @@ export function useGameState(profileId: string | null) {
 
   const handleLevelUpClose = useCallback(() => {
     setShowLevelUp(false);
+    // Clear the finished board first. If the new level's word pool hasn't
+    // loaded yet, startNewBoard() bails; leaving board=null lets the play
+    // page's `isReady && !board` effect regenerate once the pool arrives,
+    // instead of stranding the player on an all-cleared board.
+    setBoard(null);
     startNewBoard();
   }, [startNewBoard]);
 

@@ -10,6 +10,7 @@
 
 import type * as adminStickers from "../adminStickers.js";
 import type * as adminTesters from "../adminTesters.js";
+import type * as authHelpers from "../authHelpers.js";
 import type * as e2eSetup from "../e2eSetup.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as maintenance from "../maintenance.js";
@@ -18,6 +19,7 @@ import type * as profiles from "../profiles.js";
 import type * as seedStickers from "../seedStickers.js";
 import type * as seedStickersReal from "../seedStickersReal.js";
 import type * as seedWordLists from "../seedWordLists.js";
+import type * as shop from "../shop.js";
 import type * as stickersDb from "../stickersDb.js";
 import type * as subscriptionConfig from "../subscriptionConfig.js";
 import type * as subscriptions from "../subscriptions.js";
@@ -39,6 +41,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   adminStickers: typeof adminStickers;
   adminTesters: typeof adminTesters;
+  authHelpers: typeof authHelpers;
   e2eSetup: typeof e2eSetup;
   gameSessions: typeof gameSessions;
   maintenance: typeof maintenance;
@@ -47,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   seedStickers: typeof seedStickers;
   seedStickersReal: typeof seedStickersReal;
   seedWordLists: typeof seedWordLists;
+  shop: typeof shop;
   stickersDb: typeof stickersDb;
   subscriptionConfig: typeof subscriptionConfig;
   subscriptions: typeof subscriptions;

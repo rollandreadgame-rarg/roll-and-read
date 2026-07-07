@@ -20,8 +20,10 @@ const mockUser = {
 };
 
 export function useCurrentUser() {
+  // Call the hook unconditionally (rules-of-hooks); its result is ignored in E2E.
+  const clerkUser = useUser();
   if (IS_E2E) {
     return mockUser;
   }
-  return useUser();
+  return clerkUser;
 }

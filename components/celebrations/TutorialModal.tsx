@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface TutorialModalProps {
   show: boolean;
@@ -33,6 +33,14 @@ const SLIDES = [
 
 export default function TutorialModal({ show, onClose }: TutorialModalProps) {
   const [slide, setSlide] = useState(0);
+
+  // The modal stays mounted between profiles, so reset to the first slide each
+  // time it opens — otherwise a new profile sees it starting on the last slide.
+  useEffect(() => {
+    if (!show) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSlide(0);
+  }, [show]);
 
   const next = () => {
     if (slide < SLIDES.length - 1) setSlide((s) => s + 1);

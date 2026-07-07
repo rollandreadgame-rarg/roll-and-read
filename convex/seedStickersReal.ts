@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import stickers from "./stickerData/stickers.json";
 
 const COIN_COST = { common: 50, uncommon: 100, rare: 200, legendary: 500 };
 
 // Idempotent: skips a sticker that already exists (matched by name+subcategory).
-export const seedStickersReal = mutation({
+export const seedStickersReal = internalMutation({
   args: {},
   handler: async (ctx) => {
     const existing = await ctx.db.query("stickers").collect();

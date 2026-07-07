@@ -9,7 +9,7 @@
 // up by email, sets their plan + an "active" status, which unlocks the matching
 // profile limit (free 1 / individual 1 / family 5 / classroom 30) and all levels
 // for paid tiers — exactly as a real Stripe subscription would.
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { PROFILE_LIMITS } from "./subscriptionConfig";
 
@@ -27,7 +27,7 @@ async function findUserByEmail(ctx, email) {
 }
 
 // Comp a tester to any tier (no payment). Idempotent.
-export const grantPlan = mutation({
+export const grantPlan = internalMutation({
   args: { email: v.string(), plan: planValidator },
   handler: async (ctx, args) => {
     const user = await findUserByEmail(ctx, args.email);
@@ -52,7 +52,7 @@ export const grantPlan = mutation({
 });
 
 // Undo a comp — back to the free tier.
-export const revokeToFree = mutation({
+export const revokeToFree = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
     const user = await findUserByEmail(ctx, args.email);
@@ -68,7 +68,7 @@ export const revokeToFree = mutation({
 });
 
 // List every signed-up user with their plan + profile usage (for managing testers).
-export const listUsers = query({
+export const listUsers = internalQuery({
   args: {},
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();

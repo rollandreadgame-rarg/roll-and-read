@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
 const STICKERS = [
   // Animals - Common - Free tier
@@ -59,7 +59,7 @@ const STICKERS = [
   { name: "Literacy Legend", category: "characters", rarity: "legendary" as const, emoji: "📚", coinCost: 500, isAnimated: true, isPaidOnly: true },
 ];
 
-export const seedStickers = mutation({
+export const seedStickers = internalMutation({
   args: {},
   handler: async (ctx) => {
     let inserted = 0;

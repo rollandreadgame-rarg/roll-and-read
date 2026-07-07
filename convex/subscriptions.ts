@@ -8,6 +8,23 @@ import {
   isPaidStatus,
 } from "./subscriptionConfig";
 
+// These two mutations MUST stay public because they're called from Next.js
+// server routes via an unauthenticated ConvexHttpClient (webhook + checkout),
+// which can't call internal functions and carries no ctx.auth identity. To
+// stop anyone from calling them from a browser console to grant themselves a
+// paid plan, the trusted callers pass a shared secret.
+//
+// Enforcement is gated on ENFORCE_SYNC_SECRET so it can be turned on AFTER the
+// server routes that send the secret are deployed — a Convex env change takes
+// effect immediately with no code redeploy, giving a zero-downtime cutover.
+function assertSyncSecret(provided) {
+  if (process.env.ENFORCE_SYNC_SECRET !== "true") return;
+  const expected = process.env.CONVEX_SYNC_SECRET;
+  if (!expected || provided !== expected) {
+    throw new Error("Forbidden");
+  }
+}
+
 export const getByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -39,8 +56,10 @@ export const setStripeCustomerId = mutation({
   args: {
     clerkId: v.string(),
     stripeCustomerId: v.string(),
+    syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    assertSyncSecret(args.syncSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -65,8 +84,10 @@ export const syncFromStripe = mutation({
     subscriptionStatus: v.optional(v.string()),
     currentPeriodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.optional(v.boolean()),
+    syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    assertSyncSecret(args.syncSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_stripe_customer", (q) =>

@@ -54,10 +54,24 @@ export async function POST(req: NextRequest) {
       });
     } else if (event.type === "invoice.payment_failed") {
       const invoice = event.data.object as Stripe.Invoice;
+      // Post-"basil" (2025+) API moved the subscription id off the top-level
+      // Invoice field. Resolve it from the new locations, keeping the legacy
+      // top-level read as a last-resort fallback for old-version endpoints.
+      const inv = invoice as unknown as {
+        subscription?: string;
+        parent?: { subscription_details?: { subscription?: string } };
+        lines?: {
+          data?: {
+            parent?: {
+              subscription_item_details?: { subscription?: string };
+            };
+          }[];
+        };
+      };
       const subId =
-        typeof (invoice as unknown as { subscription?: string }).subscription === "string"
-          ? ((invoice as unknown as { subscription?: string }).subscription as string)
-          : null;
+        inv.parent?.subscription_details?.subscription ??
+        inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription ??
+        (typeof inv.subscription === "string" ? inv.subscription : null);
       if (!subId) {
         return NextResponse.json({ received: true, skipped: "invoice has no subscription" });
       }
@@ -93,6 +107,7 @@ export async function POST(req: NextRequest) {
         event.type === "customer.subscription.deleted" ? "canceled" : subscription.status,
       currentPeriodEnd: periodEndSec,
       cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
+      syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
 
     return NextResponse.json({ received: true, type: event.type });

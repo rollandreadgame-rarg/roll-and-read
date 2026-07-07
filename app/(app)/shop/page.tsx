@@ -62,20 +62,6 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: "#F59E0B",
 };
 
-function rollRarity(premium?: boolean): "common" | "uncommon" | "rare" | "legendary" {
-  const r = Math.random();
-  if (premium) {
-    if (r < 0.40) return "common";
-    if (r < 0.75) return "uncommon";
-    if (r < 0.95) return "rare";
-    return "legendary";
-  }
-  if (r < 0.60) return "common";
-  if (r < 0.85) return "uncommon";
-  if (r < 0.97) return "rare";
-  return "legendary";
-}
-
 export default function ShopPage() {
   const { user } = useCurrentUser();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
@@ -95,19 +81,10 @@ export default function ShopPage() {
   const selectedProfile = activeProfileId ?? profiles?.[0]?._id;
   const profile = profiles?.find((p: any) => p._id === selectedProfile);
 
-  const allStickers = useQuery(api.stickersDb.getAll);
-  const profileStickers = useQuery(
-    api.stickersDb.getForProfile,
-    selectedProfile ? { profileId: selectedProfile as Id<"profiles"> } : "skip"
-  );
+  const openPackMut = useMutation(api.shop.openPack);
 
-  const ownedIds = new Set((profileStickers ?? []).map((ps: any) => ps.stickerId));
-
-  const spendCoinsMut = useMutation(api.profiles.spendCoins);
-  const grantStickerMut = useMutation(api.stickersDb.grantSticker);
-
-  const handleBuy = async (packId: string, cost: number, count: number) => {
-    if (!selectedProfile || !profile || !allStickers) return;
+  const handleBuy = async (packId: string, cost: number) => {
+    if (!selectedProfile || !profile) return;
     if (profile.coins < cost) {
       setErrorMsg(`You need ${(cost - profile.coins).toLocaleString()} more coins!`);
       setTimeout(() => setErrorMsg(""), 3000);
@@ -119,66 +96,25 @@ export default function ShopPage() {
     setErrorMsg("");
 
     try {
-      await spendCoinsMut({
+      // Server spends coins + grants stickers atomically and returns the result.
+      const result = (await openPackMut({
         profileId: selectedProfile as Id<"profiles">,
-        amount: cost,
-      });
-
-      // Track IDs granted during this purchase to avoid double-granting in multi-sticker packs
-      const grantedThisSession = new Set(ownedIds);
-
-      const stickersToReveal: RevealedSticker[] = [];
-      for (let i = 0; i < count; i++) {
-        const isPremium = packId === "premium";
-        const rarity = rollRarity(isPremium);
-        const catFilter = packId === "themed" ? selectedCategory : undefined;
-
-        // Find uncollected stickers of this rarity (excluding already granted this session)
-        let eligible = allStickers.filter(
-          (s: any) =>
-            s.rarity === rarity &&
-            !grantedThisSession.has(s._id) &&
-            (catFilter ? s.category === catFilter : true)
-        );
-
-        // Fallback: any sticker of this rarity (allow duplicates if pool exhausted)
-        if (eligible.length === 0) {
-          eligible = allStickers.filter(
-            (s: any) => s.rarity === rarity && (catFilter ? s.category === catFilter : true)
-          );
-        }
-
-        // Ultimate fallback: any sticker
-        if (eligible.length === 0) {
-          eligible = allStickers;
-        }
-
-        // eslint-disable-next-line react-hooks/purity
-        const picked = eligible[Math.floor(Math.random() * eligible.length)];
-        stickersToReveal.push({
-          name: picked.name,
-          emoji: picked.emoji,
-          imageFullUrl: picked.imageFullUrl,
-          rarity: picked.rarity,
-        });
-
-        // Grant to profile only if not already owned
-        if (!grantedThisSession.has(picked._id)) {
-          await grantStickerMut({
-            profileId: selectedProfile as Id<"profiles">,
-            stickerId: picked._id,
-          });
-          grantedThisSession.add(picked._id);
-        }
-      }
+        packId: packId as "basic" | "themed" | "premium",
+        category: packId === "themed" ? selectedCategory : undefined,
+      })) as { revealed: RevealedSticker[] };
 
       // Reveal one by one
-      for (let i = 0; i < stickersToReveal.length; i++) {
-        setRevealedStickers(stickersToReveal.slice(0, i + 1));
+      for (let i = 0; i < result.revealed.length; i++) {
+        setRevealedStickers(result.revealed.slice(0, i + 1));
         await new Promise((r) => setTimeout(r, 600));
       }
-    } catch {
-      setErrorMsg("Something went wrong. Please try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setErrorMsg(
+        msg.includes("INSUFFICIENT_COINS")
+          ? "You don't have enough coins for that pack."
+          : "Something went wrong. Please try again."
+      );
     }
 
     setIsRevealing(false);
@@ -283,7 +219,7 @@ export default function ShopPage() {
               </div>
               <div className="text-xs text-white/60 mb-3">{pack.odds}</div>
               <motion.button
-                onClick={() => handleBuy(pack.id, pack.cost, pack.count)}
+                onClick={() => handleBuy(pack.id, pack.cost)}
                 disabled={!canAfford || isRevealing}
                 whileTap={canAfford && !isRevealing ? { scale: 0.97 } : {}}
                 className="w-full py-3 rounded-xl font-extrabold text-base transition-opacity disabled:opacity-50"

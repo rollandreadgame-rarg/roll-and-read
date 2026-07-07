@@ -1,7 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
+// E2E passthrough is only honored outside production so a stray
+// NEXT_PUBLIC_E2E_MODE=true in Vercel prod can never disable route protection.
+const IS_E2E =
+  process.env.NEXT_PUBLIC_E2E_MODE === "true" &&
+  process.env.NODE_ENV !== "production";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -10,9 +14,10 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/terms",
   "/api/webhooks(.*)",
+  "/audio(.*)",
 ]);
 
-function e2eMiddleware(req: NextRequest) {
+function e2eMiddleware() {
   return NextResponse.next();
 }
 
@@ -33,7 +38,7 @@ export default IS_E2E ? e2eMiddleware : clerkHandler;
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp3|wav|ogg|m4a)).*)",
     "/(api|trpc)(.*)",
   ],
 };

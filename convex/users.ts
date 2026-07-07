@@ -36,6 +36,11 @@ export const createUser = mutation({
 export const getByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    // Only ever return the caller's own record. Prevents enumerating other
+    // users' email/plan by passing an arbitrary clerkId.
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) return null;
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -48,17 +53,14 @@ export const getByClerkId = query({
   },
 });
 
-export const updatePlan = mutation({
+// Sync a user's email when Clerk fires user.updated.
+// IMPORTANT: never touches `plan` — Stripe (via subscriptions.syncFromStripe)
+// is the single source of truth for billing tier. Writing plan here would
+// downgrade paying customers to "free" whenever they edit their Clerk profile.
+export const updateEmailFromClerk = mutation({
   args: {
     clerkId: v.string(),
-    plan: v.union(
-      v.literal("free"),
-      v.literal("individual"),
-      v.literal("family"),
-      v.literal("classroom")
-    ),
-    subscriptionId: v.optional(v.string()),
-    subscriptionStatus: v.optional(v.string()),
+    email: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -66,12 +68,10 @@ export const updatePlan = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
-    if (!user) throw new Error("User not found");
+    if (!user) return; // nothing to sync yet; user.created will handle it
 
     await ctx.db.patch(user._id, {
-      plan: args.plan,
-      clerkSubscriptionId: args.subscriptionId,
-      subscriptionStatus: args.subscriptionStatus,
+      email: args.email,
       updatedAt: Date.now(),
     });
   },

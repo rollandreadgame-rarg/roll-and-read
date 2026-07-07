@@ -37,13 +37,14 @@ function ProfileCard({ profile }: { profile: any }) {
   const wordsLearned = wordBank?.length ?? 0;
   const practiceWords = (wordBank ?? []).filter((w: any) => w.needsPractice);
 
+  const accuracyHistory = profile.accuracyHistory ?? [];
   const avgAccuracy =
-    profile.accuracyHistory.length > 0
+    accuracyHistory.length > 0
       ? Math.round(
-          profile.accuracyHistory.reduce(
+          accuracyHistory.reduce(
             (a: number, b: number) => a + b,
             0
-          ) / profile.accuracyHistory.length
+          ) / accuracyHistory.length
         )
       : null;
 
@@ -452,12 +453,12 @@ export default function TeacherPage() {
     0
   );
   const profileAvgAccuracies = (profiles ?? [])
-    .map((p: any) =>
-      p.accuracyHistory.length > 0
-        ? p.accuracyHistory.reduce((a: number, b: number) => a + b, 0) /
-          p.accuracyHistory.length
-        : null
-    )
+    .map((p: any) => {
+      const hist = p.accuracyHistory ?? [];
+      return hist.length > 0
+        ? hist.reduce((a: number, b: number) => a + b, 0) / hist.length
+        : null;
+    })
     .filter((x: number | null) => x !== null) as number[];
   const overallAvgAccuracy =
     profileAvgAccuracies.length > 0

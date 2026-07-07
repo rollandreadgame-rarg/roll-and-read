@@ -25,11 +25,16 @@ export async function POST(req: NextRequest) {
   if (event.type === "user.created") {
     const data = event.data as {
       id: string;
-      email_addresses: { email_address: string }[];
+      email_addresses: { id: string; email_address: string }[];
+      primary_email_address_id?: string | null;
     };
+    const primary =
+      data.email_addresses?.find(
+        (e) => e.id === data.primary_email_address_id
+      ) ?? data.email_addresses?.[0];
     await convex.mutation(api.users.createUser, {
       clerkId: data.id,
-      email: data.email_addresses[0]?.email_address ?? "",
+      email: primary?.email_address ?? "",
       plan: "free",
     });
   }
@@ -37,18 +42,22 @@ export async function POST(req: NextRequest) {
   if (event.type === "user.updated") {
     const data = event.data as {
       id: string;
-      public_metadata?: { plan?: string };
+      email_addresses?: { id: string; email_address: string }[];
+      primary_email_address_id?: string | null;
     };
-    const plan = (data.public_metadata?.plan ?? "free") as
-      | "free"
-      | "individual"
-      | "family"
-      | "classroom";
-
-    await convex.mutation(api.users.updatePlan, {
-      clerkId: data.id,
-      plan,
-    });
+    // Sync email only — NEVER the plan. Stripe is the source of truth for
+    // billing; writing plan here downgraded paying customers to "free"
+    // whenever they edited their Clerk profile.
+    const primary =
+      data.email_addresses?.find(
+        (e) => e.id === data.primary_email_address_id
+      ) ?? data.email_addresses?.[0];
+    if (primary?.email_address) {
+      await convex.mutation(api.users.updateEmailFromClerk, {
+        clerkId: data.id,
+        email: primary.email_address,
+      });
+    }
   }
 
   return NextResponse.json({ success: true });

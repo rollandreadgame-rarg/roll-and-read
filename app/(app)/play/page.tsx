@@ -24,7 +24,7 @@ import NonsenseCoachmark from "@/components/celebrations/NonsenseCoachmark";
 import type { WordEntry } from "@/lib/game/boardGenerator";
 
 export default function PlayPage() {
-  useTheme();
+  const { setTheme } = useTheme();
   const [profileId, setProfileId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showNonsenseTip, setShowNonsenseTip] = useState(false);
@@ -116,10 +116,11 @@ export default function PlayPage() {
     }
   }, [profileId]);
 
-  // Sync theme from profile
+  // Sync theme from profile through the ThemeProvider so there's a single
+  // writer of data-theme (avoids the provider and this page fighting over it).
   useEffect(() => {
     if (profile?.selectedTheme) {
-      document.documentElement.setAttribute("data-theme", profile.selectedTheme);
+      setTheme(profile.selectedTheme as "ocean" | "space" | "forest" | "candy" | "classic");
     }
   }, [profile?.selectedTheme]);
 
@@ -128,7 +129,19 @@ export default function PlayPage() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code !== "Space" || isRolling || !board) return;
-      // preventDefault also stops Space from "clicking" a focused word card.
+      // Don't hijack Space when a control is focused — Space is the native
+      // activation key for buttons/word cards/links, which keyboard and
+      // screen-reader users rely on. Only use it as a roll/repeat shortcut
+      // when focus is on the page body, not an interactive element.
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        target.closest(
+          "button, a, input, textarea, select, [role='button'], [contenteditable='true']"
+        )
+      ) {
+        return;
+      }
       e.preventDefault();
       if (activeRow === null) {
         rollDice();
