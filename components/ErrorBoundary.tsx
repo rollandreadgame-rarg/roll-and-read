@@ -27,27 +27,25 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center flex-1 gap-6 p-8 text-center">
-          <div className="text-6xl">😵</div>
-          <h2
-            className="text-2xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Something went wrong
-          </h2>
-          <p style={{ color: "var(--color-text-muted)" }}>
-            An unexpected error occurred. Your progress has been saved.
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false })}
-            className="px-6 py-3 rounded-xl font-bold text-white cursor-pointer"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-secondary) 100%)",
-            }}
-          >
-            Try Again
-          </button>
+        <div role="alert" className="flex flex-col items-center justify-center flex-1 gap-4 px-4 py-10 text-center">
+          <div className="panel w-full max-w-sm px-7 py-8 flex flex-col items-center gap-4">
+            <div className="text-6xl" aria-hidden="true">😵</div>
+            <h2
+              className="text-2xl font-extrabold"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              Something went wrong
+            </h2>
+            <p style={{ color: "var(--color-text-secondary)" }}>
+              An unexpected error occurred. Your progress has been saved.
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false })}
+              className="btn-primary w-full px-6 py-3 cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
         </div>
       );
     }

@@ -4,11 +4,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
+import { Lock } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useParentGate } from "@/providers/ParentGateProvider";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import PinInput from "./PinInput";
 import ParentPinForgot from "./ParentPinForgot";
+
+const ERROR_TEXT = "var(--color-error-text)";
+const LINK_CLASS =
+  "rounded-xl px-3 underline underline-offset-4 hover:bg-[var(--color-hover)]";
 
 export default function ParentPinPrompt() {
   const router = useRouter();
@@ -50,23 +55,30 @@ export default function ParentPinPrompt() {
         role="dialog"
         aria-modal="true"
         aria-label="Grown-ups only"
-        className="w-full max-w-sm text-center"
+        className="w-full text-center"
         style={reduced ? {} : (shake ? { animation: "rar-shake 0.4s" } : {})}
+        onKeyDown={(e) => { if (e.key === "Escape") router.push("/play"); }}
       >
-        <div className="text-4xl mb-2">🔒</div>
-        <h1 className="text-xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
+        <span
+          className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+          style={{ background: "var(--color-surface-2)", color: "var(--color-text-secondary)" }}
+          aria-hidden="true"
+        >
+          <Lock size={26} />
+        </span>
+        <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
           Grown-ups only
         </h1>
-        <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-sm mb-6" style={{ color: "var(--color-text-secondary)" }}>
           Enter your PIN to open this area.
         </p>
         <PinInput value={pin} onChange={setPin} onComplete={submit} autoFocus disabled={locked} ariaLabel="Unlock PIN" />
-        <p aria-live="assertive" className="h-5 mt-3 text-sm" style={{ color: "#f87171" }}>{error}</p>
-        <div className="flex items-center justify-between mt-2 text-sm">
-          <button onClick={() => setForgot(true)} className="underline" style={{ color: "var(--color-text-secondary)" }}>
+        <p aria-live="assertive" className="min-h-5 mt-3 text-sm font-semibold" style={{ color: ERROR_TEXT }}>{error}</p>
+        <div className="flex items-center justify-between gap-2 mt-3 text-sm">
+          <button onClick={() => setForgot(true)} className={LINK_CLASS} style={{ color: "var(--color-text-secondary)" }}>
             Forgot PIN?
           </button>
-          <button onClick={() => router.push("/play")} className="underline" style={{ color: "var(--color-text-secondary)" }}>
+          <button onClick={() => router.push("/play")} className={LINK_CLASS} style={{ color: "var(--color-text-secondary)" }}>
             Cancel
           </button>
         </div>
@@ -77,8 +89,10 @@ export default function ParentPinPrompt() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 flex items-center justify-center p-6" style={{ background: "var(--color-bg-primary)" }}>
-      {children}
+    <div className="flex-1 flex items-center justify-center px-4 py-8 sm:p-6" style={{ background: "var(--color-bg-primary)" }}>
+      <div className="panel w-full max-w-sm p-6 sm:p-8">
+        {children}
+      </div>
     </div>
   );
 }

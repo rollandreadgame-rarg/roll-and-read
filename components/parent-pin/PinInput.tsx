@@ -69,10 +69,10 @@ export default function PinInput({
               refs.current[Math.min(pasted.length, LEN - 1)]?.focus();
             }
           }}
-          className="w-14 h-16 text-center text-2xl font-bold rounded-2xl border-2 outline-none transition-transform focus:scale-105"
+          className="w-14 h-16 text-center text-2xl font-bold tabular-nums rounded-2xl border-2 transition-transform focus:scale-105 disabled:opacity-60"
           style={{
-            background: "var(--color-bg-surface)",
-            borderColor: value[i] ? "var(--color-brand)" : "rgba(255,255,255,0.15)",
+            background: "var(--color-surface-2)",
+            borderColor: value[i] ? "var(--color-brand)" : "var(--color-line-strong)",
             color: "var(--color-text-primary)",
           }}
         />

@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { speakWord, cancelSpeech } from "@/lib/tts/webSpeechTTS";
 import { playSound } from "@/lib/audio/soundManager";
+import MiniDie from "@/components/game/MiniDie";
 
 const PRACTICE_COIN_REWARD = 3;
 
@@ -19,6 +20,12 @@ interface PracticeWord {
   isNonsense: boolean;
   coinValue: number;
 }
+
+const secondaryButtonStyle: React.CSSProperties = {
+  background: "var(--color-surface-2)",
+  border: "1px solid var(--color-line)",
+  color: "var(--color-text-primary)",
+};
 
 export default function PracticePage() {
   const { user } = useCurrentUser();
@@ -156,10 +163,11 @@ export default function PracticePage() {
             key={p._id}
             onClick={() => switchReader(p._id)}
             aria-pressed={p._id === profileId}
-            className="px-3 py-1.5 rounded-full text-sm font-semibold"
+            className="shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors"
             style={{
-              background: p._id === profileId ? "var(--color-brand)" : "rgba(255,255,255,0.06)",
-              color: p._id === profileId ? "white" : "var(--color-text-primary)",
+              background: p._id === profileId ? "var(--color-brand)" : "var(--color-surface-2)",
+              color: p._id === profileId ? "var(--color-on-brand)" : "var(--color-text-primary)",
+              border: `1px solid ${p._id === profileId ? "var(--color-brand)" : "var(--color-line)"}`,
             }}
           >
             <span aria-hidden="true">{p.avatarEmoji}</span> {p.name}
@@ -171,7 +179,8 @@ export default function PracticePage() {
   // Loading
   if (!clerkUser || !profiles || !wordBank || !snapshot) {
     return (
-      <div className="p-8 text-center" style={{ color: "var(--color-text-muted)" }}>
+      <div className="flex flex-col items-center gap-3 p-8 text-center" style={{ color: "var(--color-text-muted)" }}>
+        <MiniDie face={4} className="w-10 h-10" />
         Loading…
       </div>
     );
@@ -180,11 +189,11 @@ export default function PracticePage() {
   // Empty queue
   if (initialQueue.length === 0) {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center">
+      <div className="mx-auto w-full max-w-md px-4 py-12 text-center">
         {readerPicker}
-        <div className="text-6xl mb-4">🎯</div>
+        <div className="text-6xl mb-4" aria-hidden="true">🎯</div>
         <h1
-          className="text-3xl font-extrabold mb-2 text-balance"
+          className="text-2xl sm:text-3xl font-extrabold mb-2 text-balance"
           style={{ color: "var(--color-text-primary)" }}
         >
           All caught up!
@@ -193,12 +202,8 @@ export default function PracticePage() {
           No words need extra practice right now. Keep playing — words you
           struggle with will show up here.
         </p>
-        <Link
-          href="/play"
-          className="inline-block px-6 py-3 rounded-2xl font-bold text-white"
-          style={{ background: "var(--color-brand)" }}
-        >
-          🎲 Back to Play
+        <Link href="/play" className="btn-primary inline-flex items-center justify-center px-6 py-3">
+          Back to play
         </Link>
       </div>
     );
@@ -207,21 +212,15 @@ export default function PracticePage() {
   // Done with the round
   if (done) {
     return (
-      <div className="mx-auto max-w-md px-4 py-12 text-center">
-        <div className="text-6xl mb-4">🎉</div>
+      <div className="mx-auto w-full max-w-md px-4 py-12 text-center">
+        <div className="text-6xl mb-4" aria-hidden="true">🎉</div>
         <h1
-          className="text-3xl font-extrabold mb-2 text-balance"
+          className="text-2xl sm:text-3xl font-extrabold mb-2 text-balance"
           style={{ color: "var(--color-text-primary)" }}
         >
           Practice complete!
         </h1>
-        <div
-          className="grid grid-cols-3 gap-3 my-6 rounded-2xl p-4"
-          style={{
-            background: "var(--color-bg-surface)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
+        <div className="panel grid grid-cols-3 gap-3 my-6 p-4">
           <div>
             <div
               className="text-2xl font-extrabold tabular-nums"
@@ -246,10 +245,10 @@ export default function PracticePage() {
           </div>
           <div>
             <div
-              className="text-2xl font-extrabold tabular-nums"
-              style={{ color: "var(--color-accent-gold)" }}
+              className="text-2xl font-extrabold tabular-nums whitespace-nowrap"
+              style={{ color: "var(--color-text-primary)" }}
             >
-              💰 {resultsBatch.coinsEarned}
+              <span aria-hidden="true">💰</span> {resultsBatch.coinsEarned}
             </div>
             <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
               Coins earned
@@ -257,22 +256,15 @@ export default function PracticePage() {
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <Link
-            href="/play"
-            className="px-6 py-3 rounded-2xl font-bold text-white"
-            style={{ background: "var(--color-brand)" }}
-          >
-            🎲 Back to Play
+          <Link href="/play" className="btn-primary inline-flex items-center justify-center px-6 py-3">
+            Back to play
           </Link>
           <Link
             href="/word-bank"
-            className="px-6 py-3 rounded-2xl font-semibold"
-            style={{
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "var(--color-text-primary)",
-            }}
+            className="inline-flex items-center justify-center px-6 py-3 rounded-2xl font-semibold transition-colors hover:bg-[var(--color-hover)]"
+            style={secondaryButtonStyle}
           >
-            📚 Word Bank
+            <span aria-hidden="true" className="mr-1.5">📚</span> Word bank
           </Link>
         </div>
       </div>
@@ -281,19 +273,20 @@ export default function PracticePage() {
 
   // Drill
   const progress = Math.round((idx / initialQueue.length) * 100);
+  const silly = !!current?.isNonsense;
   return (
-    <div className="mx-auto max-w-md px-4 py-8 flex flex-col items-center">
+    <div className="mx-auto w-full max-w-md px-4 py-6 sm:py-8 flex flex-col items-center">
       {readerPicker}
       <div className="w-full mb-6">
         <div
           className="h-2 rounded-full overflow-hidden"
-          style={{ background: "rgba(255,255,255,0.08)" }}
+          style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-line)" }}
         >
           <div
             className="h-full transition-all"
             style={{
               width: `${progress}%`,
-              background: "var(--color-brand)",
+              background: "var(--color-brand-secondary)",
             }}
           />
         </div>
@@ -306,77 +299,79 @@ export default function PracticePage() {
       </div>
 
       <h1
-        className="text-sm font-bold uppercase tracking-wide mb-1"
-        style={{ color: "var(--color-text-muted)" }}
+        className="text-2xl sm:text-3xl font-extrabold mb-1 text-balance"
+        style={{ color: "var(--color-text-primary)" }}
       >
-        🎯 Practice Mode
+        Practice
       </h1>
       <p
-        className="text-xs mb-6 text-center text-pretty"
+        className="text-sm mb-6 text-center text-pretty"
         style={{ color: "var(--color-text-muted)" }}
       >
         Listen, read, and tap how you did.
       </p>
 
+      {/* The word, printed on a paper card */}
       <div
-        className="w-full rounded-3xl px-6 py-12 text-center mb-6"
+        className="relative w-full px-6 py-10 text-center mb-4"
         style={{
-          background: "var(--color-bg-surface)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "var(--radius-card)",
+          background: silly ? "var(--card-silly)" : "var(--card-paper)",
+          color: silly ? "var(--card-silly-ink)" : "var(--card-ink)",
+          border: silly ? "2px dashed var(--card-silly-edge)" : "2px solid transparent",
+          boxShadow: `0 4px 0 ${silly ? "color-mix(in srgb, var(--card-silly-edge) 55%, var(--card-silly))" : "var(--card-edge)"}, 0 10px 18px -8px rgba(0, 0, 0, 0.45)`,
         }}
       >
         <div
-          className="text-5xl font-extrabold mb-2 tracking-wide"
-          style={{
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-word)",
-          }}
+          className="text-5xl font-bold mb-3 break-words"
+          style={{ fontFamily: "var(--font-word)" }}
         >
           {current?.word}
-          {current?.isNonsense && <span className="text-2xl ml-1">✦</span>}
+          {current?.isNonsense && (
+            <>
+              <span className="text-2xl ml-1" aria-hidden="true">👽</span>
+              <span className="sr-only"> (nonsense word)</span>
+            </>
+          )}
         </div>
-        <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <div
+          className="text-xs font-semibold"
+          style={{ color: `color-mix(in srgb, ${silly ? "var(--card-silly-ink)" : "var(--card-ink)"} 72%, ${silly ? "var(--card-silly)" : "var(--card-paper)"})` }}
+        >
           Level {current?.level}
         </div>
-        <button
-          onClick={() => current && speakWord(current.word)}
-          className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            color: "var(--color-text-primary)",
-          }}
-        >
-          🔊 Hear again
-        </button>
       </div>
+      <button
+        onClick={() => current && speakWord(current.word)}
+        className="mb-6 px-4 py-2 rounded-2xl text-sm font-semibold transition-colors hover:bg-[var(--color-hover)]"
+        style={secondaryButtonStyle}
+      >
+        <span aria-hidden="true">🔊</span> Hear again
+      </button>
 
       <div className="grid grid-cols-2 gap-3 w-full mb-3">
         <button
           onClick={handleStillHard}
           disabled={busy}
-          className="py-4 rounded-2xl font-bold transition-colors disabled:opacity-60"
+          className="py-4 px-2 rounded-2xl font-bold transition-colors hover:bg-[var(--color-hover)] disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            background: "rgba(239,68,68,0.15)",
-            border: "1px solid rgba(239,68,68,0.4)",
-            color: "var(--color-text-primary)",
+            ...secondaryButtonStyle,
+            border: "1px solid color-mix(in srgb, var(--color-error) 55%, var(--color-line))",
           }}
         >
-          😬 Still hard
+          <span aria-hidden="true">😬</span> Still hard
         </button>
         <button
           onClick={handleGotIt}
           disabled={busy}
-          className="py-4 rounded-2xl font-bold text-white disabled:opacity-60"
-          style={{
-            background: "linear-gradient(135deg, var(--color-success), color-mix(in srgb, var(--color-success) 70%, black))",
-          }}
+          className="btn-primary py-4 px-2"
         >
-          ✅ Got it (+{PRACTICE_COIN_REWARD}💰)
+          <span aria-hidden="true">✅</span> Got it (+{PRACTICE_COIN_REWARD}<span aria-hidden="true">💰</span><span className="sr-only"> coins</span>)
         </button>
       </div>
       <button
         onClick={handleSkip}
-        className="text-xs"
+        className="text-sm underline underline-offset-4 px-3"
         style={{ color: "var(--color-text-muted)" }}
       >
         Skip for now

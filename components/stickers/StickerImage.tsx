@@ -11,7 +11,7 @@ interface StickerImageProps {
 }
 
 // Renders the real sticker art with a graceful fallback chain:
-// image -> legacy emoji -> ❓. Keeps a fixed square box (no layout shift).
+// image -> legacy emoji -> muted "?". Keeps a fixed square box (no layout shift).
 export default function StickerImage({ src, emoji, alt, className = "", sizePx = 96 }: StickerImageProps) {
   const [failed, setFailed] = useState(false);
   const showImg = src && !failed;
@@ -33,7 +33,14 @@ export default function StickerImage({ src, emoji, alt, className = "", sizePx =
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       ) : (
-        <span className="text-4xl" aria-label={alt}>{emoji || "❓"}</span>
+        <span
+          role="img"
+          className={emoji ? "text-4xl" : "text-3xl font-extrabold"}
+          style={emoji ? undefined : { color: "var(--color-text-muted)" }}
+          aria-label={alt}
+        >
+          {emoji || "?"}
+        </span>
       )}
     </span>
   );

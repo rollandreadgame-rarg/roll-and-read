@@ -13,8 +13,9 @@ export default function LockButton() {
   if (!hasPin || !unlocked || !onGated) return null;
   return (
     <button onClick={lock} aria-label="Lock grown-up areas"
-      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:bg-white/10">
-      <Lock size={14} /> <span className="hidden sm:inline">Lock</span>
+      className="flex items-center justify-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold hover:bg-[var(--color-hover)]"
+      style={{ color: "var(--color-text-secondary)" }}>
+      <Lock size={16} aria-hidden="true" /> <span className="hidden sm:inline">Lock</span>
     </button>
   );
 }

@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { useProfileSelector } from "@/hooks/useProfile";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id } from "@/convex/_generated/dataModel";
+import MiniDie from "@/components/game/MiniDie";
 
 const AVATARS: [string, string][] = [
   ["🦊", "fox"], ["🐻", "bear"], ["🐼", "panda"], ["🦁", "lion"], ["🐯", "tiger"],
@@ -58,53 +59,59 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-dvh">
+      <div className="flex items-center justify-center min-h-dvh" role="status" aria-label="Loading readers">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="text-4xl"
         >
-          🎲
+          <MiniDie face={5} className="w-12 h-12" />
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center p-6" style={{ background: "var(--color-bg-primary)" }}>
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-8 sm:p-6" style={{ background: "var(--color-bg-primary)" }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
+        className="w-full max-w-xl"
       >
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🎲</div>
-          <h1 className="text-3xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
-            Who&apos;s Reading?
+          <MiniDie face={5} className="w-14 h-14 mx-auto mb-4" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
+            Who&apos;s reading?
           </h1>
-          <p style={{ color: "var(--color-text-muted)" }}>Select a reader to continue</p>
+          <p style={{ color: "var(--color-text-secondary)" }}>Tap your picture to start</p>
         </div>
 
-        <div className="flex flex-col gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           {profiles.map((p: any) => (
             <motion.button
               key={p._id}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ y: -3 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onSelect(p._id)}
-              className="flex items-center gap-4 p-4 rounded-2xl text-left transition-colors hover:brightness-110"
-              style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
+              className="flex flex-col items-center gap-2 px-3 pt-5 pb-4 rounded-[22px] text-center transition-colors hover:border-[var(--color-brand-secondary)] min-w-0"
+              style={{
+                background: "var(--color-bg-surface)",
+                border: "2px solid var(--color-line)",
+                boxShadow: "0 4px 0 var(--color-line-strong)",
+              }}
             >
-              <div className="text-4xl w-12 h-12 flex items-center justify-center rounded-xl" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <div
+                className="w-24 h-24 flex items-center justify-center rounded-full"
+                style={{ background: "var(--color-surface-2)", fontSize: 64, lineHeight: 1 }}
+                aria-hidden="true"
+              >
                 {p.avatarEmoji}
               </div>
-              <div>
-                <div className="font-bold text-lg" style={{ color: "var(--color-text-primary)" }}>{p.name}</div>
-                <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-                  Level {p.currentLevel} • 💰 {p.coins.toLocaleString()}
-                </div>
+              <div className="font-extrabold text-lg leading-tight w-full truncate" style={{ color: "var(--color-text-primary)" }}>
+                {p.name}
               </div>
-              <div className="ml-auto" style={{ color: "var(--color-text-muted)" }}>→</div>
+              <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                Level {p.currentLevel} • 💰 {p.coins.toLocaleString()}
+              </div>
             </motion.button>
           ))}
         </div>
@@ -112,41 +119,43 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
         {atLimit && !isCreating ? (
           <Link
             href="/billing"
-            className="block w-full py-3 rounded-2xl font-bold text-center transition-colors hover:bg-white/10"
-            style={{ border: "2px dashed rgba(255,255,255,0.2)", color: "var(--color-text-muted)" }}
+            className="flex items-center justify-center w-full py-3 px-4 rounded-2xl font-bold text-center transition-colors hover:bg-[var(--color-hover)]"
+            style={{ border: "2px dashed var(--color-line-strong)", color: "var(--color-text-secondary)" }}
           >
-            ✨ Upgrade to add more readers ({profiles.length}/{sub?.profileLimit})
+            <span aria-hidden="true">✨&nbsp;</span>Upgrade to add more readers ({profiles.length}/{sub?.profileLimit})
           </Link>
         ) : !isCreating ? (
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsCreating(true)}
-            className="w-full py-3 rounded-2xl font-bold transition-colors hover:bg-white/10"
-            style={{ border: "2px dashed rgba(255,255,255,0.2)", color: "var(--color-text-muted)" }}
+            className="w-full py-3 rounded-2xl font-bold transition-colors hover:bg-[var(--color-hover)]"
+            style={{ border: "2px dashed var(--color-line-strong)", color: "var(--color-text-secondary)" }}
           >
-            + Add New Reader
+            + Add new reader
           </motion.button>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-4"
-            style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="panel p-5"
           >
-            <h3 className="font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>New Reader</h3>
+            <h2 className="text-lg font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>New reader</h2>
 
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-4">
               {AVATARS.map(([emoji, name]) => (
                 <button
                   key={emoji}
                   onClick={() => setNewAvatar(emoji)}
                   aria-label={name}
                   aria-pressed={newAvatar === emoji}
-                  className="text-2xl p-1.5 rounded-lg transition-all"
+                  className="text-3xl w-12 h-12 flex items-center justify-center rounded-xl transition-all"
                   style={{
-                    background: newAvatar === emoji ? "var(--color-brand)" : "rgba(255,255,255,0.05)",
-                    transform: newAvatar === emoji ? "scale(1.2)" : "scale(1)",
+                    background:
+                      newAvatar === emoji
+                        ? "color-mix(in srgb, var(--color-brand) 28%, var(--color-surface-2))"
+                        : "var(--color-surface-2)",
+                    border: `2px solid ${newAvatar === emoji ? "var(--color-highlight)" : "transparent"}`,
+                    transform: newAvatar === emoji ? "scale(1.1)" : "scale(1)",
                   }}
                 >
                   {emoji}
@@ -157,13 +166,14 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
             <input
               type="text"
               placeholder="Reader's name"
+              aria-label="Reader's name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               className="w-full px-4 py-3 rounded-xl mb-3 text-base font-semibold"
               style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "var(--color-surface-2)",
+                border: "1px solid var(--color-line-strong)",
                 color: "var(--color-text-primary)",
               }}
               autoFocus
@@ -171,7 +181,11 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
             />
 
             {error && (
-              <p role="alert" className="text-sm mb-3" style={{ color: "#F87171" }}>
+              <p
+                role="alert"
+                className="text-sm mb-3 font-semibold"
+                style={{ color: "var(--color-error-text)" }}
+              >
                 {error}{" "}
                 {error.includes("Upgrade") && (
                   <Link href="/billing" className="underline font-semibold">See plans</Link>
@@ -182,18 +196,21 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
             <div className="flex gap-2">
               <button
                 onClick={() => setIsCreating(false)}
-                className="flex-1 py-2.5 rounded-xl font-semibold"
-                style={{ background: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}
+                className="flex-1 py-3 rounded-2xl font-semibold transition-colors hover:border-[var(--color-line-strong)]"
+                style={{
+                  background: "var(--color-surface-2)",
+                  color: "var(--color-text-primary)",
+                  border: "1px solid var(--color-line)",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!newName.trim() || saving}
-                className="flex-1 py-2.5 rounded-xl font-bold text-white disabled:opacity-50"
-                style={{ background: "var(--color-brand)" }}
+                className="btn-primary flex-1 py-3"
               >
-                Start Reading!
+                Start reading!
               </button>
             </div>
           </motion.div>

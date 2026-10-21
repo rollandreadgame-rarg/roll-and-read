@@ -23,7 +23,7 @@ export default function ShimmerButton({
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       className={cn(
-        "relative overflow-hidden rounded-2xl px-6 py-3 font-extrabold text-white",
+        "relative overflow-hidden rounded-2xl px-6 py-3 font-extrabold text-[var(--color-on-brand)]",
         "transition-shadow duration-300",
         "shadow-lg hover:shadow-xl",
         className

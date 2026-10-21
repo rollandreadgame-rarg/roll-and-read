@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -15,14 +15,64 @@ import { useParentGate } from "@/providers/ParentGateProvider";
 import ParentPinSetup from "@/components/parent-pin/ParentPinSetup";
 import ParentPinNudge from "@/components/parent-pin/ParentPinNudge";
 import PinInput from "@/components/parent-pin/PinInput";
+import { Pencil, Trash2, Plus, X } from "lucide-react";
 
+// Swatch hex values mirror each theme's tokens in app/globals.css. They are
+// only used for the little preview in the theme picker.
 const THEMES = [
-  { id: "ocean", label: "Ocean Adventure", emoji: "🌊", free: true, desc: "Cool underwater wonder" },
-  { id: "space", label: "Space Explorer", emoji: "🚀", free: false, desc: "Dreamy starfield adventure" },
-  { id: "forest", label: "Enchanted Forest", emoji: "🌲", free: false, desc: "Magical firefly forest" },
-  { id: "candy", label: "Candy Land", emoji: "🍭", free: false, desc: "Sweet & bright (light mode)" },
-  { id: "classic", label: "Classic Classroom", emoji: "📚", free: true, desc: "Clean, focused, traditional" },
+  { id: "ocean", label: "Ocean adventure", free: true, desc: "Cool underwater wonder",
+    swatch: { bg: "#0B2233", surface: "#123049", brand: "#0E7C8C", accent: "#4FD1DD", text: "#F2F7FA" } },
+  { id: "space", label: "Space explorer", free: false, desc: "Dreamy starfield adventure",
+    swatch: { bg: "#0B0A1F", surface: "#16153A", brand: "#6A4BDB", accent: "#B3A6FF", text: "#F5F3FF" } },
+  { id: "forest", label: "Enchanted forest", free: false, desc: "Magical firefly forest",
+    swatch: { bg: "#0E1E16", surface: "#163024", brand: "#24774A", accent: "#84D9A6", text: "#F1F8F3" } },
+  { id: "candy", label: "Candy land", free: false, desc: "Sweet & bright (light mode)",
+    swatch: { bg: "#FFF0F4", surface: "#FFFFFF", brand: "#B8195A", accent: "#E0457F", text: "#3A1828" } },
+  { id: "classic", label: "Classic classroom", free: true, desc: "Clean, focused, traditional",
+    swatch: { bg: "#F5F8FC", surface: "#FFFFFF", brand: "#1F5FBF", accent: "#4F84D6", text: "#1A2433" } },
 ];
+
+function ThemeSwatch({ swatch }: { swatch: (typeof THEMES)[number]["swatch"] }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="w-16 h-12 shrink-0 rounded-xl p-1.5 flex flex-col gap-1"
+      style={{ background: swatch.bg, boxShadow: "inset 0 0 0 1px var(--color-line-strong)" }}
+    >
+      <div
+        className="flex-1 rounded-md flex items-center px-1.5 text-xs font-bold leading-none"
+        style={{ background: swatch.surface, color: swatch.text }}
+      >
+        Aa
+      </div>
+      <div className="flex gap-1">
+        <span className="h-2 flex-1 rounded-full" style={{ background: swatch.brand }} />
+        <span className="h-2 w-2 rounded-full" style={{ background: swatch.accent }} />
+      </div>
+    </div>
+  );
+}
+
+// Status tokens mixed toward the theme's text colour so messages pass AA on
+// both dark and light themes.
+const ERROR_TEXT = "var(--color-error-text)";
+const SUCCESS_TEXT = "var(--color-success-text)";
+const GOLD_TEXT = "var(--color-gold-text)";
+
+// Gold upsell button: same in every theme, dark ink for contrast.
+const UPSELL_STYLE: React.CSSProperties = {
+  background: "var(--color-accent-gold)",
+  color: "var(--card-ink)",
+  boxShadow: "0 4px 0 color-mix(in srgb, var(--color-accent-gold) 60%, black)",
+};
+
+const SECONDARY_BTN =
+  "rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface-2)] text-[var(--color-text-primary)] font-semibold transition-colors hover:border-[var(--color-line-strong)]";
+const ICON_BTN =
+  "flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--color-hover)]";
+const SECTION_CLASS = "panel p-5 sm:p-6";
+const H2_CLASS = "text-lg font-bold";
+const FIELD_LABEL_CLASS = "text-sm font-semibold mb-2 block";
 
 const AVATARS = ["🦊", "🐻", "🐼", "🦁", "🐯", "🦄", "🐙", "🦋", "🐬", "🦕", "🐲", "⭐", "🌈", "🚀", "🎨", "🎵", "🌺", "🍀", "❄️", "🔥"];
 
@@ -129,48 +179,57 @@ export default function SettingsPage() {
     if (activeProfileId === profileId) setActiveProfileId(null);
   };
 
+  // Upgrade dialog: move focus in on open, Escape closes.
+  const upgradeCtaRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (!showUpgradeModal) return;
+    upgradeCtaRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowUpgradeModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showUpgradeModal]);
+
   return (
-    <RequireParentPin><div className="flex flex-col flex-1 p-4 max-w-2xl mx-auto w-full gap-6 pb-16">
+    <RequireParentPin><div className="flex flex-col flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 gap-6 pb-16">
       <ParentPinNudge onSetUp={() => {
         document.getElementById("pin-section")?.scrollIntoView({ behavior: "smooth" });
       }} />
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
-          ⚙️ Settings
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+          Settings
         </h1>
         <motion.button
           onClick={() => router.back()}
-          whileHover={{ scale: 1.08 }}
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
-          className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors hover:bg-white/10"
-          style={{ color: "var(--color-text-muted)", border: "1px solid rgba(255,255,255,0.12)" }}
+          className={`${ICON_BTN} w-11 h-11 rounded-full border border-[var(--color-line)]`}
+          style={{ color: "var(--color-text-secondary)" }}
           aria-label="Close settings"
         >
-          ✕
+          <X size={20} aria-hidden="true" />
         </motion.button>
       </div>
 
       {/* Profile Management */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
-          👤 Reader Profiles
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-4`} style={{ color: "var(--color-text-primary)" }}>
+          Reader profiles
         </h2>
 
-        <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col gap-2 mb-4">
           {profilesLoading && (
-            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Loading profiles...</p>
+            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Loading profiles…</p>
           )}
           {(profiles ?? []).map((p: any) => (
             <div
               key={p._id}
-              className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+              className="flex items-center gap-3 p-3 rounded-2xl"
+              style={{ background: "var(--color-surface-2)" }}
             >
-              <span className="text-3xl">{p.avatarEmoji}</span>
-              <div className="flex-1">
+              <span className="text-3xl shrink-0" aria-hidden="true">{p.avatarEmoji}</span>
+              <div className="flex-1 min-w-0">
                 {editingProfileId === p._id ? (
                   <div className="flex gap-2">
                     <input
@@ -182,8 +241,9 @@ export default function SettingsPage() {
                           setEditingProfileId(null);
                         }
                       }}
-                      className="flex-1 px-3 py-1.5 rounded-lg text-sm font-semibold"
-                      style={{ background: "rgba(255,255,255,0.1)", color: "var(--color-text-primary)", border: "1px solid rgba(255,255,255,0.15)" }}
+                      aria-label={`New name for ${p.name}`}
+                      className="min-w-0 flex-1 px-3 py-1.5 rounded-xl text-sm font-semibold"
+                      style={{ background: "var(--color-bg-surface)", color: "var(--color-text-primary)", border: "1px solid var(--color-line-strong)" }}
                       autoFocus
                     />
                     <button
@@ -191,37 +251,36 @@ export default function SettingsPage() {
                         updateProfile({ profileId: p._id as Id<"profiles">, name: editName.trim() });
                         setEditingProfileId(null);
                       }}
-                      className="px-3 py-1 rounded-lg text-sm font-bold text-white"
-                      style={{ background: "var(--color-success)" }}
+                      className="btn-primary shrink-0 px-3 text-sm"
                     >
                       Save
                     </button>
                   </div>
                 ) : (
-                  <div>
-                    <div className="font-bold" style={{ color: "var(--color-text-primary)" }}>{p.name}</div>
+                  <div className="min-w-0">
+                    <div className="font-bold truncate" style={{ color: "var(--color-text-primary)" }}>{p.name}</div>
                     <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                      Level {p.currentLevel} • 💰 {p.coins.toLocaleString()}
+                      Level {p.currentLevel} · <span aria-hidden="true">💰</span> {p.coins.toLocaleString()}<span className="sr-only"> coins</span>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex shrink-0">
                 <button
                   onClick={() => { setEditingProfileId(p._id); setEditName(p.name); }}
                   aria-label={`Edit ${p.name}`}
-                  className="p-2 rounded-lg text-xs hover:bg-white/10 transition-colors"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className={ICON_BTN}
+                  style={{ color: "var(--color-text-secondary)" }}
                 >
-                  <span aria-hidden="true">✏️</span>
+                  <Pencil size={18} aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(p._id)}
                   aria-label={`Delete ${p.name}`}
-                  className="p-2 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
-                  style={{ color: "var(--color-error)" }}
+                  className={`${ICON_BTN} hover:bg-[color-mix(in_srgb,var(--color-error)_14%,transparent)]`}
+                  style={{ color: ERROR_TEXT }}
                 >
-                  <span aria-hidden="true">🗑️</span>
+                  <Trash2 size={18} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -235,17 +294,20 @@ export default function SettingsPage() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="p-3 rounded-xl mb-3"
-              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)" }}
+              className="p-4 rounded-2xl mb-4"
+              style={{
+                background: "color-mix(in srgb, var(--color-error) 10%, var(--color-bg-surface))",
+                border: "1px solid color-mix(in srgb, var(--color-error) 40%, transparent)",
+              }}
             >
-              <p className="text-sm font-semibold mb-2" style={{ color: "#EF4444" }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: ERROR_TEXT }}>
                 Delete this profile? This cannot be undone.
               </p>
-              <div className="flex gap-2">
-                <button onClick={() => setDeleteConfirm(null)} className="px-3 py-1.5 rounded-lg text-sm" style={{ background: "rgba(255,255,255,0.08)", color: "var(--color-text-muted)" }}>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDeleteConfirm(null)} className={`${SECONDARY_BTN} px-4 py-2 text-sm`}>
                   Cancel
                 </button>
-                <button onClick={() => handleDeleteProfile(deleteConfirm)} className="px-3 py-1.5 rounded-lg text-sm font-bold text-white" style={{ background: "#EF4444" }}>
+                <button onClick={() => handleDeleteProfile(deleteConfirm)} className="px-4 py-2 rounded-2xl text-sm font-bold text-white" style={{ background: "var(--color-error)" }}>
                   Delete
                 </button>
               </div>
@@ -258,49 +320,56 @@ export default function SettingsPage() {
           atProfileCap ? (
             <a
               href="/billing"
-              className="w-full block py-2.5 rounded-xl font-semibold text-center text-white"
-              style={{
-                background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                boxShadow: "0 4px 16px rgba(245,158,11,0.3)",
-              }}
+              className="w-full flex items-center justify-center px-4 py-3 rounded-2xl font-bold text-center"
+              style={UPSELL_STYLE}
             >
-              ✨ Upgrade to add more readers ({profileCount}/{profileLimit} used)
+              Upgrade to add more readers ({profileCount}/{profileLimit} used)
             </a>
           ) : (
             <button
               onClick={() => setIsCreating(true)}
-              className="w-full py-2.5 rounded-xl font-semibold transition-colors hover:bg-white/10"
-              style={{ border: "2px dashed rgba(255,255,255,0.15)", color: "var(--color-text-muted)" }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors hover:bg-[var(--color-hover)]"
+              style={{ border: "2px dashed var(--color-line-strong)", color: "var(--color-text-secondary)" }}
             >
-              + Add Reader ({profileCount}/{profileLimit})
+              <Plus size={18} aria-hidden="true" />
+              Add reader ({profileCount}/{profileLimit})
             </button>
           )
         ) : (
-          <div className="p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="p-4 rounded-2xl" style={{ background: "var(--color-surface-2)" }}>
+            <p className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-secondary)" }}>Pick an avatar</p>
+            <div className="flex flex-wrap gap-1.5 mb-4">
               {AVATARS.map((e) => (
                 <button
                   key={e}
                   onClick={() => setNewAvatar(e)}
-                  className="text-xl p-1 rounded-lg transition-all"
-                  style={{ background: newAvatar === e ? "var(--color-brand)" : "rgba(255,255,255,0.05)" }}
+                  aria-pressed={newAvatar === e}
+                  className="text-xl p-1 rounded-xl transition-colors"
+                  style={{
+                    background: newAvatar === e ? "var(--color-brand)" : "var(--color-bg-surface)",
+                    boxShadow: newAvatar === e ? "0 0 0 2px var(--color-surface-2), 0 0 0 4px var(--color-highlight)" : "none",
+                  }}
                 >
                   {e}
                 </button>
               ))}
             </div>
+            <label htmlFor="new-reader-name" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
+              Name
+            </label>
             <input
+              id="new-reader-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Reader's name"
               onKeyDown={(e) => e.key === "Enter" && handleCreateProfile()}
-              className="w-full px-3 py-2 rounded-xl mb-3 text-sm"
-              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "var(--color-text-primary)" }}
+              className="w-full px-3 py-2 rounded-xl mb-4 text-sm"
+              style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-line-strong)", color: "var(--color-text-primary)" }}
               autoFocus
             />
             <div className="flex gap-2">
-              <button onClick={() => setIsCreating(false)} className="flex-1 py-2 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>Cancel</button>
-              <button onClick={handleCreateProfile} disabled={!newName.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: "var(--color-brand)" }}>Create</button>
+              <button onClick={() => setIsCreating(false)} className={`${SECONDARY_BTN} flex-1 py-2.5 text-sm`}>Cancel</button>
+              <button onClick={handleCreateProfile} disabled={!newName.trim()} className="btn-primary flex-1 py-2.5 text-sm">Create</button>
             </div>
           </div>
         )}
@@ -308,120 +377,127 @@ export default function SettingsPage() {
 
       {/* Word Mode */}
       {profile && (
-        <section
-          className="rounded-2xl p-5"
-          style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          <h2 className="text-lg font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
-            📝 Word Mode
+        <section className={SECTION_CLASS}>
+          <h2 className={`${H2_CLASS} mb-1`} style={{ color: "var(--color-text-primary)" }}>
+            Word mode
           </h2>
-          <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
-            For {profile.avatarEmoji} {profile.name}
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            For <span aria-hidden="true">{profile.avatarEmoji}</span> {profile.name}
           </p>
           <div className="flex flex-col gap-2">
             {([
-              { value: "real", label: "Real Words", desc: "Practice words you'll see in books" },
-              { value: "nonsense", label: "Nonsense Words ✦", desc: "Test your pure decoding skills" },
-              { value: "mixed", label: "Mixed (Recommended)", desc: "Best of both worlds" },
-            ] as { value: WordModeType; label: string; desc: string }[]).map(({ value, label, desc }) => (
-              <button
-                key={value}
-                onClick={() => handleUpdateWordMode(value)}
-                className="flex items-center gap-3 p-3 rounded-xl text-left transition-colors"
-                style={{
-                  background: profile.wordMode === value ? "color-mix(in srgb, var(--color-brand) 15%, transparent)" : "rgba(255,255,255,0.04)",
-                  border: profile.wordMode === value ? "1px solid var(--color-brand)" : "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <div
-                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                  style={{ borderColor: profile.wordMode === value ? "var(--color-brand)" : "rgba(255,255,255,0.3)" }}
+              { value: "real", label: "Real words", desc: "Practice words you'll see in books" },
+              { value: "nonsense", label: "Silly words 👽", desc: "Test your pure decoding skills" },
+              { value: "mixed", label: "Mixed (recommended)", desc: "Best of both worlds" },
+            ] as { value: WordModeType; label: string; desc: string }[]).map(({ value, label, desc }) => {
+              const selected = profile.wordMode === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => handleUpdateWordMode(value)}
+                  aria-pressed={selected}
+                  className="flex items-center gap-3 p-3 rounded-2xl text-left transition-colors"
+                  style={{
+                    background: selected ? "color-mix(in srgb, var(--color-brand) 14%, var(--color-bg-surface))" : "var(--color-surface-2)",
+                    border: selected ? "2px solid var(--color-brand-secondary)" : "2px solid transparent",
+                  }}
                 >
-                  {profile.wordMode === value && (
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-brand)" }} />
-                  )}
-                </div>
-                <div>
-                  <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{label}</div>
-                  <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>{desc}</div>
-                </div>
-              </button>
-            ))}
+                  <span
+                    aria-hidden="true"
+                    className="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center"
+                    style={{ borderColor: selected ? "var(--color-brand-secondary)" : "var(--color-line-strong)" }}
+                  >
+                    {selected && (
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-brand-secondary)" }} />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{label}</span>
+                    <span className="block text-xs" style={{ color: "var(--color-text-muted)" }}>{desc}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
 
       {/* Theme Selector */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
-          🎨 Theme
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-4`} style={{ color: "var(--color-text-primary)" }}>
+          Theme
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => handleUpdateTheme(t.id)}
-              className="flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:brightness-110"
-              style={{
-                border: theme === t.id ? "2px solid var(--color-brand)" : "1px solid rgba(255,255,255,0.08)",
-                background: theme === t.id ? "color-mix(in srgb, var(--color-brand) 10%, transparent)" : "rgba(255,255,255,0.04)",
-                position: "relative",
-              }}
-            >
-              <span className="text-3xl">{t.emoji}</span>
-              <div className="flex-1">
-                <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{t.label}</div>
-                <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>{t.desc}</div>
-              </div>
-              {!t.free && !isPaid && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "#F59E0B22", color: "#F59E0B" }}>
-                  PRO
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+          {THEMES.map((t) => {
+            const selected = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => handleUpdateTheme(t.id)}
+                aria-pressed={selected}
+                className="flex items-center gap-3 p-3 rounded-2xl text-left transition-colors"
+                style={{
+                  border: selected ? "2px solid var(--color-brand-secondary)" : "2px solid transparent",
+                  background: selected ? "color-mix(in srgb, var(--color-brand) 14%, var(--color-bg-surface))" : "var(--color-surface-2)",
+                }}
+              >
+                <ThemeSwatch swatch={t.swatch} />
+                <span className="flex-1 min-w-0">
+                  <span className="block font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{t.label}</span>
+                  <span className="block text-xs" style={{ color: "var(--color-text-muted)" }}>{t.desc}</span>
                 </span>
-              )}
-              {theme === t.id && (
-                <span className="text-xs font-bold" style={{ color: "var(--color-brand)" }}>✓</span>
-              )}
-            </button>
-          ))}
+                {!t.free && !isPaid && (
+                  <span
+                    className="shrink-0 text-xs px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: "color-mix(in srgb, var(--color-accent-gold) 20%, transparent)", color: GOLD_TEXT }}
+                  >
+                    Pro
+                  </span>
+                )}
+                {selected && (
+                  <span className="shrink-0 text-sm font-bold" style={{ color: "var(--color-brand-secondary)" }} aria-hidden="true">✓</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {/* Font & Accessibility */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
-          ♿ Accessibility
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-4`} style={{ color: "var(--color-text-primary)" }}>
+          Accessibility
         </h2>
 
         {/* Font */}
-        <div className="mb-4">
-          <label className="text-sm font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>Font</label>
-          <div className="flex gap-2">
-            {(["nunito", "opendyslexic"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFontFamily(f)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                style={{
-                  background: fontFamily === f ? "var(--color-brand)" : "rgba(255,255,255,0.08)",
-                  color: fontFamily === f ? "white" : "var(--color-text-muted)",
-                }}
-              >
-                {f === "nunito" ? "Nunito" : "OpenDyslexic"}
-              </button>
-            ))}
+        <div className="mb-6">
+          <p id="font-choice-label" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>Font</p>
+          <div className="flex gap-2" role="group" aria-labelledby="font-choice-label">
+            {(["nunito", "opendyslexic"] as const).map((f) => {
+              const selected = fontFamily === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFontFamily(f)}
+                  aria-pressed={selected}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-semibold transition-colors"
+                  style={{
+                    background: selected ? "var(--color-brand)" : "var(--color-surface-2)",
+                    color: selected ? "var(--color-on-brand)" : "var(--color-text-secondary)",
+                    fontFamily: f === "opendyslexic" ? "'OpenDyslexic', sans-serif" : undefined,
+                  }}
+                >
+                  {f === "nunito" ? "Standard" : "OpenDyslexic"}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Font size */}
         <div>
-          <label htmlFor="font-size-range" className="text-sm font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>
-            Word Size: {fontSize}px
+          <label htmlFor="font-size-range" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
+            Word size: {fontSize}px
           </label>
           <input
             id="font-size-range"
@@ -439,8 +515,15 @@ export default function SettingsPage() {
             <span>Large (32px)</span>
           </div>
           <div
-            className="mt-3 p-3 rounded-xl text-center font-bold"
-            style={{ fontSize: `${fontSize}px`, background: "rgba(255,255,255,0.05)", color: "var(--color-text-primary)" }}
+            className="mt-4 px-4 py-3 text-center font-bold"
+            style={{
+              fontSize: `${fontSize}px`,
+              fontFamily: "var(--font-word)",
+              background: "var(--card-paper)",
+              color: "var(--card-ink)",
+              borderRadius: "var(--radius-card)",
+              boxShadow: "0 3px 0 var(--card-edge)",
+            }}
           >
             cat · ship · bright
           </div>
@@ -448,15 +531,12 @@ export default function SettingsPage() {
       </section>
 
       {/* Sound */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
-          🔊 Sound
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-4`} style={{ color: "var(--color-text-primary)" }}>
+          Sound
         </h2>
 
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <label
             htmlFor="sound-mute-toggle"
             className="text-sm font-semibold"
@@ -469,26 +549,32 @@ export default function SettingsPage() {
             role="switch"
             aria-checked={soundMuted}
             onClick={() => setSoundMuted(!soundMuted)}
-            className="relative w-12 h-7 rounded-full transition-colors"
-            style={{
-              background: soundMuted ? "rgba(239,68,68,0.7)" : "var(--color-brand)",
-            }}
+            className="shrink-0 flex items-center justify-center w-14 rounded-full"
           >
             <span
-              className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform"
-              style={{
-                transform: soundMuted ? "translateX(20px)" : "translateX(0)",
-              }}
               aria-hidden="true"
-            />
+              className="relative block w-12 h-7 rounded-full transition-colors"
+              style={{
+                background: soundMuted ? "var(--color-brand)" : "var(--color-surface-2)",
+                boxShadow: soundMuted ? "none" : "inset 0 0 0 1px var(--color-line-strong)",
+              }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-transform"
+                style={{
+                  background: soundMuted ? "var(--color-on-brand)" : "var(--color-text-muted)",
+                  transform: soundMuted ? "translateX(20px)" : "translateX(0)",
+                }}
+              />
+            </span>
           </button>
         </div>
 
         <div>
           <label
             htmlFor="sound-volume-range"
-            className="text-sm font-semibold mb-2 block"
-            style={{ color: "var(--color-text-muted)" }}
+            className={FIELD_LABEL_CLASS}
+            style={{ color: "var(--color-text-secondary)" }}
           >
             Volume: {Math.round(soundVolume * 100)}%
           </label>
@@ -508,45 +594,37 @@ export default function SettingsPage() {
       </section>
 
       {/* Subscription */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
-          💳 Subscription
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-1`} style={{ color: "var(--color-text-primary)" }}>
+          Subscription
         </h2>
-        <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
-          Current plan: <strong style={{ color: "var(--color-text-primary)" }}>{clerkUser?.plan ?? "Free"}</strong>
+        <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+          Current plan: <strong className="capitalize" style={{ color: "var(--color-text-primary)" }}>{clerkUser?.plan ?? "Free"}</strong>
         </p>
         {!isPaid ? (
           <a
             href="/billing"
-            className="block w-full py-3 rounded-xl text-center font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}
+            className="flex w-full items-center justify-center px-4 py-3 rounded-2xl text-center font-bold"
+            style={UPSELL_STYLE}
           >
-            ✨ Upgrade — From $7.99/mo
+            Upgrade — From $7.99/mo
           </a>
         ) : (
           <a
             href="/billing"
-            className="block w-full py-3 rounded-xl text-center font-semibold transition-colors hover:bg-white/10"
-            style={{ border: "1px solid rgba(255,255,255,0.15)", color: "var(--color-text-primary)" }}
+            className={`${SECONDARY_BTN} flex w-full items-center justify-center px-4 py-3 text-center`}
           >
-            Manage Subscription
+            Manage subscription
           </a>
         )}
       </section>
 
       {/* Grown-up PIN */}
-      <section
-        id="pin-section"
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
-          🔒 Grown-up PIN
+      <section id="pin-section" className={`${SECTION_CLASS} scroll-mt-6`}>
+        <h2 className={`${H2_CLASS} mb-1`} style={{ color: "var(--color-text-primary)" }}>
+          Grown-up PIN
         </h2>
-        <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>
           Parents &amp; teachers can set a PIN to lock Settings, Billing, and the Teacher dashboard.
         </p>
 
@@ -556,14 +634,14 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-6">
             {/* Change PIN */}
             <div>
-              <h3 className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Change PIN</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-base font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Change PIN</h3>
+              <div className="flex flex-col gap-4">
                 <div>
-                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>Current PIN</label>
+                  <p className="text-sm font-semibold mb-2 text-center" style={{ color: "var(--color-text-secondary)" }}>Current PIN</p>
                   <PinInput value={changeCurrent} onChange={(v) => { setChangeCurrent(v); setChangeMsg(null); }} ariaLabel="Current PIN" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>New PIN</label>
+                  <p className="text-sm font-semibold mb-2 text-center" style={{ color: "var(--color-text-secondary)" }}>New PIN</p>
                   <PinInput value={changeNew} onChange={(v) => { setChangeNew(v); setChangeMsg(null); }} ariaLabel="New PIN" />
                 </div>
                 <button
@@ -578,26 +656,25 @@ export default function SettingsPage() {
                       setChangeMsg({ text: "That didn't work — check your current PIN.", ok: false });
                     }
                   }}
-                  className="py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
-                  style={{ background: "var(--color-brand)" }}
+                  className="btn-primary w-full max-w-xs mx-auto py-3 text-sm"
                 >
                   Change PIN
                 </button>
-                <p aria-live="assertive" className="h-5 text-sm text-center"
-                  style={{ color: changeMsg?.ok ? "var(--color-success)" : "#f87171" }}>
+                <p aria-live="assertive" className="min-h-5 text-sm text-center font-semibold"
+                  style={{ color: changeMsg?.ok ? SUCCESS_TEXT : ERROR_TEXT }}>
                   {changeMsg?.text ?? ""}
                 </p>
               </div>
             </div>
 
-            <div style={{ height: "1px", background: "rgba(255,255,255,0.08)" }} />
+            <hr style={{ border: 0, borderTop: "1px solid var(--color-line)" }} />
 
             {/* Remove PIN */}
             <div>
-              <h3 className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Remove PIN</h3>
-              <div className="flex flex-col gap-3">
+              <h3 className="text-base font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Remove PIN</h3>
+              <div className="flex flex-col gap-4">
                 <div>
-                  <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--color-text-muted)" }}>Enter current PIN to confirm</label>
+                  <p className="text-sm font-semibold mb-2 text-center" style={{ color: "var(--color-text-secondary)" }}>Enter current PIN to confirm</p>
                   <PinInput value={removeCurrent} onChange={(v) => { setRemoveCurrent(v); setRemoveMsg(null); }} ariaLabel="Remove PIN confirmation" />
                 </div>
                 <button
@@ -611,13 +688,17 @@ export default function SettingsPage() {
                       setRemoveMsg({ text: "That didn't work — check your current PIN.", ok: false });
                     }
                   }}
-                  className="py-2 rounded-xl text-sm font-bold disabled:opacity-40 transition-opacity"
-                  style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
+                  className="w-full max-w-xs mx-auto py-3 rounded-2xl text-sm font-bold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "color-mix(in srgb, var(--color-error) 10%, var(--color-bg-surface))",
+                    color: ERROR_TEXT,
+                    border: "1px solid color-mix(in srgb, var(--color-error) 45%, transparent)",
+                  }}
                 >
                   Remove PIN
                 </button>
-                <p aria-live="assertive" className="h-5 text-sm text-center"
-                  style={{ color: removeMsg?.ok ? "var(--color-success)" : "#f87171" }}>
+                <p aria-live="assertive" className="min-h-5 text-sm text-center font-semibold"
+                  style={{ color: removeMsg?.ok ? SUCCESS_TEXT : ERROR_TEXT }}>
                   {removeMsg?.text ?? ""}
                 </p>
               </div>
@@ -627,20 +708,17 @@ export default function SettingsPage() {
       </section>
 
       {/* Account */}
-      <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
-          🔐 Account
+      <section className={SECTION_CLASS}>
+        <h2 className={`${H2_CLASS} mb-4`} style={{ color: "var(--color-text-primary)" }}>
+          Account
         </h2>
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
           {process.env.NEXT_PUBLIC_E2E_MODE !== "true" && <UserButton />}
-          <div>
-            <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm truncate" style={{ color: "var(--color-text-primary)" }}>
               {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}
             </div>
-            <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            <div className="text-xs truncate" style={{ color: "var(--color-text-muted)" }}>
               {user?.primaryEmailAddress?.emailAddress}
             </div>
           </div>
@@ -655,42 +733,52 @@ export default function SettingsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/70"
+              className="fixed inset-0 z-50 bg-black/60"
               onClick={() => setShowUpgradeModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-6"
-              onClick={(e) => e.stopPropagation()}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+              onClick={(e) => {
+                // A click on the dimmed area around the dialog closes it
+                if (e.target === e.currentTarget) setShowUpgradeModal(false);
+              }}
             >
               <div
-                className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl"
-                style={{ background: "var(--color-bg-surface)" }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="upgrade-themes-title"
+                className="panel w-full max-w-sm p-6 sm:p-8 text-center shadow-2xl"
               >
-                <div className="text-5xl mb-4">🚀</div>
-                <h2 className="text-2xl font-extrabold mb-2" style={{ color: "var(--color-text-primary)" }}>
-                  Unlock All Themes!
+                <div className="flex justify-center gap-2 mb-5" aria-hidden="true">
+                  {THEMES.filter((t) => !t.free).map((t) => (
+                    <ThemeSwatch key={t.id} swatch={t.swatch} />
+                  ))}
+                </div>
+                <h2 id="upgrade-themes-title" className="text-2xl font-extrabold mb-2" style={{ color: "var(--color-text-primary)" }}>
+                  Unlock all themes
                 </h2>
-                <p className="mb-6 text-sm" style={{ color: "var(--color-text-muted)" }}>
+                <p className="mb-6 text-sm" style={{ color: "var(--color-text-secondary)" }}>
                   Upgrade to Individual to access Space, Forest, and Candy Land themes plus all 5 levels.
                 </p>
                 <div className="flex flex-col gap-3">
                   <a
+                    ref={upgradeCtaRef}
                     href="/billing"
                     onClick={() => setShowUpgradeModal(false)}
-                    className="w-full py-3 rounded-2xl font-extrabold text-white text-center"
-                    style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}
+                    className="flex w-full items-center justify-center py-3 rounded-2xl font-extrabold text-center"
+                    style={UPSELL_STYLE}
                   >
-                    ✨ Upgrade Now
+                    Upgrade now
                   </a>
                   <button
                     onClick={() => setShowUpgradeModal(false)}
-                    className="py-3 rounded-2xl font-semibold"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="py-3 rounded-2xl font-semibold transition-colors hover:bg-[var(--color-hover)]"
+                    style={{ color: "var(--color-text-secondary)" }}
                   >
-                    Maybe Later
+                    Maybe later
                   </button>
                 </div>
               </div>

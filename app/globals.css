@@ -3,76 +3,170 @@
 /* OpenDyslexic */
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@latest/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@latest/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
-/* ── Base CSS Variables (Ocean theme by default) ── */
+/* ── Design tokens ──────────────────────────────────────────────
+   The game is a reading table: a die and printed word cards. Word cards
+   are always card-stock paper with dark ink (best contrast for early
+   readers) whatever the theme; themes only recolour the table around them.
+   Ocean is the default. Every pair below meets WCAG AA:
+   text-muted on surface-2 ≥ 4.5:1, on-brand on brand ≥ 4.5:1, and
+   brand-secondary (use it for brand-coloured TEXT) on bg/surface ≥ 4.5:1.
+   Status colours as TEXT: use the --color-*-text tokens, not the fills. */
+/* Shared tokens (not theme-specific) */
 :root {
-  --color-bg-primary: #0C1B33;
-  --color-bg-surface: #1E293B;
-  --color-brand: #0891B2;
-  --color-brand-secondary: #06B6D4;
-  --color-accent-gold: #F59E0B;
-  --color-success: #10B981;
-  --color-error: #EF4444;
-  --color-warning: #F97316;
-  --color-text-primary: #F8FAFC;
-  --color-text-muted: #94A3B8;
+  --color-accent-gold: #F5B83D;
+  --color-success: #2FB873;
+  --color-error: #E5484D;
+  --color-warning: #F28C28;
+
+  /* Word cards: printed card stock */
+  --card-paper: #FFFDF7;
+  --card-ink: #17202E;
+  --card-edge: #CDBF9F;
+  --card-silly: #EFE9FF;
+  --card-silly-ink: #2A1A5E;
+  --card-silly-edge: #8B6FE8;
+  --card-correct: #DDF7E8;
+  --card-wrong: #FFE6E6;
+
+  --radius-card: 14px;
+  --radius-panel: 22px;
+
   --word-size: 20px;
-  --font-family: var(--font-nunito, 'Nunito', sans-serif);
+  --font-ui: var(--font-lexend), 'Lexend', system-ui, sans-serif;
+  --font-word: var(--font-andika), 'Andika', var(--font-ui);
+  --font-family: var(--font-ui);
 }
 
-/* ── Theme Overrides ── */
+:root,
 [data-theme="ocean"] {
-  --color-bg-primary: #0C1B33;
-  --color-bg-surface: #1E293B;
-  --color-brand: #0891B2;
-  --color-brand-secondary: #06B6D4;
+  color-scheme: dark;
+  --color-bg-primary: #0B2233;
+  --color-bg-surface: #123049;
+  --color-surface-2: #1A3F5E;
+  --color-line: rgba(168, 205, 226, 0.16);
+  --color-line-strong: rgba(168, 205, 226, 0.32);
+  --color-brand: #0E7C8C;
+  --color-brand-secondary: #4FD1DD;
+  --color-on-brand: #FFFFFF;
+  --color-text-primary: #F2F7FA;
+  --color-text-secondary: #CFE0EA;
+  --color-text-muted: #A8C3D3;
+  --color-highlight: #FFD45C;
+  --color-hover: rgba(255, 255, 255, 0.07);
+  --table-glow: rgba(79, 209, 221, 0.10);
+  --color-success-text: #6FDBA2;
+  --color-warning-text: #FFB870;
+  --color-error-text: #FF8E92;
+  --color-gold-text: #FFD27A;
 }
 
 [data-theme="space"] {
-  --color-bg-primary: #030712;
-  --color-bg-surface: #0F172A;
-  --color-brand: #7C3AED;
-  --color-brand-secondary: #A78BFA;
+  color-scheme: dark;
+  --color-bg-primary: #0B0A1F;
+  --color-bg-surface: #16153A;
+  --color-surface-2: #221F52;
+  --color-line: rgba(190, 180, 255, 0.16);
+  --color-line-strong: rgba(190, 180, 255, 0.32);
+  --color-brand: #6A4BDB;
+  --color-brand-secondary: #B3A6FF;
+  --color-on-brand: #FFFFFF;
+  --color-text-primary: #F5F3FF;
+  --color-text-secondary: #DAD5F7;
+  --color-text-muted: #B7B1DA;
+  --color-highlight: #FFD45C;
+  --color-hover: rgba(255, 255, 255, 0.07);
+  --table-glow: rgba(179, 166, 255, 0.10);
+  --color-success-text: #6FDBA2;
+  --color-warning-text: #FFB870;
+  --color-error-text: #FF8E92;
+  --color-gold-text: #FFD27A;
 }
 
 [data-theme="forest"] {
-  --color-bg-primary: #1A0A2E;
-  --color-bg-surface: #14532D;
-  --color-brand: #15803D;
-  --color-brand-secondary: #4ADE80;
+  color-scheme: dark;
+  --color-bg-primary: #0E1E16;
+  --color-bg-surface: #163024;
+  --color-surface-2: #1F4232;
+  --color-line: rgba(170, 225, 190, 0.16);
+  --color-line-strong: rgba(170, 225, 190, 0.32);
+  --color-brand: #24774A;
+  --color-brand-secondary: #84D9A6;
+  --color-on-brand: #FFFFFF;
+  --color-text-primary: #F1F8F3;
+  --color-text-secondary: #D3E8DA;
+  --color-text-muted: #A9C9B5;
+  --color-highlight: #FFD45C;
+  --color-hover: rgba(255, 255, 255, 0.07);
+  --table-glow: rgba(132, 217, 166, 0.10);
+  --color-success-text: #6FDBA2;
+  --color-warning-text: #FFB870;
+  --color-error-text: #FF8E92;
+  --color-gold-text: #FFD27A;
 }
 
 [data-theme="candy"] {
-  --color-bg-primary: #FFF7ED;
+  color-scheme: light;
+  --color-bg-primary: #FFF0F4;
   --color-bg-surface: #FFFFFF;
-  --color-brand: #DB2777;
-  --color-brand-secondary: #F472B6;
-  --color-text-primary: #1E293B;
-  --color-text-muted: #64748B;
+  --color-surface-2: #FFE3EC;
+  --color-line: rgba(140, 40, 80, 0.14);
+  --color-line-strong: rgba(140, 40, 80, 0.30);
+  --color-brand: #B8195A;
+  --color-brand-secondary: #B02A64;
+  --color-on-brand: #FFFFFF;
+  --color-text-primary: #3A1828;
+  --color-text-secondary: #5A3445;
+  --color-text-muted: #7A4E62;
+  --color-highlight: #B8195A;
+  --color-hover: rgba(140, 40, 80, 0.06);
+  --table-glow: rgba(224, 69, 127, 0.08);
+  --card-edge: #E7B9C9;
+  --color-success-text: #17713F;
+  --color-warning-text: #8F4500;
+  --color-error-text: #B42318;
+  --color-gold-text: #7F5300;
 }
 
 [data-theme="classic"] {
-  --color-bg-primary: #FFFBF5;
-  --color-bg-surface: #F8FAFC;
-  --color-brand: #2563EB;
-  --color-brand-secondary: #60A5FA;
-  --color-text-primary: #1E293B;
-  --color-text-muted: #64748B;
+  color-scheme: light;
+  --color-bg-primary: #F5F8FC;
+  --color-bg-surface: #FFFFFF;
+  --color-surface-2: #EAF0F8;
+  --color-line: rgba(30, 60, 110, 0.14);
+  --color-line-strong: rgba(30, 60, 110, 0.30);
+  --color-brand: #1F5FBF;
+  --color-brand-secondary: #2A63BD;
+  --color-on-brand: #FFFFFF;
+  --color-text-primary: #1A2433;
+  --color-text-secondary: #344156;
+  --color-text-muted: #545F70;
+  --color-highlight: #1F5FBF;
+  --color-hover: rgba(30, 60, 110, 0.06);
+  --table-glow: rgba(31, 95, 191, 0.06);
+  --card-edge: #BCCBE0;
+  --color-success-text: #17713F;
+  --color-warning-text: #8F4500;
+  --color-error-text: #B42318;
+  --color-gold-text: #7F5300;
 }
 
 /* OpenDyslexic font mode */
 .font-opendyslexic {
   font-family: 'OpenDyslexic', sans-serif !important;
+  --font-word: 'OpenDyslexic', sans-serif;
 }
 .font-opendyslexic * {
   font-family: 'OpenDyslexic', sans-serif !important;
@@ -83,71 +177,65 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Sideways page scroll is never intended; clip anything that pokes out. */
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-family);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   min-height: 100dvh;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1, h2, h3 {
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* The play table: a soft pool of light behind the board */
+.table-surface {
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--table-glow), transparent 70%),
+    var(--color-bg-primary);
+}
+
+/* Shared panel surface */
+.panel {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+}
+
+/* Primary button: brand fill with a pressable bottom edge */
+.btn-primary {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  border-radius: 16px;
+  font-weight: 700;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-brand) 60%, black);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-brand) 60%, black);
+}
+.btn-primary:disabled {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* ── Word Card Animations ── */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  15% { transform: translateX(-8px); }
-  30% { transform: translateX(8px); }
-  45% { transform: translateX(-5px); }
-  60% { transform: translateX(5px); }
-  75% { transform: translateX(-2px); }
-  90% { transform: translateX(2px); }
-}
-
-@keyframes sparkle {
-  0% { transform: scale(0) rotate(0deg); opacity: 1; }
-  50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
-  100% { transform: scale(0) rotate(360deg); opacity: 0; }
-}
-
-@keyframes coinFloat {
-  0% { transform: translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
-}
-
-@keyframes bounce-in {
-  0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.1); opacity: 1; }
-  80% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-@keyframes slide-down {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
 @keyframes twinkle {
   0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
-}
-
-@keyframes firefly {
-  0% { transform: translate(0, 0); opacity: 0.3; }
-  25% { transform: translate(20px, -15px); opacity: 0.8; }
-  50% { transform: translate(-10px, -30px); opacity: 0.5; }
-  75% { transform: translate(15px, -10px); opacity: 0.9; }
-  100% { transform: translate(0, 0); opacity: 0.3; }
-}
-
-@keyframes wave {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 @keyframes shimmer-sweep {
@@ -155,14 +243,9 @@ body {
   100% { background-position: 200% center; }
 }
 
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px 2px rgba(99,102,241,0.5), 0 0 24px 4px rgba(99,102,241,0.2); }
-  50% { box-shadow: 0 0 16px 4px rgba(99,102,241,0.8), 0 0 40px 8px rgba(99,102,241,0.3); }
-}
-
 @keyframes hint-glow {
-  0%, 100% { box-shadow: 0 0 8px 2px rgba(245,158,11,0.5), 0 0 24px 4px rgba(245,158,11,0.2); }
-  50% { box-shadow: 0 0 20px 6px rgba(245,158,11,0.9), 0 0 48px 12px rgba(245,158,11,0.4); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245,184,61,0.55), 0 0 18px 4px rgba(245,184,61,0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(245,184,61,0.95), 0 0 36px 10px rgba(245,184,61,0.45); }
 }
 
 @keyframes correct-burst {
@@ -172,19 +255,12 @@ body {
 }
 
 @keyframes row-glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(99,102,241,0.35), 0 2px 20px rgba(99,102,241,0.12); }
-  50% { box-shadow: 0 0 0 1px rgba(99,102,241,0.75), 0 4px 36px rgba(99,102,241,0.28); }
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-highlight) 45%, transparent); }
+  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-highlight) 90%, transparent), 0 0 28px color-mix(in srgb, var(--color-highlight) 22%, transparent); }
 }
 
 .row-active-pulse {
   animation: row-glow-pulse 2s ease-in-out infinite;
-}
-
-@keyframes float-cloud {
-  from { transform: translateX(-200px); opacity: 0; }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.6; }
-  to { transform: translateX(calc(100vw + 200px)); opacity: 0; }
 }
 
 /* ── 3D Dice ── */
@@ -207,16 +283,14 @@ body {
   position: absolute;
   width: 80px;
   height: 80px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: 800;
-  color: white;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-  backdrop-filter: blur(4px);
+  /* Ivory die: solid faces so the pips read at a glance */
+  background: radial-gradient(120% 120% at 30% 25%, #FFFFFF 0%, #F6F0E2 55%, #E6DCC5 100%);
+  box-shadow: inset 0 0 0 1px rgba(23, 32, 46, 0.12), inset 0 -6px 10px rgba(120, 100, 60, 0.18);
+  backface-visibility: hidden;
   user-select: none;
 }
 
@@ -229,11 +303,11 @@ body {
 
 /* Dot patterns */
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  background: #17202E;
+  box-shadow: inset 0 2px 2px rgba(0,0,0,0.45);
 }
 
 .dots-grid {
@@ -258,8 +332,8 @@ body {
 
 /* ── Focus visible ── */
 :focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 3px;
 }
 
 /* ── Touch targets ── */
@@ -269,34 +343,25 @@ button, [role="button"], a, input, select {
 }
 
 /* ── Background effects per theme ── */
-.theme-bg-ocean {
-  background: linear-gradient(180deg, #0C1B33 0%, #0C2340 50%, #0C1B33 100%);
-  background-size: 200% 200%;
-  animation: wave 8s ease infinite;
-}
-
-.theme-bg-space {
-  background: #030712;
-  position: relative;
-  overflow: hidden;
-}
-
-.theme-bg-forest {
-  background: linear-gradient(180deg, #1A0A2E 0%, #0D1A0D 100%);
-}
-
+.theme-bg-ocean,
+.theme-bg-space,
+.theme-bg-forest,
 .theme-bg-candy {
-  background: linear-gradient(135deg, #FFF7ED 0%, #FDF2F8 50%, #FFF7ED 100%);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--table-glow), transparent 70%),
+    var(--color-bg-primary);
 }
+.theme-bg-space { position: relative; overflow: hidden; }
 
+/* Classic: notebook paper with blue rules */
 .theme-bg-classic {
-  background: #FFFBF5;
+  background-color: var(--color-bg-primary);
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
     transparent 31px,
-    #e2e8f0 31px,
-    #e2e8f0 32px
+    rgba(31, 95, 191, 0.10) 31px,
+    rgba(31, 95, 191, 0.10) 32px
   );
 }
 

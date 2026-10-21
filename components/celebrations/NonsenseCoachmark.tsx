@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useId, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NonsenseCoachmarkProps {
@@ -14,6 +15,22 @@ interface NonsenseCoachmarkProps {
  * player can ignore it and keep playing; dismissal is persisted per profile.
  */
 export default function NonsenseCoachmark({ show, onDismiss }: NonsenseCoachmarkProps) {
+  const titleId = useId();
+
+  // Escape dismisses too (it never steals focus — it's a non-blocking tip).
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.repeat) onDismissRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [show]);
+
   return (
     <AnimatePresence>
       {show && (
@@ -22,32 +39,63 @@ export default function NonsenseCoachmark({ show, onDismiss }: NonsenseCoachmark
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.9 }}
           transition={{ type: "spring", stiffness: 300, damping: 24 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,420px)]"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(calc(100vw-32px),420px)]"
           role="status"
           aria-live="polite"
+          aria-labelledby={titleId}
         >
           <div
-            className="rounded-2xl p-4 shadow-xl flex items-start gap-3"
+            className="rounded-[22px] p-4 sm:p-5 flex items-start gap-4"
             style={{
               background: "var(--color-bg-surface)",
-              border: "2px dashed rgba(139,92,246,0.7)",
+              border: "1px solid var(--color-line)",
+              boxShadow: "0 18px 48px -14px rgba(0, 0, 0, 0.45)",
             }}
           >
-            <div className="text-3xl shrink-0" aria-hidden="true">
-              👽
+            {/* A sample silly-word card, drawn just like the real ones */}
+            <div
+              aria-hidden="true"
+              className="relative shrink-0 mt-2 ml-2 flex items-center justify-center px-3 border-2 border-dashed font-bold"
+              style={{
+                minWidth: 64,
+                height: 52,
+                borderRadius: "var(--radius-card)",
+                background: "var(--card-silly)",
+                color: "var(--card-silly-ink)",
+                borderColor: "var(--card-silly-edge)",
+                boxShadow: "0 4px 0 color-mix(in srgb, var(--card-silly-edge) 55%, var(--card-silly))",
+                fontFamily: "var(--font-word)",
+                fontSize: 22,
+                lineHeight: 1,
+              }}
+            >
+              zub
+              <span
+                className="absolute -top-2 -left-2 flex items-center justify-center rounded-full"
+                style={{
+                  width: 24,
+                  height: 24,
+                  fontSize: 14,
+                  lineHeight: 1,
+                  background: "var(--card-silly-edge)",
+                  boxShadow: "0 0 0 2px var(--card-paper)",
+                }}
+              >
+                👽
+              </span>
             </div>
-            <div className="flex-1">
-              <p className="font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
+
+            <div className="flex-1 min-w-0">
+              <p id={titleId} className="font-bold text-lg mb-1" style={{ color: "var(--color-text-primary)" }}>
                 Meet the silly words!
               </p>
-              <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-                Cards with an alien <span aria-hidden="true">👽</span> and a dashed border are{" "}
-                <strong>silly words</strong> — they aren&apos;t real words. Just sound them out!
+              <p className="text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                A light purple card with a dashed purple border and an alien <span aria-hidden="true">👽</span> is a{" "}
+                <strong>silly word</strong>. It isn&apos;t a real word. Just sound it out!
               </p>
               <button
                 onClick={onDismiss}
-                className="text-sm font-bold rounded-full px-4 py-1.5 text-white"
-                style={{ background: "var(--color-brand)" }}
+                className="btn-primary text-sm px-5 py-2"
               >
                 Got it!
               </button>

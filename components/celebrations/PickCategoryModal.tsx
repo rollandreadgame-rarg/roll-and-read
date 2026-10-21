@@ -1,7 +1,7 @@
 // components/celebrations/PickCategoryModal.tsx
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -31,6 +31,17 @@ export default function PickCategoryModal({
   const [revealed, setRevealed] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog whenever a fresh pick screen appears (the
+  // reveal step focuses its own Next button). No Escape here: a pack must be
+  // picked to claim the reward.
+  useEffect(() => {
+    if (!show || revealed) return;
+    const raf = requestAnimationFrame(() => panelRef.current?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [show, revealed, reward]);
 
   // Whoosh the packs in whenever a fresh pick screen appears.
   useEffect(() => {
@@ -86,36 +97,48 @@ export default function PickCategoryModal({
         <>
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
             transition={{ type: "spring", damping: 16, stiffness: 220 }}
-            role="dialog" aria-modal="true" aria-label="Pick a sticker pack"
+            role="dialog" aria-modal="true"
+            aria-labelledby={revealed ? undefined : titleId}
+            aria-label={revealed ? "Your new sticker" : undefined}
             className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           >
             <div
-              className="relative w-full max-w-lg rounded-[28px] p-8 text-center"
+              ref={panelRef}
+              tabIndex={-1}
+              className="relative w-full max-w-lg rounded-[28px] p-6 sm:p-8 text-center outline-none max-h-[calc(100dvh-32px)] overflow-y-auto"
               style={{
-                background: "linear-gradient(160deg, var(--color-bg-surface) 0%, rgba(30,41,59,0.95) 100%)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+                background:
+                  "radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--color-accent-gold) 14%, transparent), transparent 70%), var(--color-bg-surface)",
+                border: "1px solid var(--color-line)",
+                boxShadow: "0 24px 64px -16px rgba(0, 0, 0, 0.5)",
               }}
             >
               {!revealed ? (
                 <>
-                  <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-accent-gold)" }}>
+                  <div
+                    className="inline-block text-sm font-bold rounded-full px-3 py-1 mb-3"
+                    style={{
+                      color: "var(--color-text-primary)",
+                      background: "color-mix(in srgb, var(--color-accent-gold) 18%, var(--color-bg-surface))",
+                      border: "1px solid color-mix(in srgb, var(--color-accent-gold) 55%, transparent)",
+                    }}
+                  >
                     {reward.label}
                   </div>
-                  <h2 className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
-                    🎉 Pick a pack!
+                  <h2 id={titleId} className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
+                    <span aria-hidden="true">🎉 </span>Pick a pack!
                   </h2>
                   {remaining > 1 && (
-                    <div className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>
+                    <div className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
                       {remaining} rewards to pick
                     </div>
                   )}
-                  <div className="grid grid-cols-3 gap-4 mt-6">
+                  <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-6">
                     {trio.map((c: any, i: number) => (
                       <motion.button
                         key={c.category}
@@ -128,12 +151,16 @@ export default function PickCategoryModal({
                         whileTap={{ scale: 0.94 }}
                         disabled={busy}
                         onClick={() => handlePick(c.category)}
-                        className="rounded-3xl p-4 flex flex-col items-center gap-2"
-                        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)" }}
+                        className="rounded-3xl p-3 sm:p-4 flex flex-col items-center gap-2 transition-colors hover:border-[var(--color-brand-secondary)] disabled:opacity-60"
+                        style={{
+                          background: "var(--color-surface-2)",
+                          border: "2px solid var(--color-line)",
+                          boxShadow: "0 4px 0 var(--color-line-strong)",
+                        }}
                         aria-label={`Pick ${c.label}`}
                       >
                         <motion.div
-                          className="w-20 h-20"
+                          className="w-16 h-16 sm:w-20 sm:h-20"
                           animate={reducedMotion ? {} : { y: [0, -5, 0] }}
                           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
                         >

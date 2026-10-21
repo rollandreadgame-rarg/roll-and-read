@@ -16,12 +16,15 @@ export default function CoinPopup({ amount, x, y, id }: CoinPopupProps) {
       initial={{ opacity: 1, y: 0, scale: 1 }}
       animate={{ opacity: 0, y: -60, scale: 0.5 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="fixed z-50 pointer-events-none font-extrabold text-sm tabular-nums"
+      aria-hidden="true"
+      className="fixed z-50 pointer-events-none font-extrabold text-sm tabular-nums whitespace-nowrap px-2 py-0.5 rounded-full"
       style={{
         left: x,
         top: y,
-        color: "var(--color-accent-gold)",
-        textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+        // Gold coin chip with dark ink: legible on light and dark themes alike.
+        background: "var(--color-accent-gold)",
+        color: "var(--card-ink)",
+        boxShadow: "0 2px 0 color-mix(in srgb, var(--color-accent-gold) 60%, black), 0 4px 10px -4px rgba(0,0,0,0.4)",
       }}
     >
       +{amount} 💰

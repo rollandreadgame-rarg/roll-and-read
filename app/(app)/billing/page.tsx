@@ -48,32 +48,30 @@ const TIERS: {
   },
 ];
 
+// Tinted notice boxes built from the shared status tokens, so they read on
+// both the dark and the light themes.
+function noticeStyle(token: string): React.CSSProperties {
+  return {
+    background: `color-mix(in srgb, ${token} 14%, var(--color-bg-surface))`,
+    border: `1px solid color-mix(in srgb, ${token} 45%, transparent)`,
+    color: "var(--color-text-primary)",
+  };
+}
+
+const SUCCESS_TEXT = "var(--color-success-text)";
+
 function StatusBanner({ status }: { status: string | null }) {
   if (!status) return null;
   if (status === "success") {
     return (
-      <div
-        className="rounded-2xl px-4 py-3"
-        style={{
-          background: "color-mix(in srgb, var(--color-success) 18%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--color-success) 60%, transparent)",
-          color: "var(--color-text-primary)",
-        }}
-      >
+      <div className="rounded-2xl px-4 py-3" style={noticeStyle("var(--color-success)")}>
         Subscription active. Welcome aboard!
       </div>
     );
   }
   if (status === "cancel") {
     return (
-      <div
-        className="rounded-2xl px-4 py-3"
-        style={{
-          background: "rgba(245,158,11,0.15)",
-          border: "1px solid rgba(245,158,11,0.5)",
-          color: "var(--color-text-primary)",
-        }}
-      >
+      <div className="rounded-2xl px-4 py-3" style={noticeStyle("var(--color-warning)")}>
         Checkout cancelled. No charge was made.
       </div>
     );
@@ -132,15 +130,15 @@ function BillingPageInner() {
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-      <header className="space-y-2">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
         <h1
-          className="text-3xl font-extrabold tracking-tight text-balance"
+          className="text-2xl sm:text-3xl font-extrabold"
           style={{ color: "var(--color-text-primary)" }}
         >
-          💳 Billing & Plan
+          Billing and plan
         </h1>
-        <p className="text-pretty" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-pretty" style={{ color: "var(--color-text-secondary)" }}>
           Manage your Roll &amp; Read subscription.
         </p>
       </header>
@@ -149,39 +147,31 @@ function BillingPageInner() {
 
       {errorMsg && (
         <div
+          role="alert"
           className="rounded-2xl px-4 py-3 text-sm"
-          style={{
-            background: "rgba(239,68,68,0.15)",
-            border: "1px solid rgba(239,68,68,0.5)",
-            color: "var(--color-text-primary)",
-          }}
+          style={noticeStyle("var(--color-error)")}
         >
           {errorMsg}
         </div>
       )}
 
-      <section
-        className="rounded-3xl p-5"
-        style={{
-          background: "var(--color-bg-surface)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div
-              className="text-xs uppercase tracking-wide"
+      <section className="panel p-5 sm:p-6" aria-labelledby="current-plan-heading">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2
+              id="current-plan-heading"
+              className="text-sm font-semibold"
               style={{ color: "var(--color-text-muted)" }}
             >
               Current plan
-            </div>
+            </h2>
             <div
-              className="text-xl font-bold capitalize"
+              className="text-2xl font-extrabold capitalize"
               style={{ color: "var(--color-text-primary)" }}
             >
               {currentPlan}
             </div>
-            <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            <div className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
               {sub
                 ? `${sub.profileCount} of ${sub.profileLimit} profile${sub.profileLimit === 1 ? "" : "s"} used`
                 : "Loading…"}
@@ -198,10 +188,11 @@ function BillingPageInner() {
             <button
               onClick={openPortal}
               disabled={busyKey === "portal"}
-              className="rounded-2xl px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
+              className="rounded-2xl px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--color-hover)] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
-                background: "var(--color-brand)",
-                color: "white",
+                background: "var(--color-surface-2)",
+                color: "var(--color-text-primary)",
+                border: "1px solid var(--color-line)",
               }}
             >
               {busyKey === "portal" ? "Opening…" : "Manage subscription"}
@@ -210,58 +201,68 @@ function BillingPageInner() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section aria-label="Plans" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {TIERS.map((t) => {
           const isCurrent = currentPlan === t.plan;
           return (
             <article
               key={t.plan}
-              className="flex flex-col rounded-3xl p-5 transition"
-              style={{
-                background: isCurrent
-                  ? "color-mix(in srgb, var(--color-brand) 15%, var(--color-bg-surface))"
-                  : "var(--color-bg-surface)",
-                border: isCurrent
-                  ? "2px solid var(--color-brand)"
-                  : "1px solid rgba(255,255,255,0.08)",
-              }}
+              className="panel flex flex-col p-5 sm:p-6"
+              style={
+                isCurrent
+                  ? {
+                      background: "color-mix(in srgb, var(--color-brand) 10%, var(--color-bg-surface))",
+                      borderColor: "var(--color-brand-secondary)",
+                      boxShadow: "inset 0 0 0 1px var(--color-brand-secondary)",
+                    }
+                  : undefined
+              }
             >
-              <div className="mb-3">
-                <div
-                  className="text-lg font-bold"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  {t.name}
+              <div className="mb-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h2
+                    className="text-lg font-bold"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
+                    {t.name}
+                  </h2>
+                  {isCurrent && (
+                    <span
+                      className="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                      style={{
+                        background: "var(--color-surface-2)",
+                        color: "var(--color-brand-secondary)",
+                      }}
+                    >
+                      Your plan
+                    </span>
+                  )}
                 </div>
                 <div
-                  className="text-2xl font-extrabold tabular-nums"
+                  className="mt-1 text-3xl font-extrabold tabular-nums"
                   style={{ color: "var(--color-text-primary)" }}
                 >
                   {t.price}
                 </div>
-                <div
+                <p
                   className="mt-1 text-sm"
-                  style={{ color: "var(--color-text-muted)" }}
+                  style={{ color: "var(--color-text-secondary)" }}
                 >
                   {t.blurb}
-                </div>
+                </p>
               </div>
-              <ul className="mb-4 space-y-1 text-sm">
+              <ul className="mb-6 flex flex-col gap-2 text-sm">
                 {t.perks.map((p) => (
-                  <li key={p} style={{ color: "var(--color-text-primary)" }}>
-                    · {p}
+                  <li key={p} className="flex gap-2" style={{ color: "var(--color-text-primary)" }}>
+                    <span aria-hidden="true" className="font-bold" style={{ color: SUCCESS_TEXT }}>✓</span>
+                    <span>{p}</span>
                   </li>
                 ))}
               </ul>
               <button
                 onClick={() => startCheckout(t.lookupKey)}
                 disabled={isCurrent || busyKey === t.lookupKey}
-                className="mt-auto rounded-2xl px-4 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  background: isCurrent
-                    ? "rgba(255,255,255,0.12)"
-                    : "linear-gradient(135deg, var(--color-brand), color-mix(in srgb, var(--color-brand) 70%, black))",
-                }}
+                className="btn-primary mt-auto px-4 py-3 text-sm"
               >
                 {isCurrent
                   ? "Current plan"

@@ -10,6 +10,8 @@ import { Id } from "@/convex/_generated/dataModel";
 import { CATEGORIES as CATALOG_CATEGORIES } from "@/lib/stickers/categories";
 import StickerImage from "@/components/stickers/StickerImage";
 
+// Three tiers, told apart by icon, accent edge and a tinted surface — all built
+// from theme tokens so they read in light and dark themes.
 const PACKS = [
   {
     id: "basic",
@@ -19,8 +21,8 @@ const PACKS = [
     count: 1,
     desc: "1 random sticker",
     odds: "60% Common · 25% Uncommon · 12% Rare · 3% Legendary",
-    gradient: "linear-gradient(135deg, #374151, #1F2937)",
-    border: "rgba(255,255,255,0.15)",
+    background: "var(--color-bg-surface)",
+    border: "var(--color-line-strong)",
   },
   {
     id: "themed",
@@ -30,8 +32,8 @@ const PACKS = [
     count: 3,
     desc: "3 stickers from one category",
     odds: "Same odds, guaranteed same category",
-    gradient: "linear-gradient(135deg, #1E3A5F, #1E40AF)",
-    border: "rgba(59,130,246,0.4)",
+    background: "color-mix(in srgb, var(--color-brand-secondary) 10%, var(--color-bg-surface))",
+    border: "color-mix(in srgb, var(--color-brand-secondary) 55%, transparent)",
   },
   {
     id: "premium",
@@ -41,12 +43,13 @@ const PACKS = [
     count: 5,
     desc: "5 stickers with boosted rare odds",
     odds: "40% Common · 35% Uncommon · 20% Rare · 5% Legendary",
-    gradient: "linear-gradient(135deg, #78350F, #B45309)",
-    border: "rgba(245,158,11,0.5)",
+    background: "color-mix(in srgb, var(--color-accent-gold) 16%, var(--color-bg-surface))",
+    border: "color-mix(in srgb, var(--color-accent-gold) 75%, transparent)",
   },
 ];
 
 const CATEGORIES = CATALOG_CATEGORIES.map((c) => c.key);
+const CATEGORY_META = Object.fromEntries(CATALOG_CATEGORIES.map((c) => [c.key, c]));
 
 type RevealedSticker = {
   name: string;
@@ -55,11 +58,24 @@ type RevealedSticker = {
   rarity: string;
 };
 
+// Used for borders/glows and a dot only — never as text colour.
 const RARITY_COLORS: Record<string, string> = {
-  common: "#6B7280",
+  common: "#8A94A6",
   uncommon: "#3B82F6",
   rare: "#A855F7",
-  legendary: "#F59E0B",
+  legendary: "#F5B83D",
+};
+
+const chipStyle = (selected: boolean): React.CSSProperties => ({
+  background: selected ? "var(--color-brand)" : "var(--color-surface-2)",
+  color: selected ? "var(--color-on-brand)" : "var(--color-text-primary)",
+  border: `1px solid ${selected ? "var(--color-brand)" : "var(--color-line)"}`,
+});
+
+const coinPillStyle: React.CSSProperties = {
+  color: "var(--color-text-primary)",
+  background: "color-mix(in srgb, var(--color-accent-gold) 20%, var(--color-bg-surface))",
+  border: "1px solid color-mix(in srgb, var(--color-accent-gold) 60%, transparent)",
 };
 
 export default function ShopPage() {
@@ -121,33 +137,34 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 p-4 max-w-3xl mx-auto w-full">
-      <div className="mb-6">
-        <h1 className="text-3xl font-extrabold mb-1 text-balance" style={{ color: "var(--color-text-primary)" }}>
-          🛍️ Sticker Shop
+    <div className="flex flex-col flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-balance" style={{ color: "var(--color-text-primary)" }}>
+          Sticker shop
         </h1>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold tabular-nums" style={{ color: "var(--color-accent-gold)" }}>
-            💰 {(profile?.coins ?? 0).toLocaleString()}
+        <div
+          className="flex items-center gap-2 px-4 py-1.5 rounded-full"
+          style={coinPillStyle}
+        >
+          <span className="text-xl font-extrabold tabular-nums">
+            <span aria-hidden="true">💰</span> {(profile?.coins ?? 0).toLocaleString()}
           </span>
-          <span style={{ color: "var(--color-text-muted)" }}>coins</span>
+          <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>coins</span>
         </div>
       </div>
 
       {/* Profile tabs */}
       {(profiles?.length ?? 0) > 1 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto">
+        <div className="flex flex-wrap gap-2 mb-4">
           {profiles?.map((p: any) => (
             <button
               key={p._id}
               onClick={() => setActiveProfileId(p._id)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap"
-              style={{
-                background: selectedProfile === p._id ? "var(--color-brand)" : "rgba(255,255,255,0.08)",
-                color: selectedProfile === p._id ? "white" : "var(--color-text-muted)",
-              }}
+              aria-pressed={selectedProfile === p._id}
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap transition-colors"
+              style={chipStyle(selectedProfile === p._id)}
             >
-              {p.avatarEmoji} {p.name}
+              <span aria-hidden="true">{p.avatarEmoji}</span> {p.name}
             </button>
           ))}
         </div>
@@ -155,23 +172,25 @@ export default function ShopPage() {
 
       {/* Category selector for Themed Pack */}
       <div className="mb-4">
-        <p className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-muted)" }}>
-          Category for Themed Pack:
+        <p id="themed-category-label" className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-secondary)" }}>
+          Category for the themed pack
         </p>
-        <div className="flex gap-2 flex-wrap">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className="px-3 py-1.5 rounded-xl text-sm font-semibold capitalize transition-colors"
-              style={{
-                background: selectedCategory === cat ? "var(--color-brand)" : "rgba(255,255,255,0.08)",
-                color: selectedCategory === cat ? "white" : "var(--color-text-muted)",
-              }}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="flex gap-2 flex-wrap" role="group" aria-labelledby="themed-category-label">
+          {CATEGORIES.map((cat) => {
+            const meta = CATEGORY_META[cat];
+            return (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                aria-pressed={selectedCategory === cat}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-sm font-semibold whitespace-nowrap transition-colors"
+                style={chipStyle(selectedCategory === cat)}
+              >
+                {meta?.icon && <span aria-hidden="true">{meta.icon}</span>}
+                <span>{cat}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -183,8 +202,12 @@ export default function ShopPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mb-4 p-3 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}
+            className="mb-4 p-3 rounded-2xl text-sm font-semibold"
+            style={{
+              background: "color-mix(in srgb, var(--color-error) 14%, var(--color-bg-surface))",
+              color: "var(--color-text-primary)",
+              border: "1px solid color-mix(in srgb, var(--color-error) 60%, transparent)",
+            }}
           >
             {errorMsg}
           </motion.div>
@@ -199,44 +222,47 @@ export default function ShopPage() {
             <motion.div
               key={pack.id}
               whileHover={{ scale: 1.01 }}
-              className="rounded-2xl p-5"
-              style={{ background: pack.gradient, border: `1px solid ${pack.border}` }}
+              className="p-5"
+              style={{
+                background: pack.background,
+                border: `2px solid ${pack.border}`,
+                borderRadius: "var(--radius-panel)",
+              }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl">{pack.icon}</span>
-                  <div>
-                    <div className="font-extrabold text-xl text-white">{pack.name}</div>
-                    <div className="text-sm text-white/70">{pack.desc}</div>
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-4xl shrink-0" aria-hidden="true">{pack.icon}</span>
+                  <div className="min-w-0">
+                    <h2 className="font-extrabold text-xl" style={{ color: "var(--color-text-primary)" }}>
+                      {pack.name}
+                    </h2>
+                    <div className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{pack.desc}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-extrabold" style={{ color: "#F59E0B" }}>
-                    💰 {pack.cost}
+                <div className="text-right shrink-0">
+                  <div
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-lg font-extrabold tabular-nums"
+                    style={coinPillStyle}
+                  >
+                    <span aria-hidden="true">💰</span> {pack.cost}
                   </div>
-                  <div className="text-xs text-white/60">{pack.count} sticker{pack.count > 1 ? "s" : ""}</div>
+                  <div className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    {pack.count} sticker{pack.count > 1 ? "s" : ""}
+                  </div>
                 </div>
               </div>
-              <div className="text-xs text-white/60 mb-3">{pack.odds}</div>
-              <motion.button
+              <div className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>{pack.odds}</div>
+              <button
                 onClick={() => handleBuy(pack.id, pack.cost)}
                 disabled={!canAfford || isRevealing}
-                whileTap={canAfford && !isRevealing ? { scale: 0.97 } : {}}
-                className="w-full py-3 rounded-xl font-extrabold text-base transition-opacity disabled:opacity-50"
-                style={{
-                  background: canAfford
-                    ? "rgba(255,255,255,0.9)"
-                    : "rgba(255,255,255,0.2)",
-                  color: canAfford ? "#1E293B" : "rgba(255,255,255,0.5)",
-                  cursor: canAfford && !isRevealing ? "pointer" : "not-allowed",
-                }}
+                className="btn-primary w-full py-3 text-base font-extrabold"
               >
                 {!canAfford
                   ? `Need ${(pack.cost - (profile?.coins ?? 0)).toLocaleString()} more coins`
                   : isRevealing
                   ? "Opening..."
                   : `Open ${pack.name}`}
-              </motion.button>
+              </button>
             </motion.div>
           );
         })}
@@ -248,11 +274,10 @@ export default function ShopPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-6 text-center"
-            style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="panel p-6 text-center"
           >
             <h2 className="text-xl font-extrabold mb-4" style={{ color: "var(--color-text-primary)" }}>
-              🎉 You Got!
+              {revealedStickers.length === 1 ? "Your new sticker" : "Your new stickers"}
             </h2>
             <div className="flex justify-center gap-4 flex-wrap">
               {revealedStickers.map((s, i) => (
@@ -261,14 +286,14 @@ export default function ShopPage() {
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", damping: 12, delay: i * 0.1 }}
-                  className="flex flex-col items-center gap-2"
+                  className="flex flex-col items-center gap-2 w-24"
                 >
                   <div
                     className="w-20 h-20 rounded-2xl flex items-center justify-center p-1"
                     style={{
-                      border: `2px solid ${RARITY_COLORS[s.rarity] ?? "#6B7280"}`,
-                      boxShadow: `0 0 16px ${RARITY_COLORS[s.rarity] ?? "#6B7280"}44`,
-                      background: "rgba(255,255,255,0.05)",
+                      border: `2px solid ${RARITY_COLORS[s.rarity] ?? RARITY_COLORS.common}`,
+                      boxShadow: `0 0 16px ${RARITY_COLORS[s.rarity] ?? RARITY_COLORS.common}44`,
+                      background: "var(--color-surface-2)",
                     }}
                   >
                     <StickerImage src={s.imageFullUrl} emoji={s.emoji} alt={s.name} />
@@ -277,9 +302,14 @@ export default function ShopPage() {
                     {s.name}
                   </div>
                   <div
-                    className="text-xs font-semibold capitalize"
-                    style={{ color: RARITY_COLORS[s.rarity] ?? "#6B7280" }}
+                    className="text-xs font-semibold capitalize flex items-center gap-1"
+                    style={{ color: "var(--color-text-secondary)" }}
                   >
+                    <span
+                      aria-hidden="true"
+                      className="inline-block w-2 h-2 rounded-full"
+                      style={{ background: RARITY_COLORS[s.rarity] ?? RARITY_COLORS.common }}
+                    />
                     {s.rarity}
                   </div>
                 </motion.div>

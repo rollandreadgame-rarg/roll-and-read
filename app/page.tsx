@@ -1,35 +1,32 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import MiniDie from "@/components/game/MiniDie";
+import { LEVEL_SEQUENCE, LEVEL_SKILLS } from "@/lib/levels";
 
-const FEATURES = [
-  {
-    icon: "🎲",
-    title: "Structured Phonics Levels",
-    desc: "5 levels with lettered sub-levels covering the full science of reading curriculum — from basic consonants to advanced word endings.",
-  },
-  {
-    icon: "📚",
-    title: "Build Your Word Bank",
-    desc: "Every word you read gets added to your personal Word Bank with a coin value. Watch your collection grow with each session!",
-  },
-  {
-    icon: "🎴",
-    title: "Earn Stickers & Rewards",
-    desc: "Roll the dice, read the words, earn coins, and spend them on nearly 600 collectible stickers across 10 exciting categories.",
-  },
+const TURN_STEPS = [
+  { face: 1, title: "Roll the die", body: "The row with the same number of dots lights up." },
+  { face: 2, title: "Listen", body: "A friendly voice says one of the words in that row." },
+  { face: 3, title: "Tap the word", body: "Get it right and the word flies into your word bank." },
 ];
 
-const LEVELS = [
-  { level: "1A", name: "Short Vowels a, i", color: "#10B981" },
-  { level: "1B", name: "Short Vowels o, u, e", color: "#10B981" },
-  { level: "1C", name: "Digraphs & Floss Rule", color: "#10B981" },
-  { level: "1D", name: "Beginning Blends", color: "#10B981" },
-  { level: "2A", name: "Vowel Teams ai, ay", color: "#3B82F6" },
-  { level: "2B", name: "Vowel Teams ee, ea", color: "#3B82F6" },
-  { level: "3A", name: "Vowel Teams oi, oy", color: "#A855F7" },
-  { level: "4A", name: "Consonant-le Syllable", color: "#F59E0B" },
-  { level: "5A", name: "Silent Letters", color: "#EF4444" },
+const READER_SUPPORT = [
+  {
+    title: "Letters children are taught",
+    body: "Words are printed in Andika, with the single-storey a and g from early handwriting. Switch to OpenDyslexic any time.",
+  },
+  {
+    title: "Silly words for real decoding",
+    body: "Made-up words like “zib” can't be guessed from memory, so children have to sound them out. They're marked with an alien.",
+  },
+  {
+    title: "Every word read aloud",
+    body: "More than 1,500 words, each with its own clear recording. Tap the button or press space to hear it again.",
+  },
+  {
+    title: "Rewards that keep them rolling",
+    body: "Coins for every word, a growing word bank, and nearly 600 stickers to collect across 10 categories.",
+  },
 ];
 
 const PRICING = [
@@ -37,13 +34,8 @@ const PRICING = [
     name: "Free",
     price: "$0",
     period: "forever",
-    features: [
-      "Level 1 (all sub-levels)",
-      "2 themes",
-      "Basic word bank",
-      "1 reader profile",
-    ],
-    cta: "Start Free",
+    features: ["Level 1 (all sub-levels)", "2 themes", "Basic word bank", "1 reader profile"],
+    cta: "Start free",
     href: "/sign-up",
     highlight: false,
   },
@@ -51,13 +43,7 @@ const PRICING = [
     name: "Individual",
     price: "$7.99",
     period: "per month",
-    features: [
-      "All 25 sub-levels (1A–5B)",
-      "Full word library",
-      "All 5 themes",
-      "1 reader profile",
-      "Parent dashboard",
-    ],
+    features: ["All 25 sub-levels (1A–5B)", "Full word library", "All 5 themes", "1 reader profile", "Parent dashboard"],
     cta: "Choose Individual",
     href: "/billing",
     highlight: false,
@@ -66,11 +52,7 @@ const PRICING = [
     name: "Family",
     price: "$14.99",
     period: "per month",
-    features: [
-      "Everything in Individual",
-      "Up to 5 reader profiles",
-      "Best for siblings",
-    ],
+    features: ["Everything in Individual", "Up to 5 reader profiles", "Best for siblings"],
     cta: "Choose Family",
     href: "/billing",
     highlight: true,
@@ -79,19 +61,78 @@ const PRICING = [
     name: "Classroom",
     price: "$49",
     period: "per month",
-    features: [
-      "Everything in Individual",
-      "Up to 30 student profiles",
-      "Teacher dashboard",
-      "Class progress reports",
-    ],
+    features: ["Everything in Individual", "Up to 30 student profiles", "Teacher dashboard", "Class progress reports"],
     cta: "Choose Classroom",
     href: "/billing",
     highlight: false,
   },
 ];
 
+// Example board for the hero illustration
+const DEMO_ROWS: { face: number; words: { w: string; silly?: boolean }[]; active?: boolean }[] = [
+  { face: 2, words: [{ w: "shop" }, { w: "chin" }, { w: "moth" }, { w: "whip" }] },
+  { face: 3, active: true, words: [{ w: "frog" }, { w: "ship" }, { w: "zib", silly: true }, { w: "bell" }] },
+  { face: 5, words: [{ w: "clap" }, { w: "drum" }, { w: "plum", }, { w: "glob", silly: true }] },
+];
+
+const LEVEL_GROUPS = [1, 2, 3, 4, 5].map((n) => ({
+  n,
+  levels: LEVEL_SEQUENCE.filter((l) => l.startsWith(String(n))),
+}));
+
+// Don't let a line break split "-dge" or "-que," away from its hyphen
+function keepSuffixesWhole(text: string) {
+  return text.split(" ").map((part, i) => (
+    <span key={i}>
+      {i > 0 && " "}
+      {part.includes("-") ? <span className="whitespace-nowrap">{part}</span> : part}
+    </span>
+  ));
+}
+
 const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
+
+function DemoCard({ w, silly, active }: { w: string; silly?: boolean; active?: boolean }) {
+  if (!active) {
+    return (
+      <span
+        className="flex-1 min-w-0 rounded-[12px] border px-2 py-2 text-center font-bold text-base sm:text-lg"
+        style={{
+          fontFamily: "var(--font-word)",
+          background: "var(--color-surface-2)",
+          color: "var(--color-text-muted)",
+          borderColor: silly ? "var(--card-silly-edge)" : "var(--color-line)",
+          borderStyle: silly ? "dashed" : "solid",
+        }}
+      >
+        {w}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="relative flex-1 min-w-0 rounded-[12px] border-2 px-2 py-2.5 text-center font-bold text-lg sm:text-2xl"
+      style={{
+        fontFamily: "var(--font-word)",
+        background: silly ? "var(--card-silly)" : "var(--card-paper)",
+        color: silly ? "var(--card-silly-ink)" : "var(--card-ink)",
+        borderColor: silly ? "var(--card-silly-edge)" : "transparent",
+        borderStyle: silly ? "dashed" : "solid",
+        boxShadow: `0 4px 0 ${silly ? "#B9A6F2" : "var(--card-edge)"}, 0 10px 18px -8px rgba(0,0,0,0.5)`,
+      }}
+    >
+      {w}
+      {silly && (
+        <span
+          className="absolute -top-2.5 -left-2.5 flex size-6 items-center justify-center rounded-full text-sm"
+          style={{ background: "var(--card-silly-edge)", boxShadow: "0 0 0 2px var(--card-paper)" }}
+        >
+          👽
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default async function LandingPage() {
   if (!IS_E2E) {
@@ -100,337 +141,304 @@ export default async function LandingPage() {
   }
 
   return (
-    <div
-      style={{
-        background: "linear-gradient(180deg, #0C1B33 0%, #0C2340 50%, #0C1B33 100%)",
-        fontFamily: "'Nunito', sans-serif",
-        color: "#F8FAFC",
-        minHeight: "100dvh",
-      }}
-    >
+    <div className="min-h-dvh" style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
       {/* Nav */}
-      <nav
+      <header
+        className="sticky top-0 z-10 border-b"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 24px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderColor: "var(--color-line)",
           backdropFilter: "blur(12px)",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          background: "rgba(12,27,51,0.9)",
+          background: "color-mix(in srgb, var(--color-bg-primary) 90%, transparent)",
         }}
       >
-        <div style={{ fontSize: "20px", fontWeight: 800, display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>🎲</span> Roll &amp; Read
-        </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <Link
-            href="/sign-in"
-            style={{ color: "#94A3B8", fontWeight: 600, textDecoration: "none", fontSize: "15px" }}
-          >
-            Sign In
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 text-lg font-extrabold" aria-label="Roll & Read home">
+            <MiniDie face={5} className="size-8 -rotate-6" />
+            <span>Roll &amp; Read</span>
           </Link>
-          <Link
-            href="/sign-up"
-            style={{
-              background: "linear-gradient(135deg, #0891B2, #06B6D4)",
-              color: "white",
-              padding: "8px 20px",
-              borderRadius: "12px",
-              fontWeight: 700,
-              textDecoration: "none",
-              fontSize: "15px",
-            }}
-          >
-            Start Free
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section
-        style={{
-          maxWidth: "800px",
-          margin: "0 auto",
-          padding: "80px 24px 60px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            display: "inline-block",
-            background: "rgba(8,145,178,0.2)",
-            border: "1px solid rgba(8,145,178,0.4)",
-            borderRadius: "100px",
-            padding: "6px 16px",
-            fontSize: "13px",
-            fontWeight: 700,
-            color: "#06B6D4",
-            marginBottom: "24px",
-            letterSpacing: "0.05em",
-          }}
-        >
-          ✨ Built on the Science of Reading
-        </div>
-
-        <h1
-          style={{
-            fontSize: "clamp(36px, 6vw, 64px)",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            marginBottom: "24px",
-          }}
-        >
-          Roll the Dice.{" "}
-          <span style={{ color: "#06B6D4" }}>Read the Words.</span>{" "}
-          Collect Your Story.
-        </h1>
-
-        <p
-          style={{
-            fontSize: "18px",
-            color: "#94A3B8",
-            maxWidth: "560px",
-            margin: "0 auto 40px",
-            lineHeight: 1.6,
-          }}
-        >
-          A phonics-based learning game built on the science of reading — for every child who
-          learns differently, including dyslexic readers, English language learners, and early
-          readers ages 4–14.
-        </p>
-
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/sign-up"
-            style={{
-              background: "linear-gradient(135deg, #0891B2, #06B6D4)",
-              color: "white",
-              padding: "16px 32px",
-              borderRadius: "16px",
-              fontWeight: 800,
-              textDecoration: "none",
-              fontSize: "18px",
-              boxShadow: "0 8px 32px rgba(8,145,178,0.4)",
-              display: "inline-block",
-            }}
-          >
-            🎲 Start for Free
-          </Link>
-        </div>
-
-        {/* Animated Dice */}
-        <div
-          style={{
-            marginTop: "60px",
-            fontSize: "80px",
-            animation: "bounce 2s ease-in-out infinite",
-          }}
-        >
-          🎲
-        </div>
-        <style>{`
-          @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-16px); }
-          }
-        `}</style>
-      </section>
-
-      {/* Features */}
-      <section style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 24px" }}>
-        <h2 style={{ textAlign: "center", fontSize: "32px", fontWeight: 800, marginBottom: "40px" }}>
-          Why Children Love Roll &amp; Read
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "24px",
-          }}
-        >
-          {FEATURES.map(({ icon, title, desc }) => (
-            <div
-              key={title}
-              style={{
-                background: "rgba(30,41,59,0.8)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "20px",
-                padding: "28px",
-              }}
+          <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
+            <Link
+              href="/sign-in"
+              className="flex items-center rounded-xl px-3 font-semibold hover:bg-[var(--color-hover)]"
+              style={{ color: "var(--color-text-secondary)" }}
             >
-              <div style={{ fontSize: "36px", marginBottom: "12px" }}>{icon}</div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px" }}>{title}</h3>
-              <p style={{ color: "#94A3B8", lineHeight: 1.6, fontSize: "15px" }}>{desc}</p>
-            </div>
-          ))}
+              Sign in
+            </Link>
+            <Link href="/sign-up" className="btn-primary flex items-center px-4 text-[15px]">
+              Start free
+            </Link>
+          </nav>
         </div>
-      </section>
+      </header>
 
-      {/* Level Preview */}
-      <section style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 24px" }}>
-        <h2 style={{ textAlign: "center", fontSize: "32px", fontWeight: 800, marginBottom: "12px" }}>
-          A Full Structured Phonics Curriculum
-        </h2>
-        <p
-          style={{
-            textAlign: "center",
-            color: "#94A3B8",
-            marginBottom: "32px",
-            fontSize: "16px",
-          }}
-        >
-          5 levels · 25 sub-levels · Hundreds of real and nonsense words
-        </p>
-        <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
-          {LEVELS.map(({ level, name, color }) => (
-            <div
-              key={level}
-              style={{
-                background: "rgba(30,41,59,0.8)",
-                border: `1px solid ${color}44`,
-                borderRadius: "16px",
-                padding: "16px 20px",
-                minWidth: "160px",
-                flexShrink: 0,
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-block",
-                  background: color,
-                  color: "white",
-                  borderRadius: "8px",
-                  padding: "2px 10px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  marginBottom: "8px",
-                }}
+      <main>
+        {/* Hero */}
+        <section className="table-surface">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-24 lg:pt-20">
+            <div className="text-center lg:text-left">
+              <h1 className="text-[clamp(2.4rem,6vw,4.25rem)] font-extrabold leading-[1.05]">
+                Roll the dice. Read the words. Collect your story.
+              </h1>
+              <p
+                className="mx-auto mt-6 max-w-[34rem] text-lg leading-relaxed lg:mx-0"
+                style={{ color: "var(--color-text-secondary)" }}
               >
-                Level {level}
+                A phonics game built on the science of reading, for every child who learns
+                differently — including dyslexic readers, English language learners, and early
+                readers ages 4–14.
+              </p>
+              <div className="mt-9 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                <Link href="/sign-up" className="btn-primary flex items-center px-7 py-4 text-lg">
+                  Start free
+                </Link>
+                <a
+                  href="#levels"
+                  className="flex items-center rounded-2xl border px-6 py-4 font-semibold hover:bg-[var(--color-hover)]"
+                  style={{ borderColor: "var(--color-line-strong)", color: "var(--color-text-primary)" }}
+                >
+                  See all 25 levels
+                </a>
               </div>
-              <div style={{ fontSize: "14px", color: "#94A3B8" }}>{name}</div>
+              <p className="mt-4 text-sm" style={{ color: "var(--color-text-muted)" }}>
+                Level 1 is free forever. No card needed.
+              </p>
             </div>
-          ))}
-          <div
-            style={{
-              background: "rgba(30,41,59,0.4)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "16px",
-              padding: "16px 20px",
-              minWidth: "160px",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#94A3B8",
-              fontSize: "14px",
-            }}
-          >
-            + 16 more levels →
-          </div>
-        </div>
-      </section>
 
-      {/* Pricing */}
-      <section style={{ maxWidth: "1000px", margin: "0 auto", padding: "60px 24px" }}>
-        <h2 style={{ textAlign: "center", fontSize: "32px", fontWeight: 800, marginBottom: "40px" }}>
-          Simple, Honest Pricing
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "24px",
-          }}
-        >
-          {PRICING.map(({ name, price, period, features, cta, href, highlight }) => (
-            <div
-              key={name}
-              style={{
-                background: highlight ? "rgba(8,145,178,0.15)" : "rgba(30,41,59,0.8)",
-                border: highlight ? "2px solid #0891B2" : "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "24px",
-                padding: "32px",
-                position: "relative",
-              }}
+            {/* Example board */}
+            <figure
+              className="panel relative mx-auto w-full max-w-[34rem] p-4 sm:p-6"
+              style={{ boxShadow: "0 30px 60px -30px rgba(0,0,0,0.6)" }}
             >
-              {highlight && (
+              <figcaption className="sr-only">
+                An example game board: the die shows three, so the row marked with three dots is lit and
+                the child taps the word they hear — frog, ship, zib or bell.
+              </figcaption>
+              <div aria-hidden="true">
+                <div className="mb-4 flex items-center gap-4 sm:mb-5">
+                  <div
+                    className="relative size-[72px] shrink-0 rotate-[-8deg] rounded-[18px] sm:size-20"
+                    style={{
+                      background: "radial-gradient(120% 120% at 30% 25%, #FFFFFF 0%, #F6F0E2 55%, #E6DCC5 100%)",
+                      boxShadow: "0 6px 0 #CDBF9F, 0 16px 24px -10px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    {[["24%", "24%"], ["50%", "50%"], ["76%", "76%"]].map(([t, l]) => (
+                      <span
+                        key={t}
+                        className="absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                        style={{ top: t, left: l, background: "#17202E", boxShadow: "inset 0 2px 2px rgba(0,0,0,.45)" }}
+                      />
+                    ))}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold">You rolled a 3</p>
+                    <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                      🔊 “ship” — tap the word you hear
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {DEMO_ROWS.map((row) => (
+                    <div
+                      key={row.face}
+                      className={`flex items-center gap-2 rounded-2xl p-2 sm:gap-2.5 ${row.active ? "row-active-pulse" : ""}`}
+                      style={{
+                        color: "var(--color-text-muted)",
+                        background: row.active
+                          ? "color-mix(in srgb, var(--color-highlight) 10%, var(--color-bg-surface))"
+                          : undefined,
+                      }}
+                    >
+                      <MiniDie face={row.face} tone={row.active ? "lit" : "dim"} className={row.active ? "size-9" : "size-7"} />
+                      {row.words.map((w) => (
+                        <DemoCard key={w.w} w={w.w} silly={w.silly} active={row.active} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </figure>
+          </div>
+        </section>
+
+        {/* How a turn works */}
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20" aria-labelledby="turn-heading">
+          <h2 id="turn-heading" className="text-3xl font-extrabold sm:text-4xl">
+            How a turn works
+          </h2>
+          <ol className="mt-10 grid gap-10 sm:grid-cols-3 sm:gap-8">
+            {TURN_STEPS.map((s) => (
+              <li key={s.face} className="flex gap-4 sm:flex-col">
+                <MiniDie face={s.face} className="size-12 shrink-0" />
+                <div>
+                  <h3 className="text-xl font-bold">
+                    <span className="sr-only">Step {s.face}: </span>
+                    {s.title}
+                  </h3>
+                  <p className="mt-1.5 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+                    {s.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-10 max-w-2xl leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+            Clear all six rows to finish a board. After seven boards with steady accuracy, your
+            reader moves up to the next skill.
+          </p>
+        </section>
+
+        {/* Built for every reader */}
+        <section
+          className="border-y"
+          style={{ borderColor: "var(--color-line)", background: "var(--color-bg-surface)" }}
+          aria-labelledby="support-heading"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <h2 id="support-heading" className="max-w-xl text-3xl font-extrabold sm:text-4xl">
+              Built for children who learn differently
+            </h2>
+            <div className="mt-10 grid gap-x-12 gap-y-10 sm:grid-cols-2">
+              {READER_SUPPORT.map((f) => (
+                <div key={f.title} className="border-l-4 pl-5" style={{ borderColor: "var(--color-brand-secondary)" }}>
+                  <h3 className="text-lg font-bold">{f.title}</h3>
+                  <p className="mt-1.5 max-w-prose leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+                    {f.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Curriculum */}
+        <section id="levels" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 lg:py-20" aria-labelledby="levels-heading">
+          <h2 id="levels-heading" className="text-3xl font-extrabold sm:text-4xl">
+            A full structured phonics curriculum
+          </h2>
+          <p className="mt-3 max-w-2xl text-lg" style={{ color: "var(--color-text-muted)" }}>
+            Five levels and 25 sub-levels, each with real words and silly words, in the order
+            structured literacy programs teach them.
+          </p>
+          <div className="mt-10 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-5">
+            {LEVEL_GROUPS.map((g) => (
+              <div key={g.n}>
+                <h3 className="flex items-center gap-2 border-b pb-2 text-lg font-bold" style={{ borderColor: "var(--color-line-strong)" }}>
+                  Level {g.n}
+                  {g.n === 1 && (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-xs font-bold"
+                      style={{ background: "var(--color-brand)", color: "var(--color-on-brand)" }}
+                    >
+                      Free
+                    </span>
+                  )}
+                </h3>
+                <ul className="mt-3 flex flex-col gap-2.5">
+                  {g.levels.map((l) => (
+                    <li key={l} className="flex gap-3 text-[15px] leading-snug">
+                      <span className="w-7 shrink-0 font-bold tabular-nums" style={{ color: "var(--color-brand-secondary)" }}>
+                        {l}
+                      </span>
+                      <span style={{ color: "var(--color-text-secondary)" }}>{keepSuffixesWhole(LEVEL_SKILLS[l])}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Pricing */}
+        <section
+          className="border-t"
+          style={{ borderColor: "var(--color-line)" }}
+          aria-labelledby="pricing-heading"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <h2 id="pricing-heading" className="text-3xl font-extrabold sm:text-4xl">
+              Simple, honest pricing
+            </h2>
+            <p className="mt-3 text-lg" style={{ color: "var(--color-text-muted)" }}>
+              Start free. Upgrade when your reader is ready for Level 2.
+            </p>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {PRICING.map(({ name, price, period, features, cta, href, highlight }) => (
                 <div
+                  key={name}
+                  className="relative flex flex-col rounded-[22px] p-6"
                   style={{
-                    position: "absolute",
-                    top: "-12px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "#0891B2",
-                    color: "white",
-                    padding: "4px 16px",
-                    borderRadius: "100px",
-                    fontSize: "12px",
-                    fontWeight: 700,
+                    background: highlight
+                      ? "color-mix(in srgb, var(--color-brand) 16%, var(--color-bg-surface))"
+                      : "var(--color-bg-surface)",
+                    border: highlight ? "2px solid var(--color-brand-secondary)" : "1px solid var(--color-line)",
                   }}
                 >
-                  Most Popular
+                  {highlight && (
+                    <p
+                      className="absolute -top-3 left-6 rounded-full px-3 py-1 text-xs font-bold"
+                      style={{ background: "var(--color-brand-secondary)", color: "#06262B" }}
+                    >
+                      Most popular
+                    </p>
+                  )}
+                  <h3 className="text-xl font-bold">{name}</h3>
+                  <p className="mt-2">
+                    <span className="text-4xl font-extrabold tabular-nums">{price}</span>
+                    <span className="text-sm" style={{ color: "var(--color-text-muted)" }}> / {period}</span>
+                  </p>
+                  <ul className="mt-5 mb-6 flex flex-1 flex-col gap-2.5">
+                    {features.map((f) => (
+                      <li key={f} className="flex gap-2 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>
+                        <span aria-hidden="true" style={{ color: "var(--color-success-text)" }}>✓</span> {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={href}
+                    className={
+                      highlight
+                        ? "btn-primary flex items-center justify-center py-3"
+                        : "flex items-center justify-center rounded-2xl border py-3 font-bold hover:bg-[var(--color-hover)]"
+                    }
+                    style={highlight ? undefined : { borderColor: "var(--color-line-strong)", color: "var(--color-text-primary)" }}
+                  >
+                    {cta}
+                  </Link>
                 </div>
-              )}
-              <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px" }}>{name}</h3>
-              <div style={{ marginBottom: "20px" }}>
-                <span style={{ fontSize: "36px", fontWeight: 800, color: "#06B6D4" }}>{price}</span>
-                <span style={{ color: "#94A3B8", fontSize: "14px" }}> / {period}</span>
-              </div>
-              <ul style={{ listStyle: "none", padding: 0, marginBottom: "24px" }}>
-                {features.map((f) => (
-                  <li key={f} style={{ display: "flex", gap: "8px", marginBottom: "8px", fontSize: "14px", color: "#CBD5E1" }}>
-                    <span style={{ color: "#10B981" }}>✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={href}
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  padding: "12px",
-                  borderRadius: "12px",
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: highlight ? "linear-gradient(135deg, #0891B2, #06B6D4)" : "rgba(255,255,255,0.08)",
-                  color: "white",
-                  fontSize: "15px",
-                }}
-              >
-                {cta}
-              </Link>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          padding: "32px 24px",
-          textAlign: "center",
-          color: "#94A3B8",
-          fontSize: "14px",
-        }}
-      >
-        <div style={{ marginBottom: "12px" }}>
-          <strong style={{ color: "#F8FAFC" }}>🎲 Roll &amp; Read</strong> — Phonics-based learning built on the science of reading.
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: "24px", flexWrap: "wrap" }}>
-          <Link href="/sign-in" style={{ color: "#94A3B8", textDecoration: "none" }}>Sign In</Link>
-          <Link href="/sign-up" style={{ color: "#94A3B8", textDecoration: "none" }}>Sign Up</Link>
-          <Link href="/privacy" style={{ color: "#94A3B8", textDecoration: "none" }}>Privacy Policy</Link>
-          <Link href="/terms" style={{ color: "#94A3B8", textDecoration: "none" }}>Terms</Link>
-          <a href="mailto:support@rollandreadgame.com" style={{ color: "#94A3B8", textDecoration: "none" }}>Contact</a>
-        </div>
-        <div style={{ marginTop: "16px", fontSize: "12px", color: "#475569" }}>
-          © 2026 Roll and Read. All rights reserved.
+      <footer className="border-t" style={{ borderColor: "var(--color-line)" }}>
+        <div
+          className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-10 text-sm sm:flex-row sm:justify-between sm:px-6"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <p className="flex items-center gap-2">
+            <MiniDie face={5} className="size-5" />
+            <span>
+              © 2026 <strong style={{ color: "var(--color-text-primary)" }}>Roll &amp; Read</strong>
+            </span>
+          </p>
+          <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-2">
+            {[
+              ["/sign-in", "Sign in"],
+              ["/sign-up", "Sign up"],
+              ["/privacy", "Privacy policy"],
+              ["/terms", "Terms"],
+            ].map(([href, label]) => (
+              <Link key={href} href={href} className="flex items-center rounded-lg px-2 hover:underline">
+                {label}
+              </Link>
+            ))}
+            <a href="mailto:support@rollandreadgame.com" className="flex items-center rounded-lg px-2 hover:underline">
+              Contact
+            </a>
+          </nav>
         </div>
       </footer>
     </div>

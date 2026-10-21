@@ -1,7 +1,7 @@
 // components/celebrations/StickerReveal.tsx
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { playSound } from "@/lib/audio/soundManager";
@@ -18,11 +18,32 @@ interface Props {
 // opaque-ifies an "rgba(...,a)" glow string for the solid border color.
 const solid = (rgba: string) => rgba.replace(/[\d.]+\)$/, "1)");
 
+// Gold blended toward the theme's ink: readable in light and dark themes.
+const GOLD_INK = "var(--color-gold-text)";
+
 // Two beats: (1) anticipation build, (2) the sticker pops in with rarity-tiered
 // confetti + glow, then the name/badge and Next button rise up.
 export default function StickerReveal({ sticker, remaining, reducedMotion, onNext }: Props) {
   const style: RevealStyle = revealStyle(sticker?.rarity);
   const [popped, setPopped] = useState(false);
+  const nextRef = useRef<HTMLButtonElement>(null);
+
+  // Keyboard: focus Next/Done when the reveal appears; Escape continues.
+  const onNextRef = useRef(onNext);
+  useEffect(() => {
+    onNextRef.current = onNext;
+  }, [onNext]);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => nextRef.current?.focus());
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.repeat) onNextRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [sticker]);
 
   useEffect(() => {
     const build = reducedMotion ? 0 : style.buildMs;
@@ -52,9 +73,9 @@ export default function StickerReveal({ sticker, remaining, reducedMotion, onNex
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-3xl font-extrabold mb-5"
-        style={{ color: "var(--color-accent-gold)" }}
+        style={{ color: GOLD_INK }}
       >
-        ✨ You got! ✨
+        <span aria-hidden="true">✨ </span>{sticker?.imageFullUrl !== null ? "New sticker!" : sticker?.name === "All collected!" ? "Sticker book complete!" : "The pack didn't open"}<span aria-hidden="true"> ✨</span>
       </motion.h2>
 
       <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
@@ -82,7 +103,7 @@ export default function StickerReveal({ sticker, remaining, reducedMotion, onNex
           style={{
             border: `3px solid ${solid(style.glow)}`,
             boxShadow: `0 0 40px ${style.glow}`,
-            background: "rgba(255,255,255,0.05)",
+            background: "var(--color-surface-2)",
           }}
         >
           <StickerImage src={sticker?.imageFullUrl} emoji={sticker?.emoji} alt={sticker?.name || "sticker"} sizePx={200} />
@@ -97,15 +118,35 @@ export default function StickerReveal({ sticker, remaining, reducedMotion, onNex
         <div className="mt-4 font-extrabold text-xl" style={{ color: "var(--color-text-primary)" }}>
           {sticker?.name}
         </div>
-        <div className="text-sm font-bold capitalize mb-6" style={{ color: solid(style.glow) }}>
+        {/* Rarity chip: the rarity colour lives in the border/tint, the text
+            stays theme ink so it reads in light and dark themes. */}
+        <div
+          className="inline-flex items-center gap-1.5 text-sm font-bold capitalize mt-2 mb-6 rounded-full px-3 py-1"
+          style={{
+            color: "var(--color-text-primary)",
+            background: `color-mix(in srgb, ${solid(style.glow)} 18%, var(--color-bg-surface))`,
+            border: `2px solid ${solid(style.glow)}`,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="inline-block w-2.5 h-2.5 rounded-full"
+            style={{ background: solid(style.glow) }}
+          />
           {sticker?.rarity}
         </div>
         <button
+          ref={nextRef}
           onClick={onNext}
-          className="w-full py-4 rounded-2xl font-extrabold text-white text-lg"
-          style={{ background: "linear-gradient(135deg, var(--color-brand), var(--color-brand-secondary))" }}
+          className="btn-primary w-full py-4 text-lg"
         >
-          {remaining > 1 ? "Next 🎁" : "Done!"}
+          {remaining > 1 ? (
+            <>
+              Next<span aria-hidden="true"> 🎁</span>
+            </>
+          ) : (
+            "Done!"
+          )}
         </button>
       </motion.div>
     </div>

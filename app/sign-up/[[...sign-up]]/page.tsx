@@ -1,32 +1,76 @@
 import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
+import MiniDie from "@/components/game/MiniDie";
+
+// Auth pages are always Ocean. Clerk needs concrete colours, so these are the
+// Ocean token values from app/globals.css.
+const OCEAN_APPEARANCE = {
+  variables: {
+    colorPrimary: "#0E7C8C",
+    colorPrimaryForeground: "#FFFFFF",
+    colorBackground: "#123049",
+    colorForeground: "#F2F7FA",
+    colorMutedForeground: "#A8C3D3",
+    colorMuted: "#1A3F5E",
+    colorInput: "#1A3F5E",
+    colorInputForeground: "#F2F7FA",
+    colorBorder: "rgba(168, 205, 226, 0.32)",
+    colorNeutral: "#CFE0EA",
+    colorDanger: "#EA8589",
+    colorSuccess: "#2FB873",
+    colorWarning: "#F28C28",
+    colorRing: "#FFD45C",
+    colorShadow: "rgba(0, 0, 0, 0.45)",
+    colorModalBackdrop: "rgba(11, 34, 51, 0.8)",
+    fontFamily: "var(--font-ui)",
+    borderRadius: "14px",
+  },
+  elements: {
+    card: "border border-[rgba(168,205,226,0.16)]",
+    // Object styles: Clerk's own link colour outranks utility classes
+    footerAction: { display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" },
+    footerActionLink: { color: "#4FD1DD", fontWeight: 700, "&:hover": { color: "#F2F7FA" } },
+  },
+};
 
 export default function SignUpPage() {
   return (
     <div
-      className="min-h-dvh flex flex-col items-center justify-center gap-5 p-4"
-      style={{ background: "var(--color-bg-primary)" }}
+      data-theme="ocean"
+      className="min-h-dvh flex flex-col items-center justify-center gap-6 px-4 py-8"
+      style={{
+        background:
+          "radial-gradient(120% 80% at 50% 0%, var(--table-glow), transparent 70%), var(--color-bg-primary)",
+        color: "var(--color-text-primary)",
+      }}
     >
-      <SignUp
-        appearance={{
-          elements: {
-            card: "bg-slate-800 border border-slate-700 shadow-2xl",
-            headerTitle: "text-white",
-            headerSubtitle: "text-slate-400",
-            formButtonPrimary: "bg-indigo-600 hover:bg-indigo-700",
-            footerActionLink: "text-indigo-400 hover:text-indigo-300",
-          },
-        }}
-      />
+      <Link
+        href="/"
+        className="flex items-center gap-2 rounded-2xl px-2 text-xl font-extrabold"
+        style={{ color: "var(--color-text-primary)" }}
+      >
+        <MiniDie face={5} className="w-8 h-8" />
+        Roll &amp; Read
+      </Link>
+
+      <SignUp appearance={OCEAN_APPEARANCE} />
 
       {/* Parent/teacher consent notice — accounts are adult-managed. */}
-      <p className="max-w-sm text-center text-xs leading-relaxed text-slate-400">
+      <p
+        className="max-w-sm text-center text-xs leading-relaxed"
+        style={{ color: "var(--color-text-muted)" }}
+      >
         By creating an account you confirm that you are at least 18 years old and the
         parent, legal guardian, or teacher of any child profiles you create, and you agree
         to our{" "}
-        <Link href="/terms" className="text-indigo-400 underline">Terms of Service</Link>{" "}
+        <Link href="/terms" className="underline" style={{ color: "var(--color-brand-secondary)" }}>
+          Terms of Service
+        </Link>{" "}
         and{" "}
-        <Link href="/privacy" className="text-indigo-400 underline">Privacy Policy</Link>.
+        <Link href="/privacy" className="underline" style={{ color: "var(--color-brand-secondary)" }}>
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   );

@@ -1,14 +1,24 @@
-import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Andika, Lexend } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
 import "./globals.css";
 
-const nunito = Nunito({
+// Interface text: Lexend was designed around reading-fluency research.
+const lexend = Lexend({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
-  variable: "--font-nunito",
+  variable: "--font-lexend",
+});
+
+// Words the child reads: Andika (SIL) uses the single-storey "a" and "g"
+// that early readers are taught to write.
+const andika = Andika({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  variable: "--font-andika",
 });
 
 export const metadata: Metadata = {
@@ -23,7 +33,11 @@ export const metadata: Metadata = {
   },
 };
 
-const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
+export const viewport: Viewport = {
+  themeColor: "#0B2233",
+};
+
+const IS_E2E =process.env.NEXT_PUBLIC_E2E_MODE === "true";
 
 export default function RootLayout({
   children,
@@ -31,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const inner = (
-    <html lang="en" data-theme="ocean" className={nunito.variable}>
+    <html lang="en" data-theme="ocean" className={`${lexend.variable} ${andika.variable}`}>
       <body>
         <ConvexClientProvider>
           {children}

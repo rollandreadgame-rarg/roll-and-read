@@ -193,15 +193,12 @@ export default function PlayPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="table-surface flex flex-col flex-1 overflow-hidden">
       {/* Main game area */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-3 p-3 lg:p-4 overflow-auto min-h-0">
+      <div className="flex flex-col lg:flex-row flex-1 gap-3 lg:gap-5 p-3 lg:p-6 overflow-auto min-h-0 w-full max-w-[1280px] mx-auto">
         {/* Dice Panel — left on desktop, top on mobile */}
-        <div className="lg:w-52 shrink-0">
-          <div
-            className="rounded-2xl p-2 h-full"
-            style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-          >
+        <div className="lg:w-60 shrink-0">
+          <div className="panel lg:sticky lg:top-4">
             <DicePanel
               isRolling={isRolling}
               diceResult={diceResult}
@@ -215,26 +212,23 @@ export default function PlayPage() {
         </div>
 
         {/* Game Board — right on desktop, below dice on mobile */}
-        <div
-          className="flex-1 rounded-2xl min-w-0"
-          style={{ background: "var(--color-bg-surface)", border: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          {/* Level label */}
+        <div className="panel flex-1 min-w-0 self-start w-full">
+          {/* Board header: whose board, what to do next, level */}
           <div
-            className="flex items-center justify-between px-4 py-2 border-b"
-            style={{ borderColor: "rgba(255,255,255,0.06)" }}
+            className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b"
+            style={{ borderColor: "var(--color-line)" }}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm font-semibold truncate" style={{ color: "var(--color-text-muted)" }}>
-                {profile?.name ? `${profile.name}'s Board` : "Game Board"}
-              </span>
+              <h1 className="text-base sm:text-lg font-bold truncate" style={{ color: "var(--color-text-primary)" }}>
+                {profile?.name ? `${profile.name}'s board` : "Game board"}
+              </h1>
               {boardHasNonsense && (
                 <span
                   className="inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 shrink-0"
                   style={{
-                    background: "rgba(139,92,246,0.15)",
-                    color: "var(--color-text-muted)",
-                    border: "1px dashed rgba(139,92,246,0.6)",
+                    background: "color-mix(in srgb, var(--card-silly-edge) 14%, transparent)",
+                    color: "var(--color-text-secondary)",
+                    border: "1px dashed var(--card-silly-edge)",
                   }}
                   title="Cards with an alien are silly (not real) words — just sound them out"
                 >
@@ -244,24 +238,17 @@ export default function PlayPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {activeRow !== null && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={repeatWord}
-                  className="text-sm font-bold cursor-pointer"
-                  style={{ color: "var(--color-brand)" }}
-                  aria-label="Hear the word again"
-                  title="Tap to hear the word again"
-                >
-                  🎧 Listen & Tap!
-                </motion.button>
-              )}
+            <div className="flex items-center gap-3 shrink-0">
+              <p
+                className="hidden md:block text-sm font-medium"
+                style={{ color: "var(--color-text-muted)" }}
+                aria-live="polite"
+              >
+                {activeRow !== null ? "Listen, then tap the word" : "Roll to pick a row"}
+              </p>
               <span
-                className="text-xs px-2 py-1 rounded-full font-bold text-white"
-                style={{ background: "var(--color-brand)" }}
+                className="text-xs px-2.5 py-1 rounded-full font-bold"
+                style={{ background: "var(--color-brand)", color: "var(--color-on-brand)" }}
               >
                 Level {profile?.currentLevel}
               </span>

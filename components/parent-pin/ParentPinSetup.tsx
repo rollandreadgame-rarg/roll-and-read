@@ -3,9 +3,15 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
+import { CircleCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useParentGate } from "@/providers/ParentGateProvider";
 import PinInput from "./PinInput";
+
+// Tokens mixed toward the theme's text colour so the message reads at AA on
+// both the dark and the light themes.
+const ERROR_TEXT = "var(--color-error-text)";
+const SUCCESS_TEXT = "var(--color-success-text)";
 
 export default function ParentPinSetup({ onDone }: { onDone?: () => void }) {
   const setPin = useMutation(api.parentPin.setParentPin);
@@ -26,9 +32,9 @@ export default function ParentPinSetup({ onDone }: { onDone?: () => void }) {
 
   if (done) {
     return (
-      <div className="text-center">
-        <div className="text-4xl mb-2">✅</div>
-        <p className="font-bold" style={{ color: "var(--color-text-primary)" }}>PIN set!</p>
+      <div className="flex flex-col items-center gap-1 py-2 text-center">
+        <CircleCheck size={36} aria-hidden="true" style={{ color: SUCCESS_TEXT }} />
+        <p className="mt-1 font-bold" style={{ color: "var(--color-text-primary)" }}>PIN set!</p>
         <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Change or remove it anytime in Settings.</p>
       </div>
     );
@@ -36,17 +42,18 @@ export default function ParentPinSetup({ onDone }: { onDone?: () => void }) {
 
   return (
     <div className="text-center">
-      <div className="text-3xl mb-1">🎲🔒</div>
-      <h3 className="font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>
+      <h3 className="font-bold mb-1" style={{ color: "var(--color-text-primary)" }}>
         {stage === "enter" ? "Create a grown-up PIN" : "Confirm your PIN"}
       </h3>
-      <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
-        Parents &amp; teachers: keep students out of settings &amp; billing.
+      <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>
+        {stage === "enter"
+          ? <>Parents &amp; teachers: keep students out of settings &amp; billing.</>
+          : <>Type the same 4 digits again.</>}
       </p>
       {stage === "enter"
         ? <PinInput value={first} onChange={setFirst} onComplete={onFirst} autoFocus ariaLabel="New PIN" />
         : <PinInput value={confirm} onChange={setConfirm} onComplete={onConfirm} autoFocus ariaLabel="Confirm PIN" />}
-      <p aria-live="assertive" className="h-5 mt-3 text-sm" style={{ color: "#f87171" }}>{error}</p>
+      <p aria-live="assertive" className="min-h-5 mt-3 text-sm" style={{ color: ERROR_TEXT }}>{error}</p>
     </div>
   );
 }

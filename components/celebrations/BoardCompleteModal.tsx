@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import Sparkles from "@/components/ui/sparkles";
-import ShimmerButton from "@/components/ui/shimmer-button";
 
 interface BoardCompleteModalProps {
   show: boolean;
@@ -34,6 +33,10 @@ const THEME_COLORS: Record<string, string[]> = {
   classic: ["#2563EB", "#60A5FA", "#FCD34D", "#FFFFFF"],
 };
 
+// Gold blended toward the theme's ink: pale gold on dark themes, deep amber on
+// light ones — readable as a headline in all five themes.
+const GOLD_INK = "var(--color-gold-text)";
+
 export default function BoardCompleteModal({
   show,
   wordsAdded,
@@ -45,6 +48,8 @@ export default function BoardCompleteModal({
   onPrimary,
 }: BoardCompleteModalProps) {
   const mascot = MASCOTS[theme] ?? "🎉";
+  const titleId = useId();
+  const primaryRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!show) return;
@@ -59,6 +64,24 @@ export default function BoardCompleteModal({
     return () => clearTimeout(t);
   }, [show, theme]);
 
+  // Dialog keyboard support: focus the main button on open; Escape continues.
+  const onPrimaryRef = useRef(onPrimary);
+  useEffect(() => {
+    onPrimaryRef.current = onPrimary;
+  }, [onPrimary]);
+  useEffect(() => {
+    if (!show) return;
+    const raf = requestAnimationFrame(() => primaryRef.current?.focus());
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.repeat) onPrimaryRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [show]);
+
   return (
     <AnimatePresence>
       {show && (
@@ -69,7 +92,7 @@ export default function BoardCompleteModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           />
 
           {/* Modal */}
@@ -80,15 +103,16 @@ export default function BoardCompleteModal({
             transition={{ type: "spring", damping: 16, stiffness: 220, delay: 0.1 }}
             role="dialog"
             aria-modal="true"
-            aria-label="Board complete"
+            aria-labelledby={titleId}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div
-              className="relative w-full max-w-sm rounded-3xl p-8 text-center overflow-hidden"
+              className="relative w-full max-w-sm rounded-[28px] p-7 sm:p-8 text-center overflow-x-hidden overflow-y-auto max-h-[calc(100dvh-32px)]"
               style={{
-                background: "linear-gradient(160deg, var(--color-bg-surface) 0%, rgba(30,41,59,0.95) 100%)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+                background:
+                  "radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--color-accent-gold) 16%, transparent), transparent 70%), var(--color-bg-surface)",
+                border: "1px solid var(--color-line)",
+                boxShadow: "0 24px 64px -16px rgba(0, 0, 0, 0.5)",
               }}
             >
               <Sparkles count={14} />
@@ -98,30 +122,29 @@ export default function BoardCompleteModal({
                 animate={{ y: [0, -12, 0], rotate: [0, -5, 5, 0] }}
                 transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                 className="text-7xl mb-4 relative z-10"
+                aria-hidden="true"
               >
                 {mascot}
               </motion.div>
 
               {/* Headline */}
-              <motion.h1
+              <motion.h2
+                id={titleId}
                 initial={{ scale: 0 }}
                 animate={{ scale: [0, 1.2, 1] }}
                 transition={{ delay: 0.3, duration: 0.5, ease: "backOut" }}
                 className="text-4xl font-extrabold mb-2 relative z-10 text-balance"
-                style={{
-                  color: "var(--color-accent-gold)",
-                  textShadow: "0 0 30px rgba(245,158,11,0.5)",
-                }}
+                style={{ color: GOLD_INK }}
               >
-                🎉 YOU DID IT! 🎉
-              </motion.h1>
+                <span aria-hidden="true">🎉 </span>You did it!<span aria-hidden="true"> 🎉</span>
+              </motion.h2>
 
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
                 className="mb-6 relative z-10 text-pretty"
-                style={{ color: "var(--color-text-muted)" }}
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 Amazing reading! Keep it up!
               </motion.p>
@@ -133,10 +156,14 @@ export default function BoardCompleteModal({
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.45 }}
                   className="mb-5 relative z-10 rounded-2xl py-3 px-4"
-                  style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)" }}
+                  style={{
+                    background: "color-mix(in srgb, var(--color-accent-gold) 16%, var(--color-bg-surface))",
+                    border: "1px solid color-mix(in srgb, var(--color-accent-gold) 55%, transparent)",
+                  }}
                 >
-                  <div className="text-base font-extrabold" style={{ color: "var(--color-accent-gold)" }}>
-                    🎁 {pendingRewardCount} sticker{pendingRewardCount > 1 ? "s" : ""} to pick!
+                  <div className="text-base font-extrabold" style={{ color: "var(--color-text-primary)" }}>
+                    <span aria-hidden="true">🎁 </span>
+                    {pendingRewardCount} sticker{pendingRewardCount > 1 ? "s" : ""} to pick!
                   </div>
                 </motion.div>
               )}
@@ -149,28 +176,27 @@ export default function BoardCompleteModal({
                 className="grid grid-cols-2 gap-3 mb-6 relative z-10"
               >
                 {[
-                  { label: "Words Added", value: wordsAdded, icon: "📚" },
-                  { label: "Coins Earned", value: coinsEarned, icon: "💰" },
+                  { label: "Words added", value: wordsAdded, icon: "📚" },
+                  { label: "Coins earned", value: coinsEarned, icon: "💰" },
                   { label: "Accuracy", value: `${Math.round(accuracy * 100)}%`, icon: "🎯" },
-                  { label: "Day Streak", value: streakDays, icon: "🔥" },
+                  { label: "Day streak", value: streakDays, icon: "🔥" },
                 ].map(({ label, value, icon }) => (
-                  <motion.div
+                  <div
                     key={label}
-                    whileHover={{ scale: 1.04 }}
-                    className="rounded-2xl p-3 transition-colors"
+                    className="rounded-2xl p-3"
                     style={{
-                      background: "rgba(255,255,255,0.07)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: "var(--color-surface-2)",
+                      border: "1px solid var(--color-line)",
                     }}
                   >
-                    <div className="text-2xl mb-1">{icon}</div>
+                    <div className="text-2xl mb-1" aria-hidden="true">{icon}</div>
                     <div className="text-xl font-extrabold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
                       {value}
                     </div>
                     <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                       {label}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </motion.div>
 
@@ -181,27 +207,34 @@ export default function BoardCompleteModal({
                 transition={{ delay: 0.75 }}
                 className="flex flex-col gap-3 relative z-10"
               >
-                <ShimmerButton
+                <button
+                  ref={primaryRef}
                   onClick={onPrimary}
-                  className="w-full text-lg py-3"
-                  background="linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-secondary) 100%)"
+                  className="btn-primary w-full text-lg py-3.5"
                 >
-                  {pendingRewardCount > 0 ? "🎁 Pick My Stickers!" : "🎲 Play Another Board"}
-                </ShimmerButton>
+                  {pendingRewardCount > 0 ? (
+                    <>
+                      <span aria-hidden="true">🎁 </span>Pick my stickers!
+                    </>
+                  ) : (
+                    "Play another board"
+                  )}
+                </button>
 
                 <Link
                   href="/word-bank"
-                  className="w-full py-3 rounded-2xl font-bold text-center transition-all hover:bg-white/10"
+                  className="w-full py-3 rounded-2xl font-bold text-center transition-colors hover:border-[var(--color-line-strong)]"
                   style={{
-                    color: "var(--color-text-muted)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "var(--color-surface-2)",
+                    color: "var(--color-text-primary)",
+                    border: "1px solid var(--color-line)",
                     minHeight: "44px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  📚 View Word Bank
+                  <span aria-hidden="true">📚&nbsp;</span>View Word Bank
                 </Link>
               </motion.div>
             </div>

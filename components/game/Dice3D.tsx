@@ -52,19 +52,22 @@ function DieFace({ number, style }: { number: number; style?: React.CSSPropertie
 }
 
 export default function Dice3D({ result, isRolling }: Dice3DProps) {
+  // Cube rotation that brings each face to the front: the inverse of the
+  // transform each face is placed with below (e.g. face 2 sits at
+  // rotateY(-90deg), so the cube turns +90deg to show it).
   const faceRotations: Record<number, { rotateX: number; rotateY: number }> = {
     1: { rotateX: 0, rotateY: 0 },
-    2: { rotateX: 0, rotateY: -90 },
-    3: { rotateX: 90, rotateY: 0 },
-    4: { rotateX: -90, rotateY: 0 },
-    5: { rotateX: 0, rotateY: 90 },
+    2: { rotateX: 0, rotateY: 90 },
+    3: { rotateX: -90, rotateY: 0 },
+    4: { rotateX: 90, rotateY: 0 },
+    5: { rotateX: 0, rotateY: -90 },
     6: { rotateX: 0, rotateY: 180 },
   };
 
   const rotation = result ? faceRotations[result] : { rotateX: 0, rotateY: 0 };
 
   return (
-    <div className="dice-scene mx-auto" aria-label={`Dice showing ${result ?? "nothing"}`}>
+    <div className="dice-scene mx-auto" role="img" aria-label={`Dice showing ${result ?? "nothing"}`}>
       <motion.div
         className="dice-cube"
         animate={

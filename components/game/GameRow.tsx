@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import WordCard from "./WordCard";
+import MiniDie from "./MiniDie";
 import type { GameRow as GameRowType } from "@/lib/game/boardGenerator";
 import type { WordEntry } from "@/lib/game/boardGenerator";
 
@@ -35,30 +36,32 @@ export default function GameRow({
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scaleY: 0 }}
       transition={{ duration: 0.3, ease: "easeIn" }}
-      style={{ transformOrigin: "top center" }}
       className={cn(
-        "flex items-center gap-2 px-2 py-2.5 rounded-xl transition-all duration-200",
-        isActive
-          ? "bg-indigo-950/60 border border-indigo-500/50 row-active-pulse"
-          : "border border-transparent"
+        "flex items-center gap-2.5 sm:gap-3 px-2 sm:px-3 py-2.5 sm:py-3 rounded-[18px] transition-colors duration-200",
+        isActive ? "row-active-pulse" : ""
       )}
+      style={{
+        transformOrigin: "top center",
+        color: "var(--color-text-muted)",
+        background: isActive
+          ? "color-mix(in srgb, var(--color-highlight) 10%, var(--color-bg-surface))"
+          : undefined,
+      }}
+      aria-label={`Row ${row.dieNumber}${isActive ? ", your turn" : ""}`}
+      role="group"
     >
-      {/* Row number */}
-      <div
+      {/* Row marker: the die face that opens this row */}
+      <MiniDie
+        face={row.dieNumber}
+        tone={isActive ? "lit" : "dim"}
         className={cn(
-          "size-9 rounded-full flex items-center justify-center",
-          "text-sm font-bold shrink-0 transition-colors",
-          isActive
-            ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/50"
-            : "bg-slate-700/80 text-slate-400"
+          "transition-all duration-200",
+          isActive ? "size-10 sm:size-11 drop-shadow-md" : "size-8 sm:size-9"
         )}
-        aria-label={`Row ${row.dieNumber}`}
-      >
-        {row.dieNumber}
-      </div>
+      />
 
       {/* Word cards */}
-      <div className="flex flex-wrap gap-2 flex-1 min-w-0">
+      <div className="flex flex-wrap gap-2.5 sm:gap-3 flex-1 min-w-0">
         <AnimatePresence mode="popLayout">
           {activeWords.map((word) => (
             <WordCard

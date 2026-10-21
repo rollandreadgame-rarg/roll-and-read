@@ -10,6 +10,8 @@ import PinInput from "./PinInput";
 
 type Step = "send" | "code" | "newpin";
 
+const ERROR_TEXT = "var(--color-error-text)";
+
 export default function ParentPinForgot({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
   const { user } = useUser();
   const reset = useMutation(api.parentPin.resetParentPin);
@@ -54,32 +56,34 @@ export default function ParentPinForgot({ onDone, onCancel }: { onDone: () => vo
   };
 
   return (
-    <div className="w-full max-w-sm text-center">
+    <div className="w-full text-center">
       {step === "send" && (
         <>
-          <h2 className="text-lg font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>Reset your PIN</h2>
-          <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>
-            We&apos;ll email a code to <strong>{masked}</strong>.
+          <h2 className="text-xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>Reset your PIN</h2>
+          <p className="text-sm mb-6" style={{ color: "var(--color-text-secondary)" }}>
+            We&apos;ll email a code to <strong style={{ color: "var(--color-text-primary)" }}>{masked}</strong>.
           </p>
           <button onClick={sendCode} disabled={busy || !email}
-            className="px-5 py-3 rounded-xl font-bold disabled:opacity-50"
-            style={{ background: "var(--color-brand)", color: "white" }}>
+            className="btn-primary w-full px-5 py-3">
             {busy ? "Sending…" : "Email me a code"}
           </button>
         </>
       )}
       {step === "code" && (
         <>
-          <h2 className="text-lg font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>Enter the code</h2>
-          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>Sent to {masked}.</p>
+          <h2 className="text-xl font-extrabold mb-1" style={{ color: "var(--color-text-primary)" }}>Enter the code</h2>
+          <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>Sent to {masked}.</p>
           <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             inputMode="numeric" autoComplete="one-time-code" aria-label="Email code"
-            className="w-40 text-center text-xl font-bold rounded-xl border-2 p-2 outline-none"
-            style={{ background: "var(--color-bg-surface)", borderColor: "var(--color-brand)", color: "var(--color-text-primary)" }} />
-          <div className="mt-3">
+            className="w-44 max-w-full text-center text-xl font-bold tracking-widest tabular-nums rounded-2xl border-2 p-2"
+            style={{
+              background: "var(--color-surface-2)",
+              borderColor: code ? "var(--color-brand)" : "var(--color-line-strong)",
+              color: "var(--color-text-primary)",
+            }} />
+          <div className="mt-4">
             <button onClick={verifyCode} disabled={busy || code.length < 6}
-              className="px-5 py-3 rounded-xl font-bold disabled:opacity-50"
-              style={{ background: "var(--color-brand)", color: "white" }}>
+              className="btn-primary w-full px-5 py-3">
               {busy ? "Checking…" : "Verify"}
             </button>
           </div>
@@ -87,12 +91,14 @@ export default function ParentPinForgot({ onDone, onCancel }: { onDone: () => vo
       )}
       {step === "newpin" && (
         <>
-          <h2 className="text-lg font-extrabold mb-3" style={{ color: "var(--color-text-primary)" }}>Set a new PIN</h2>
+          <h2 className="text-xl font-extrabold mb-4" style={{ color: "var(--color-text-primary)" }}>Set a new PIN</h2>
           <PinInput value={pin} onChange={setPin} onComplete={saveNewPin} autoFocus disabled={busy} ariaLabel="New PIN" />
         </>
       )}
-      <p aria-live="assertive" className="h-5 mt-3 text-sm" style={{ color: "#f87171" }}>{error}</p>
-      <button onClick={onCancel} className="mt-2 underline text-sm" style={{ color: "var(--color-text-secondary)" }}>Back</button>
+      <p aria-live="assertive" className="min-h-5 mt-3 text-sm font-semibold" style={{ color: ERROR_TEXT }}>{error}</p>
+      <button onClick={onCancel}
+        className="mt-1 rounded-xl px-3 text-sm underline underline-offset-4 hover:bg-[var(--color-hover)]"
+        style={{ color: "var(--color-text-secondary)" }}>Back</button>
     </div>
   );
 }

@@ -15,11 +15,11 @@ export default function WordBankWidget({ wordCount, onOpen }: WordBankWidgetProp
       animate={{ scale: [1, 1.2, 1] }}
       transition={{ duration: 0.3, ease: "backOut" }}
       onClick={onOpen}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-sm transition-colors hover:bg-white/10"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-sm tabular-nums transition-colors hover:bg-[var(--color-hover)]"
       aria-label="Open word bank"
       style={{ color: "var(--color-text-primary)" }}
     >
-      <span>📚</span>
+      <span aria-hidden="true">📚</span>
       <span>{wordCount}</span>
     </motion.button>
   );
