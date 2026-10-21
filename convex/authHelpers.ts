@@ -61,10 +61,9 @@ export async function ownsProfile(ctx, profileId) {
 const SYNC_SECRET_SHA256 =
   "55f872a2c31c47ce8dc5e7dc5ecc89784b2ec424fe468e35ff490a54b664e05f";
 
-// While false, isCallerOrTrusted lets unauthenticated callers through so the
-// backend can deploy ahead of the Vercel routes that start sending the secret.
-// Flip to true once those routes are live.
-const ENFORCE_TRUSTED_CALLERS = false;
+// Unauthenticated callers must present the sync secret. (Was false only while
+// the backend deployed ahead of the Vercel routes that send it — 2026-10-21.)
+const ENFORCE_TRUSTED_CALLERS = true;
 
 async function sha256Hex(str) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
