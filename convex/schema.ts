@@ -39,6 +39,8 @@ export default defineSchema({
     lifetimeCoins: v.number(),
     streakDays: v.number(),
     lastPlayedAt: v.optional(v.number()),
+    // Player's local calendar day (YYYY-MM-DD) of lastPlayedAt, for streaks.
+    lastPlayedLocalDate: v.optional(v.string()),
     accuracyHistory: v.array(v.number()),
     wordMode: v.union(
       v.literal("real"),
@@ -74,7 +76,8 @@ export default defineSchema({
     timesCorrect: v.number(),
   })
     .index("by_profile", ["profileId"])
-    .index("by_profile_word", ["profileId", "wordId"]),
+    .index("by_profile_word", ["profileId", "wordId"])
+    .index("by_word", ["wordId"]),
 
   stickers: defineTable({
     name: v.string(),

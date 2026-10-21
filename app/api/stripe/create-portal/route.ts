@@ -15,6 +15,7 @@ export async function POST() {
 
     const sub = await convex.query(api.subscriptions.getByClerkId, {
       clerkId: userId,
+      syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
     if (!sub?.stripeCustomerId) {
       return NextResponse.json(

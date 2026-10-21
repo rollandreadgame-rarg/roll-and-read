@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { sessionAccuracy } from "@/lib/game/accuracy";
 import { LEVEL_SEQUENCE } from "@/lib/utils";
 
 const STAT_CARDS = (profile: { totalBoardsCleared: number; currentLevel: string; streakDays: number; coins: number }) => [
@@ -52,7 +53,7 @@ export default function DashboardPage() {
     .reverse()
     .map((s: any, i: number) => ({
       session: `#${i + 1}`,
-      accuracy: Math.round((s.firstAttemptCorrect / Math.max(s.wordsCorrect, 1)) * 100),
+      accuracy: Math.round(sessionAccuracy(s) * 100),
     }));
 
   const currentLevelIdx = LEVEL_SEQUENCE.indexOf(profile?.currentLevel as typeof LEVEL_SEQUENCE[number]);
@@ -252,7 +253,7 @@ export default function DashboardPage() {
                       {s.wordsCorrect}
                     </td>
                     <td className="text-right py-2 pr-4" style={{ color: "var(--color-success)" }}>
-                      {Math.round((s.firstAttemptCorrect / Math.max(s.wordsCorrect, 1)) * 100)}%
+                      {Math.round(sessionAccuracy(s) * 100)}%
                     </td>
                     <td className="text-right py-2" style={{ color: "var(--color-accent-gold)" }}>
                       +{s.coinsEarned}

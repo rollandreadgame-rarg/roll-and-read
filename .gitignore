@@ -52,3 +52,7 @@ CLAUDE.md
 
 # Sticker pipeline intermediate artifacts
 tools/stickers/out/
+
+# audio QA working output (reports, candidate takes, backups)
+scripts/audio-qa/out/
+scripts/audio-qa/__pycache__/

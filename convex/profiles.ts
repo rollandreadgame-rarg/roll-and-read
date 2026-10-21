@@ -2,6 +2,10 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { PROFILE_LIMITS, isLevelAllowed } from "./subscriptionConfig";
+import { getNextLevel, isValidLevel, normalizeLevel } from "../lib/levels";
+
+// Largest single award the game makes (a level-5 word is 25 coins).
+const MAX_COIN_AWARD = 100;
 import {
   requireUser,
   requireProfileOwner,
@@ -130,7 +134,9 @@ export const awardCoins = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    if (args.amount < 0) throw new Error("Amount must be non-negative");
+    if (!Number.isFinite(args.amount) || args.amount < 0 || args.amount > MAX_COIN_AWARD) {
+      throw new Error("Invalid coin amount");
+    }
     const { profile } = await requireProfileOwner(ctx, args.profileId);
 
     await ctx.db.patch(args.profileId, {
@@ -163,6 +169,15 @@ export const advanceLevel = mutation({
   handler: async (ctx, args) => {
     const { user, profile } = await requireProfileOwner(ctx, args.profileId);
 
+    // Only the real next sublevel — or, for a reader stranded on a retired
+    // sublevel, the level it maps to — is a legal move.
+    const legal = isValidLevel(profile.currentLevel)
+      ? getNextLevel(profile.currentLevel)
+      : normalizeLevel(profile.currentLevel);
+    if (!isValidLevel(args.nextLevel) || args.nextLevel !== legal) {
+      throw new Error(`Invalid level advance ${profile.currentLevel} → ${args.nextLevel}`);
+    }
+
     if (!isLevelAllowed(user.plan, args.nextLevel)) {
       throw new Error(
         `LEVEL_LOCKED: Your ${user.plan} plan only includes Level 1. Upgrade to unlock ${args.nextLevel}.`
@@ -181,27 +196,35 @@ export const completedBoard = mutation({
   args: {
     profileId: v.id("profiles"),
     accuracy: v.number(),
+    // Player's local calendar day "YYYY-MM-DD". Streaks follow the family's
+    // day, not UTC (UTC flips at 7pm US Central). Optional for old clients.
+    localDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { profile } = await requireProfileOwner(ctx, args.profileId);
 
-    const newHistory = [...(profile.accuracyHistory ?? []), args.accuracy].slice(-10);
+    const accuracy = Number.isFinite(args.accuracy) ? Math.min(1, Math.max(0, args.accuracy)) : 0;
+    const newHistory = [...(profile.accuracyHistory ?? []), accuracy].slice(-10);
 
-    // Streak logic: compare UTC calendar days
     const now = Date.now();
     const MS_PER_DAY = 86_400_000;
-    const toUTCDay = (ts) => {
-      const d = new Date(ts);
-      return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    };
+    const validDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    const utcDate = (ts) => new Date(ts).toISOString().slice(0, 10);
+    const today = validDate(args.localDate) ? args.localDate : utcDate(now);
+    const lastDay = validDate(profile.lastPlayedLocalDate)
+      ? profile.lastPlayedLocalDate
+      : profile.lastPlayedAt
+        ? utcDate(profile.lastPlayedAt)
+        : null;
 
     let newStreak = profile.streakDays;
-    if (!profile.lastPlayedAt) {
+    if (!lastDay) {
       newStreak = 1;
     } else {
-      const dayDiff = (toUTCDay(now) - toUTCDay(profile.lastPlayedAt)) / MS_PER_DAY;
-      if (dayDiff === 0) {
-        // Already played today — keep streak
+      const dayDiff = Math.round((Date.parse(today) - Date.parse(lastDay)) / MS_PER_DAY);
+      if (dayDiff <= 0) {
+        // Already played today (or the clock/timezone moved back) — keep streak
+        newStreak = Math.max(profile.streakDays, 1);
       } else if (dayDiff === 1) {
         // Consecutive day — extend streak
         newStreak = profile.streakDays + 1;
@@ -217,6 +240,7 @@ export const completedBoard = mutation({
       accuracyHistory: newHistory,
       streakDays: newStreak,
       lastPlayedAt: now,
+      lastPlayedLocalDate: today,
     });
 
     return {

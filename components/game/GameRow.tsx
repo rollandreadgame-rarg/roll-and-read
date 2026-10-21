@@ -13,8 +13,7 @@ interface GameRowProps {
   wrongWord: string | null;
   correctWord: string | null;
   hintWordId: string | null;
-  onWordTap: (word: WordEntry) => void;
-  wordRefs?: Record<string, React.RefObject<HTMLButtonElement | null>>;
+  onWordTap: (word: WordEntry, rect?: DOMRect) => void;
 }
 
 export default function GameRow({
@@ -25,7 +24,6 @@ export default function GameRow({
   correctWord,
   hintWordId,
   onWordTap,
-  wordRefs,
 }: GameRowProps) {
   if (row.cleared) return null;
 
@@ -72,7 +70,6 @@ export default function GameRow({
               isCleared={clearedWords.has(word._id)}
               hintTarget={hintWordId === word._id}
               onTap={onWordTap}
-              wordRef={wordRefs?.[word._id]}
             />
           ))}
         </AnimatePresence>

@@ -10,8 +10,7 @@ interface WordCardProps {
   isCorrect: boolean;
   isWrong: boolean;
   isCleared: boolean;
-  onTap: (word: WordEntry) => void;
-  wordRef?: React.RefObject<HTMLButtonElement | null>;
+  onTap: (word: WordEntry, rect?: DOMRect) => void;
   hintTarget?: boolean;
 }
 
@@ -22,14 +21,12 @@ export default function WordCard({
   isWrong,
   isCleared,
   onTap,
-  wordRef,
   hintTarget,
 }: WordCardProps) {
   if (isCleared) return null;
 
   return (
     <motion.button
-      ref={wordRef}
       layout
       initial={{ opacity: 0, scale: 0.75, y: 8 }}
       animate={{
@@ -48,7 +45,7 @@ export default function WordCard({
       }}
       whileHover={isActive && !isCorrect ? { scale: 1.07, y: -2, transition: { duration: 0.12 } } : {}}
       whileTap={isActive ? { scale: 0.94 } : {}}
-      onClick={() => isActive && !isCorrect && onTap(word)}
+      onClick={(e) => isActive && !isCorrect && onTap(word, e.currentTarget.getBoundingClientRect())}
       disabled={!isActive || isCorrect}
       aria-label={`Word card: ${word.word}${word.isNonsense ? " — silly word, sound it out" : ""}`}
       role="button"

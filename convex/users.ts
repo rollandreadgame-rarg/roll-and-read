@@ -1,21 +1,23 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { isCallerOrTrusted } from "./authHelpers";
 
+// Called by the Clerk webhook (trusted, sends the sync secret) and by the
+// signed-in client as a fallback when the webhook lags. New users always start
+// on "free" — only Stripe sync (or admin comping) can grant a paid plan. The
+// `plan` arg is accepted for backward compatibility but ignored.
 export const createUser = mutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
-    plan: v.optional(
-      v.union(
-        v.literal("free"),
-        v.literal("individual"),
-        v.literal("family"),
-        v.literal("classroom")
-      )
-    ),
+    plan: v.optional(v.string()),
+    syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!(await isCallerOrTrusted(ctx, args.clerkId, args.syncSecret))) {
+      throw new Error("Forbidden");
+    }
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -26,7 +28,7 @@ export const createUser = mutation({
     return await ctx.db.insert("users", {
       clerkId: args.clerkId,
       email: args.email,
-      plan: args.plan ?? "free",
+      plan: "free",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -61,8 +63,12 @@ export const updateEmailFromClerk = mutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
+    syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!(await isCallerOrTrusted(ctx, args.clerkId, args.syncSecret))) {
+      throw new Error("Forbidden");
+    }
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

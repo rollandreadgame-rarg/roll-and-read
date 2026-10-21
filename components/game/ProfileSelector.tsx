@@ -2,11 +2,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useProfileSelector } from "@/hooks/useProfile";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id } from "@/convex/_generated/dataModel";
 
-const AVATARS = ["🦊", "🐻", "🐼", "🦁", "🐯", "🦄", "🐙", "🦋", "🐬", "🦕", "🐲", "⭐", "🌈", "🚀", "🎨", "🎵", "🌺", "🍀", "❄️", "🔥"];
+const AVATARS: [string, string][] = [
+  ["🦊", "fox"], ["🐻", "bear"], ["🐼", "panda"], ["🦁", "lion"], ["🐯", "tiger"],
+  ["🦄", "unicorn"], ["🐙", "octopus"], ["🦋", "butterfly"], ["🐬", "dolphin"], ["🦕", "dinosaur"],
+  ["🐲", "dragon"], ["⭐", "star"], ["🌈", "rainbow"], ["🚀", "rocket"], ["🎨", "paint palette"],
+  ["🎵", "music note"], ["🌺", "flower"], ["🍀", "clover"], ["❄️", "snowflake"], ["🔥", "fire"],
+];
 
 interface ProfileSelectorProps {
   onSelect: (profileId: string) => void;
@@ -17,15 +26,34 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAvatar, setNewAvatar] = useState("🦊");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { user } = useCurrentUser();
+  const sub = useQuery(api.subscriptions.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const atLimit = !!sub && profiles.length >= sub.profileLimit;
 
   const handleCreate = async () => {
-    if (!newName.trim() || !clerkUser) return;
-    const id = await createProfile({
-      userId: clerkUser._id as Id<"users">,
-      name: newName.trim(),
-      avatarEmoji: newAvatar,
-    });
-    onSelect(id as string);
+    if (!newName.trim() || !clerkUser || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const id = await createProfile({
+        userId: clerkUser._id as Id<"users">,
+        name: newName.trim(),
+        avatarEmoji: newAvatar,
+      });
+      onSelect(id as string);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setError(
+        msg.includes("PROFILE_LIMIT_REACHED")
+          ? "Your plan is full. Upgrade to add more readers."
+          : "Couldn't add the reader — please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -81,7 +109,15 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
           ))}
         </div>
 
-        {!isCreating ? (
+        {atLimit && !isCreating ? (
+          <Link
+            href="/billing"
+            className="block w-full py-3 rounded-2xl font-bold text-center transition-colors hover:bg-white/10"
+            style={{ border: "2px dashed rgba(255,255,255,0.2)", color: "var(--color-text-muted)" }}
+          >
+            ✨ Upgrade to add more readers ({profiles.length}/{sub?.profileLimit})
+          </Link>
+        ) : !isCreating ? (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
@@ -101,10 +137,12 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
             <h3 className="font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>New Reader</h3>
 
             <div className="flex flex-wrap gap-2 mb-3">
-              {AVATARS.map((emoji) => (
+              {AVATARS.map(([emoji, name]) => (
                 <button
                   key={emoji}
                   onClick={() => setNewAvatar(emoji)}
+                  aria-label={name}
+                  aria-pressed={newAvatar === emoji}
                   className="text-2xl p-1.5 rounded-lg transition-all"
                   style={{
                     background: newAvatar === emoji ? "var(--color-brand)" : "rgba(255,255,255,0.05)",
@@ -132,6 +170,15 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
               maxLength={20}
             />
 
+            {error && (
+              <p role="alert" className="text-sm mb-3" style={{ color: "#F87171" }}>
+                {error}{" "}
+                {error.includes("Upgrade") && (
+                  <Link href="/billing" className="underline font-semibold">See plans</Link>
+                )}
+              </p>
+            )}
+
             <div className="flex gap-2">
               <button
                 onClick={() => setIsCreating(false)}
@@ -142,7 +189,7 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={!newName.trim()}
+                disabled={!newName.trim() || saving}
                 className="flex-1 py-2.5 rounded-xl font-bold text-white disabled:opacity-50"
                 style={{ background: "var(--color-brand)" }}
               >

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
     const sub = await convex.query(api.subscriptions.getByClerkId, {
       clerkId: userId,
+      syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
 
     // Already have a live subscription — send them to the billing portal to
@@ -59,10 +60,12 @@ export async function POST(req: NextRequest) {
     let customerId = sub?.stripeCustomerId ?? undefined;
     if (!customerId) {
       const email = (await getEffectiveEmail()) ?? undefined;
-      const customer = await stripe.customers.create({
-        email,
-        metadata: { clerkId: userId },
-      });
+      // Idempotency key: two near-simultaneous clicks on plan buttons must not
+      // create two customers (paying on the unsaved one would never sync).
+      const customer = await stripe.customers.create(
+        { email, metadata: { clerkId: userId } },
+        { idempotencyKey: `create-customer-${userId}` }
+      );
       customerId = customer.id;
       await convex.mutation(api.subscriptions.setStripeCustomerId, {
         clerkId: userId,

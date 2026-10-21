@@ -42,6 +42,9 @@ export function useProfileSelector() {
       ensureUser({
         clerkId: user.id,
         email: user.primaryEmailAddress?.emailAddress ?? "",
+      }).catch(() => {
+        // Auth token not attached yet (or the webhook won the race) — the
+        // query re-runs once auth settles and retries if still missing.
       });
     }
   }, [user?.id, clerkUser]);

@@ -51,3 +51,51 @@ export async function ownsProfile(ctx, profileId) {
   if (!profile || String(profile.userId) !== String(user._id)) return null;
   return { user, profile };
 }
+
+// ── Trusted server callers ──────────────────────────────────────────────────
+// Next.js server routes (Clerk/Stripe webhooks, checkout/portal) reach Convex
+// through an unauthenticated ConvexHttpClient, so they prove themselves with
+// the shared CONVEX_SYNC_SECRET (a Vercel env var). We compare its SHA-256
+// against a baked-in hash — a hash is not a credential, so it's safe in source
+// and Convex never has to store the secret itself.
+const SYNC_SECRET_SHA256 =
+  "55f872a2c31c47ce8dc5e7dc5ecc89784b2ec424fe468e35ff490a54b664e05f";
+
+// While false, isCallerOrTrusted lets unauthenticated callers through so the
+// backend can deploy ahead of the Vercel routes that start sending the secret.
+// Flip to true once those routes are live.
+const ENFORCE_TRUSTED_CALLERS = false;
+
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function isValidSyncSecret(provided) {
+  if (typeof provided !== "string" || provided.length === 0) return false;
+  return (await sha256Hex(provided)) === SYNC_SECRET_SHA256;
+}
+
+export async function assertSyncSecret(provided) {
+  if (!(await isValidSyncSecret(provided))) throw new Error("Forbidden");
+}
+
+// Separate key for one-off maintenance (data repairs). The raw key lives only
+// in the operator's local .env.local (MAINTENANCE_SECRET); this is its SHA-256.
+const MAINTENANCE_SECRET_SHA256 =
+  "d9d0a0fcd5a5a90404141191a50a41b3b83989eb61657b75a9e969a4f99d04fb";
+
+export async function assertMaintenanceSecret(provided) {
+  if (typeof provided !== "string" || provided.length === 0) throw new Error("Forbidden");
+  if ((await sha256Hex(provided)) !== MAINTENANCE_SECRET_SHA256) throw new Error("Forbidden");
+}
+
+// True when the caller is signed in as `clerkId`, or is a trusted server route.
+export async function isCallerOrTrusted(ctx, clerkId, syncSecret) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (identity) return identity.subject === clerkId;
+  if (await isValidSyncSecret(syncSecret)) return true;
+  return !ENFORCE_TRUSTED_CALLERS;
+}

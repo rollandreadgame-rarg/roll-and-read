@@ -59,13 +59,20 @@ export default function PickCategoryModal({
     if (!profileId || busy) return;
     playSound("packPick");
     setBusy(true);
-    const granted = await award({
-      profileId: profileId as Id<"profiles">,
-      category,
-      preferredRarity: reward!.rarity,
-    });
-    setRevealed(granted ?? { name: "All collected!", rarity: reward!.rarity, imageFullUrl: null });
-    setBusy(false);
+    try {
+      const granted = await award({
+        profileId: profileId as Id<"profiles">,
+        category,
+        preferredRarity: reward!.rarity,
+      });
+      setRevealed(granted ?? { name: "All collected!", rarity: reward!.rarity, imageFullUrl: null });
+    } catch (err) {
+      // Never strand the child on a spinning modal — let them move on.
+      console.error("[PickCategoryModal] award failed:", err);
+      setRevealed({ name: "Oops! Couldn't open the pack", rarity: reward!.rarity, imageFullUrl: null });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleNext = () => {

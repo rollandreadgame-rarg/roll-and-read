@@ -34,9 +34,11 @@ export const addWord = mutation({
       )
       .first();
 
+    // A word skipped after 7 misses (needsPractice) is recorded for practice
+    // but NOT counted as read correctly — it isn't "learned" yet.
     if (existing) {
       await ctx.db.patch(existing._id, {
-        timesCorrect: existing.timesCorrect + 1,
+        timesCorrect: existing.timesCorrect + (args.needsPractice ? 0 : 1),
         needsPractice: args.needsPractice,
       });
       return existing._id;
@@ -51,7 +53,7 @@ export const addWord = mutation({
       coinValue: args.coinValue,
       needsPractice: args.needsPractice,
       firstEarned: Date.now(),
-      timesCorrect: 1,
+      timesCorrect: args.needsPractice ? 0 : 1,
     });
   },
 });
@@ -64,7 +66,29 @@ export const getTotalValue = query({
       .query("word_bank")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
       .collect();
-    return words.reduce((sum, w) => sum + w.coinValue, 0);
+    return words.reduce((sum, w) => sum + (w.timesCorrect > 0 ? w.coinValue : 0), 0);
+  },
+});
+
+// Learned-word count + total value for the in-game status bar, so the play
+// page doesn't download the whole word bank on every correct tap.
+export const getStats = query({
+  args: { profileId: v.id("profiles") },
+  handler: async (ctx, args) => {
+    if (!(await ownsProfile(ctx, args.profileId))) return { count: 0, value: 0 };
+    const words = await ctx.db
+      .query("word_bank")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    let count = 0;
+    let value = 0;
+    for (const w of words) {
+      if (w.timesCorrect > 0) {
+        count++;
+        value += w.coinValue;
+      }
+    }
+    return { count, value };
   },
 });
 

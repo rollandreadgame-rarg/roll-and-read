@@ -34,8 +34,9 @@ export default function TopNav() {
     >
       {/* Logo */}
       <Link href="/play" className="flex items-center gap-2 font-extrabold text-lg" style={{ color: "var(--color-text-primary)" }}>
-        <span className="text-2xl">🎲</span>
+        <span className="text-2xl" aria-hidden="true">🎲</span>
         <span className="hidden sm:block">Roll &amp; Read</span>
+        <span className="sr-only sm:hidden">Roll &amp; Read — play</span>
       </Link>
 
       {/* Nav links */}
@@ -45,6 +46,8 @@ export default function TopNav() {
             key={href}
             href={href}
             aria-current={pathname === href ? "page" : undefined}
+            aria-label={label}
+            title={label}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
               pathname === href
@@ -53,7 +56,7 @@ export default function TopNav() {
             )}
             style={pathname === href ? { background: "var(--color-brand)", color: "white" } : {}}
           >
-            <Icon size={16} />
+            <Icon size={16} aria-hidden="true" />
             <span className="hidden sm:inline">{label}</span>
           </Link>
         ))}

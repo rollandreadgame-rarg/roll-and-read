@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps, react-hooks/purity, react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -7,8 +7,10 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { generateBoard, checkLevelAdvancement, type GameBoard, type WordEntry } from "@/lib/game/boardGenerator";
 import { getMilestonesForBoard, type MilestoneTrigger } from "@/lib/game/milestones";
-import { getNextLevel } from "@/lib/utils";
-import { speakWord } from "@/lib/tts/webSpeechTTS";
+import { getNextLevel, isValidLevel, normalizeLevel } from "@/lib/levels";
+import { isLevelAllowed, type Plan } from "@/convex/subscriptionConfig";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { speakWord, cancelSpeech, preloadWords } from "@/lib/tts/webSpeechTTS";
 import { playSound } from "@/lib/audio/soundManager";
 import { sleep } from "@/lib/utils";
 
@@ -35,34 +37,51 @@ interface RecentWord {
   coinValue: number;
 }
 
+// Player's local calendar day, for streaks (the server compares these strings).
+function localDateString(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function useGameState(profileId: string | null) {
   const profile = useQuery(
     api.profiles.get,
     profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
   );
 
+  // The plan decides whether the next sublevel may be previewed / unlocked.
+  const { user } = useCurrentUser();
+  const account = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const plan = (account?.plan ?? "free") as Plan;
+
+  // A reader stranded on a retired sublevel plays the level it maps to (and is
+  // moved there for real by the effect below).
+  const level = profile ? normalizeLevel(profile.currentLevel) : null;
+
   const wordPool = useQuery(
     api.wordLists.getForLevel,
-    profile
-      ? { level: profile.currentLevel, wordMode: profile.wordMode }
-      : "skip"
+    profile && level ? { level, wordMode: profile.wordMode } : "skip"
   );
 
-  const nextLevel = profile ? getNextLevel(profile.currentLevel) : null;
+  // Nonsense-only mode has too few words per sublevel to fill a 30-card board;
+  // the rest of the board is filled from the same level's real words.
+  const fillPool = useQuery(
+    api.wordLists.getForLevel,
+    profile && level && profile.wordMode === "nonsense" ? { level, wordMode: "real" } : "skip"
+  );
+
+  const nextLevel = level ? getNextLevel(level) : null;
+  const canAdvance = !!nextLevel && account !== undefined && isLevelAllowed(plan, nextLevel);
   const nextWordPool = useQuery(
     api.wordLists.getForLevel,
-    profile && nextLevel
-      ? { level: nextLevel, wordMode: profile.wordMode }
+    profile && nextLevel && canAdvance
+      ? { level: nextLevel, wordMode: profile.wordMode === "nonsense" ? "mixed" : profile.wordMode }
       : "skip"
   );
 
-  const wordBankWords = useQuery(
-    api.wordBank.getForProfile,
-    profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
-  );
-
-  const wordBankValue = useQuery(
-    api.wordBank.getTotalValue,
+  const wordBankStats = useQuery(
+    api.wordBank.getStats,
     profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
   );
 
@@ -87,7 +106,37 @@ export function useGameState(profileId: string | null) {
   const [wrongWord, setWrongWord] = useState<string | null>(null);
   const [correctWord, setCorrectWord] = useState<string | null>(null);
   const [hintWordId, setHintWordId] = useState<string | null>(null);
-  const [attemptsThisWord, setAttemptsThisWord] = useState(0);
+
+  // Async-safety for the tap/roll handlers, which sleep between steps:
+  // - turnRef bumps whenever the target word changes; a continuation that
+  //   wakes up in a different turn stops instead of speaking a stale word.
+  // - busyRef locks taps while a correct answer / skip is resolving.
+  // - rollingRef locks rolling from the click until the row is active.
+  // - wrongTapRef lets only the latest wrong tap re-speak the word.
+  // - attemptsRef/clearedRef mirror state so rapid taps never read stale values.
+  const turnRef = useRef(0);
+  const busyRef = useRef(false);
+  const rollingRef = useRef(false);
+  const wrongTapRef = useRef(0);
+  const attemptsRef = useRef(0);
+  const clearedRef = useRef<Set<string>>(new Set());
+  const [rollBusy, setRollBusy] = useState(false);
+
+  const setTarget = (t: WordEntry | null) => {
+    turnRef.current++;
+    attemptsRef.current = 0;
+    setCurrentTarget(t);
+  };
+  const commitCleared = (next: Set<string>) => {
+    clearedRef.current = next;
+    setClearedWords(next);
+  };
+
+  // Stop speech and any pending continuation when leaving the play page.
+  useEffect(() => () => {
+    turnRef.current++;
+    cancelSpeech();
+  }, []);
 
   // UI feedback
   const [coinPopups, setCoinPopups] = useState<CoinPopup[]>([]);
@@ -119,6 +168,10 @@ export function useGameState(profileId: string | null) {
   const [pendingRewards, setPendingRewards] = useState<MilestoneTrigger[]>([]);
   const [showPickCategory, setShowPickCategory] = useState(false);
   const deferredLevelUpRef = useRef<string | null>(null);
+  // Free reader who earned the next level: show the upgrade prompt after the
+  // rewards (not on top of them), at most once per session.
+  const deferredLockedRef = useRef(false);
+  const lockPromptShownRef = useRef(false);
 
   // Session tracking
   const sessionRef = useRef<SessionStats>({
@@ -173,23 +226,41 @@ export function useGameState(profileId: string | null) {
     }
   }, [profile?.coins]);
 
+  // Move a reader off a retired sublevel (the server allows exactly this move).
+  const repairingLevelRef = useRef(false);
+  useEffect(() => {
+    if (!profile || !profileId || isValidLevel(profile.currentLevel) || repairingLevelRef.current) return;
+    repairingLevelRef.current = true;
+    safeMutate(
+      () => advanceLevelMut({ profileId: profileId as Id<"profiles">, nextLevel: normalizeLevel(profile.currentLevel) }),
+      "repairLevel"
+    );
+  }, [profile?.currentLevel, profileId]);
+
   // Start a new board
   const startNewBoard = useCallback(() => {
-    if (!wordPool || !profile) return;
+    if (!wordPool || !profile || !level) return;
+    if (profile.wordMode === "nonsense" && fillPool === undefined) return;
 
     const newBoard = generateBoard({
-      currentLevel: profile.currentLevel,
+      currentLevel: level,
       boardsCleared: profile.boardsClearedAtLevel,
       wordPool: wordPool as WordEntry[],
-      nextLevelPool: (nextWordPool ?? []) as WordEntry[],
+      nextLevelPool: canAdvance ? ((nextWordPool ?? []) as WordEntry[]) : [],
+      fillPool: (fillPool ?? []) as WordEntry[],
+      recentAccuracy: profile.accuracyHistory ?? [],
     });
+    preloadWords(newBoard.rows.flatMap((r) => r.words.map((w) => w.word)));
 
+    busyRef.current = false;
+    rollingRef.current = false;
+    setRollBusy(false);
     setBoard(newBoard);
     setClearedRows([]);
-    setClearedWords(new Set());
+    commitCleared(new Set());
     setActiveRow(null);
     setDiceResult(null);
-    setCurrentTarget(null);
+    setTarget(null);
     setWrongWord(null);
     setCorrectWord(null);
     setHintWordId(null);
@@ -202,11 +273,11 @@ export function useGameState(profileId: string | null) {
       coinsEarned: 0,
       startTime: Date.now(),
     };
-  }, [wordPool, profile, nextWordPool]);
+  }, [wordPool, fillPool, profile, level, nextWordPool, canAdvance]);
 
   // Roll the dice
   const rollDice = useCallback(async () => {
-    if (isRolling || !board || activeRow !== null) return;
+    if (rollingRef.current || !board || activeRow !== null) return;
 
     // Cross-check both clearedRows state AND each row's cleared flag on the board
     const available = board.rows
@@ -214,158 +285,178 @@ export function useGameState(profileId: string | null) {
       .map((r) => r.dieNumber);
     if (available.length === 0) return;
 
-    setIsRolling(true);
-    playSound("diceRoll");
+    // Locked from the click until the row is active — the Roll button would
+    // otherwise re-enable in the gap between the dice landing and activation.
+    rollingRef.current = true;
+    setRollBusy(true);
+    const turn = turnRef.current;
+    try {
+      setIsRolling(true);
+      playSound("diceRoll");
 
-    const result = available[Math.floor(Math.random() * available.length)];
-    await sleep(1400); // Dice animation duration
+      const result = available[Math.floor(Math.random() * available.length)];
+      await sleep(1400); // Dice animation duration
 
-    setDiceResult(result);
-    setIsRolling(false);
-    playSound("diceLand");
+      setDiceResult(result);
+      setIsRolling(false);
+      playSound("diceLand");
 
-    await sleep(500); // Dramatic pause
+      await sleep(500); // Dramatic pause
+      if (turnRef.current !== turn) return; // board changed / page left
 
-    // Safety check: verify row is still uncleared before activating
-    const row = board.rows.find((r) => r.dieNumber === result && !r.cleared);
-    if (!row) return;
+      // Safety check: verify row is still uncleared before activating
+      const row = board.rows.find((r) => r.dieNumber === result && !r.cleared);
+      if (!row) return;
 
-    const remaining = row.words.filter((w) => !clearedWords.has(w._id));
-    // If the row has no words left (shouldn't happen with new boards), auto-clear it
-    if (remaining.length === 0) {
-      handleRowComplete(result);
-      return;
+      const remaining = row.words.filter((w) => !clearedRef.current.has(w._id));
+      // If the row has no words left (shouldn't happen with new boards), auto-clear it
+      if (remaining.length === 0) {
+        await handleRowCompleteRef.current(result);
+        return;
+      }
+
+      setActiveRow(result);
+
+      const target = remaining[Math.floor(Math.random() * remaining.length)];
+      setTarget(target);
+      rowWordCountRef.current = { words: 0, coins: 0 };
+      const speakTurn = turnRef.current;
+      await sleep(300);
+      if (turnRef.current === speakTurn) speakWord(target.word);
+    } finally {
+      rollingRef.current = false;
+      setRollBusy(false);
     }
-
-    setActiveRow(result);
-
-    const target = remaining[Math.floor(Math.random() * remaining.length)];
-    setCurrentTarget(target);
-    setAttemptsThisWord(0);
-    rowWordCountRef.current = { words: 0, coins: 0 };
-    await sleep(300);
-    speakWord(target.word);
-  }, [isRolling, board, activeRow, clearedRows, clearedWords]);
+  }, [board, activeRow, clearedRows]);
 
   // Re-speak the word the player is currently looking for (spacebar / on-screen
   // "Hear it again" button). No-op unless a row is active and not mid-roll.
   const repeatWord = useCallback(() => {
-    if (activeRow === null || !currentTarget || isRolling) return;
+    if (activeRow === null || !currentTarget || rollingRef.current || busyRef.current) return;
     speakWord(currentTarget.word);
-  }, [activeRow, currentTarget, isRolling]);
+  }, [activeRow, currentTarget]);
 
   // Handle word tap
   const handleWordTap = useCallback(
     async (tappedWord: WordEntry, cardRect?: DOMRect) => {
-      if (!currentTarget || !profile || !profileId) return;
+      if (!currentTarget || !profile || !profileId || busyRef.current) return;
+      const target = currentTarget;
+      const turn = turnRef.current;
 
       sessionRef.current.wordsAttempted++;
 
-      if (tappedWord._id === currentTarget._id) {
-        // CORRECT
-        const wasFirstAttempt = attemptsThisWord === 0;
-        if (wasFirstAttempt) sessionRef.current.firstAttemptCorrect++;
-        sessionRef.current.wordsCorrect++;
-        sessionRef.current.coinsEarned += currentTarget.coinValue;
+      if (tappedWord._id === target._id) {
+        // CORRECT — lock input until the next word (or row clear) is set up.
+        busyRef.current = true;
+        try {
+          const wasFirstAttempt = attemptsRef.current === 0;
+          if (wasFirstAttempt) sessionRef.current.firstAttemptCorrect++;
+          sessionRef.current.wordsCorrect++;
+          sessionRef.current.coinsEarned += target.coinValue;
 
-        // Visual feedback
-        setCorrectWord(currentTarget._id);
-        setHintWordId(null);
-        playSound("correct");
+          // Visual feedback
+          setCorrectWord(target._id);
+          setHintWordId(null);
+          setWrongWord(null);
+          playSound("correct");
 
-        // Coin popup
-        if (cardRect) {
-          const popup: CoinPopup = {
-            id: `${Date.now()}-${Math.random()}`,
-            amount: currentTarget.coinValue,
-            x: cardRect.left + cardRect.width / 2,
-            y: cardRect.top,
-          };
-          setCoinPopups((prev) => [...prev, popup]);
-          setTimeout(() => {
-            setCoinPopups((prev) => prev.filter((p) => p.id !== popup.id));
-          }, 900);
-        }
-
-        // Optimistic coin update
-        setLocalCoins((c) => c + currentTarget.coinValue);
-        rowWordCountRef.current.words++;
-        rowWordCountRef.current.coins += currentTarget.coinValue;
-
-        // Update word list
-        const newCleared = new Set(clearedWords).add(currentTarget._id);
-        setClearedWords(newCleared);
-
-        // Add to recent words
-        setRecentWords((prev) => [
-          { word: currentTarget.word, level: currentTarget.level, coinValue: currentTarget.coinValue },
-          ...prev.slice(0, 19),
-        ]);
-
-        // Persist to Convex (optimistic with retry)
-        safeMutate(
-          () => awardCoinsMut({ profileId: profileId as Id<"profiles">, amount: currentTarget.coinValue }),
-          "awardCoins"
-        );
-
-        safeMutate(
-          () => addWordMut({
-            profileId: profileId as Id<"profiles">,
-            wordId: currentTarget._id as Id<"word_lists">,
-            word: currentTarget.word,
-            level: currentTarget.level,
-            isNonsense: currentTarget.isNonsense,
-            coinValue: currentTarget.coinValue,
-            needsPractice: false,
-          }),
-          "addWord"
-        );
-
-        await sleep(200);
-        setCorrectWord(null);
-        playSound("wordFly");
-
-        // Check if row is done
-        const row = board?.rows.find((r) => r.dieNumber === activeRow);
-        if (row) {
-          const remainingInRow = row.words.filter(
-            (w) => !newCleared.has(w._id)
-          );
-          if (remainingInRow.length === 0) {
-            // Row complete
-            await sleep(400);
-            handleRowComplete(activeRow!);
-          } else {
-            // Next word
-            await sleep(400);
-            const nextTarget = remainingInRow[Math.floor(Math.random() * remainingInRow.length)];
-            setCurrentTarget(nextTarget);
-            setAttemptsThisWord(0);
-            setWrongWord(null);
-            speakWord(nextTarget.word);
+          // Coin popup
+          if (cardRect) {
+            const popup: CoinPopup = {
+              id: `${Date.now()}-${Math.random()}`,
+              amount: target.coinValue,
+              x: cardRect.left + cardRect.width / 2,
+              y: cardRect.top,
+            };
+            setCoinPopups((prev) => [...prev, popup]);
+            setTimeout(() => {
+              setCoinPopups((prev) => prev.filter((p) => p.id !== popup.id));
+            }, 900);
           }
+
+          // Optimistic coin update
+          setLocalCoins((c) => c + target.coinValue);
+          rowWordCountRef.current.words++;
+          rowWordCountRef.current.coins += target.coinValue;
+
+          // Update word list
+          const newCleared = new Set(clearedRef.current).add(target._id);
+          commitCleared(newCleared);
+
+          // Add to recent words
+          setRecentWords((prev) => [
+            { word: target.word, level: target.level, coinValue: target.coinValue },
+            ...prev.slice(0, 19),
+          ]);
+
+          // Persist to Convex (optimistic with retry)
+          safeMutate(
+            () => awardCoinsMut({ profileId: profileId as Id<"profiles">, amount: target.coinValue }),
+            "awardCoins"
+          );
+
+          safeMutate(
+            () => addWordMut({
+              profileId: profileId as Id<"profiles">,
+              wordId: target._id as Id<"word_lists">,
+              word: target.word,
+              level: target.level,
+              isNonsense: target.isNonsense,
+              coinValue: target.coinValue,
+              needsPractice: false,
+            }),
+            "addWord"
+          );
+
+          await sleep(200);
+          if (turnRef.current !== turn) return;
+          setCorrectWord(null);
+          playSound("wordFly");
+
+          // Check if row is done
+          const row = board?.rows.find((r) => r.dieNumber === activeRow);
+          if (row) {
+            const remainingInRow = row.words.filter((w) => !newCleared.has(w._id));
+            await sleep(400);
+            if (turnRef.current !== turn) return;
+            if (remainingInRow.length === 0) {
+              await handleRowCompleteRef.current(activeRow!);
+            } else {
+              const nextTarget = remainingInRow[Math.floor(Math.random() * remainingInRow.length)];
+              setTarget(nextTarget);
+              speakWord(nextTarget.word);
+            }
+          }
+        } finally {
+          busyRef.current = false;
         }
-      } else {
-        // WRONG
-        const newAttempts = attemptsThisWord + 1;
-        setAttemptsThisWord(newAttempts);
-        setWrongWord(tappedWord._id);
-        playSound("wrong");
+        return;
+      }
 
-        const speakRate = newAttempts >= 2 ? 0.7 : 0.85;
+      // WRONG
+      const newAttempts = ++attemptsRef.current;
+      const myTap = ++wrongTapRef.current;
+      setWrongWord(tappedWord._id);
+      playSound("wrong");
 
-        // Hint system
-        if (newAttempts === 3) {
-          setHintWordId(currentTarget._id);
-          sessionRef.current.hintsUsed++;
-          setTimeout(() => setHintWordId(null), 1000);
-        } else if (newAttempts >= 5) {
-          setHintWordId(currentTarget._id);
-          sessionRef.current.hintsUsed++;
-        }
+      const speakRate = newAttempts >= 2 ? 0.7 : 0.85;
 
-        // After 7 attempts, skip word
-        if (newAttempts >= 7) {
+      // Hint system
+      if (newAttempts === 3) {
+        setHintWordId(target._id);
+        sessionRef.current.hintsUsed++;
+        setTimeout(() => {
+          if (turnRef.current === turn) setHintWordId(null);
+        }, 1000);
+      } else if (newAttempts >= 5) {
+        setHintWordId(target._id);
+        sessionRef.current.hintsUsed++;
+      }
+
+      // After 7 attempts, skip word
+      if (newAttempts >= 7) {
+        busyRef.current = true;
+        try {
           sessionRef.current.wordsSkipped++;
           setHintWordId(null);
 
@@ -373,44 +464,50 @@ export function useGameState(profileId: string | null) {
           safeMutate(
             () => addWordMut({
               profileId: profileId as Id<"profiles">,
-              wordId: currentTarget._id as Id<"word_lists">,
-              word: currentTarget.word,
-              level: currentTarget.level,
-              isNonsense: currentTarget.isNonsense,
-              coinValue: currentTarget.coinValue,
+              wordId: target._id as Id<"word_lists">,
+              word: target.word,
+              level: target.level,
+              isNonsense: target.isNonsense,
+              coinValue: target.coinValue,
               needsPractice: true,
             }),
             "addWord:needsPractice"
           );
 
           // Move to next word
-          const newCleared = new Set(clearedWords).add(currentTarget._id);
-          setClearedWords(newCleared);
+          const newCleared = new Set(clearedRef.current).add(target._id);
+          commitCleared(newCleared);
           setWrongWord(null);
 
           const row = board?.rows.find((r) => r.dieNumber === activeRow);
           if (row) {
             const remaining = row.words.filter((w) => !newCleared.has(w._id));
             if (remaining.length === 0) {
-              handleRowComplete(activeRow!);
+              await handleRowCompleteRef.current(activeRow!);
             } else {
               await sleep(500);
+              if (turnRef.current !== turn) return;
               const nextTarget = remaining[Math.floor(Math.random() * remaining.length)];
-              setCurrentTarget(nextTarget);
-              setAttemptsThisWord(0);
+              setTarget(nextTarget);
               speakWord(nextTarget.word, speakRate);
             }
           }
-          return;
+        } finally {
+          busyRef.current = false;
         }
-
-        await sleep(350);
-        setWrongWord(null);
-        await sleep(450);
-        speakWord(currentTarget.word, speakRate);
+        return;
       }
+
+      // Re-speak — only if this is still the same word AND no newer wrong tap
+      // has happened (mashing cards must not queue a pile of replays).
+      await sleep(350);
+      if (turnRef.current !== turn) return;
+      if (wrongTapRef.current === myTap) setWrongWord(null);
+      await sleep(450);
+      if (turnRef.current !== turn || wrongTapRef.current !== myTap || busyRef.current) return;
+      speakWord(target.word, speakRate);
     },
-    [currentTarget, attemptsThisWord, clearedWords, board, activeRow, profile, profileId]
+    [currentTarget, board, activeRow, profile, profileId]
   );
 
   // Handle row complete
@@ -427,7 +524,8 @@ export function useGameState(profileId: string | null) {
       const newClearedRows = [...clearedRows, rowNumber];
       setClearedRows(newClearedRows);
       setActiveRow(null);
-      setCurrentTarget(null);
+      setTarget(null);
+      const turn = turnRef.current;
 
       // Update board row as cleared
       if (board) {
@@ -438,6 +536,7 @@ export function useGameState(profileId: string | null) {
       }
 
       await sleep(600);
+      if (turnRef.current !== turn) return;
 
       if (newClearedRows.length === 6) {
         // Board complete
@@ -446,22 +545,29 @@ export function useGameState(profileId: string | null) {
         // Auto-activate the one remaining row — no roll needed
         const lastRow = board?.rows.find((r) => !newClearedRows.includes(r.dieNumber));
         if (lastRow) {
-          const remaining = lastRow.words.filter((w) => !clearedWords.has(w._id));
+          const remaining = lastRow.words.filter((w) => !clearedRef.current.has(w._id));
           if (remaining.length > 0) {
             setDiceResult(lastRow.dieNumber);
             setActiveRow(lastRow.dieNumber);
             rowWordCountRef.current = { words: 0, coins: 0 };
             const target = remaining[Math.floor(Math.random() * remaining.length)];
-            setCurrentTarget(target);
-            setAttemptsThisWord(0);
+            setTarget(target);
+            const speakTurn = turnRef.current;
             await sleep(300);
-            speakWord(target.word);
+            if (turnRef.current === speakTurn) speakWord(target.word);
+          } else {
+            // Last row has no words left — count it cleared too.
+            await handleRowCompleteRef.current(lastRow.dieNumber);
           }
         }
       }
     },
-    [clearedRows, clearedWords, board, profile, profileId]
+    [clearedRows, board, profile, profileId]
   );
+  // Called from handlers created before it (tap/roll); a ref avoids stale or
+  // temporal-dead-zone references to the latest version.
+  const handleRowCompleteRef = useRef(handleRowComplete);
+  handleRowCompleteRef.current = handleRowComplete;
 
   // Handle board complete
   const handleBoardComplete = useCallback(
@@ -469,8 +575,10 @@ export function useGameState(profileId: string | null) {
       if (!profile || !profileId) return;
       const sess = sessionRef.current;
       const duration = Math.round((Date.now() - sess.startTime) / 1000);
-      const accuracy =
-        sess.wordsCorrect > 0 ? sess.firstAttemptCorrect / sess.wordsCorrect : 0;
+      // Skipped words (7 misses) count against accuracy — otherwise a board
+      // of 15 first-try words + 15 skips would score 100% and level the reader up.
+      const answered = sess.wordsCorrect + sess.wordsSkipped;
+      const accuracy = answered > 0 ? sess.firstAttemptCorrect / answered : 0;
 
       playSound("boardComplete");
 
@@ -480,13 +588,15 @@ export function useGameState(profileId: string | null) {
       // so we can roll the level-up sticker into the same award batch.
       const newBoardsCleared = (profile.boardsClearedAtLevel || 0) + 1;
       const newHistory = [...(profile.accuracyHistory || []), accuracy].slice(-10);
-      const isLevelUp =
-        checkLevelAdvancement(newBoardsCleared, newHistory) &&
-        getNextLevel(profile.currentLevel) !== null;
+      // No level-up (or level-up sticker) when the plan doesn't include the
+      // next level — the upgrade prompt is shown instead.
+      const passed = checkLevelAdvancement(newBoardsCleared, newHistory) && nextLevel !== null;
+      const isLevelUp = passed && canAdvance;
+      deferredLockedRef.current = passed && !canAdvance && !lockPromptShownRef.current;
 
       // Mutate the streak first so we know previous→new streak before rendering.
       const streakResult = await safeMutate(
-        () => completedBoardMut({ profileId: profileId as Id<"profiles">, accuracy }),
+        () => completedBoardMut({ profileId: profileId as Id<"profiles">, accuracy, localDate: localDateString() }),
         "completedBoard"
       );
 
@@ -503,7 +613,7 @@ export function useGameState(profileId: string | null) {
       // Do NOT auto-grant. Queue the milestone choices for the pick flow, and
       // stash the level-up so it fires only after every reward is claimed.
       setPendingRewards(milestones);
-      deferredLevelUpRef.current = isLevelUp ? getNextLevel(profile.currentLevel) : null;
+      deferredLevelUpRef.current = isLevelUp ? nextLevel : null;
 
       setBoardCompleteData({
         wordsAdded: sess.wordsCorrect,
@@ -516,7 +626,7 @@ export function useGameState(profileId: string | null) {
       safeMutate(
         () => saveSessionMut({
           profileId: profileId as Id<"profiles">,
-          level: profile.currentLevel,
+          level: level ?? profile.currentLevel,
           boardsPlayed: 1,
           wordsCorrect: sess.wordsCorrect,
           firstAttemptCorrect: sess.firstAttemptCorrect,
@@ -530,24 +640,35 @@ export function useGameState(profileId: string | null) {
         "saveSession"
       );
     },
-    [profile, profileId]
+    [profile, profileId, level, nextLevel, canAdvance]
   );
 
   // After the reward queue empties, resolve a deferred level-up or start a new board.
-  const resolveAfterRewards = useCallback(() => {
+  const resolveAfterRewards = useCallback(async () => {
     const next = deferredLevelUpRef.current;
     if (next) {
       deferredLevelUpRef.current = null;
-      setLevelUpData({ newLevel: next });
-      setShowLevelUp(true);
-      safeMutate(
-        () => advanceLevelMut({ profileId: profileId as Id<"profiles">, nextLevel: next }),
+      // Celebrate only once the server has actually moved the reader up.
+      const ok = await safeMutate(
+        async () => {
+          await advanceLevelMut({ profileId: profileId as Id<"profiles">, nextLevel: next });
+          return true;
+        },
         "advanceLevel"
       );
-      playSound("levelUp");
-    } else {
-      startNewBoard();
+      if (ok) {
+        setLevelUpData({ newLevel: next });
+        setShowLevelUp(true);
+        playSound("levelUp");
+        return;
+      }
     }
+    if (deferredLockedRef.current) {
+      deferredLockedRef.current = false;
+      lockPromptShownRef.current = true;
+      setShowLevelLocked(true);
+    }
+    startNewBoard();
   }, [profileId, startNewBoard]);
 
   // Board-complete modal primary button: start the pick sequence, or move on.
@@ -598,6 +719,7 @@ export function useGameState(profileId: string | null) {
     clearedWords,
     activeRow,
     isRolling,
+    rollBusy,
     diceResult,
     currentTarget,
     wrongWord,
@@ -606,8 +728,8 @@ export function useGameState(profileId: string | null) {
     coinPopups,
     recentWords,
     localCoins,
-    wordBankCount: wordBankWords?.length ?? 0,
-    wordBankValue: wordBankValue ?? 0,
+    wordBankCount: wordBankStats?.count ?? 0,
+    wordBankValue: wordBankStats?.value ?? 0,
     // Celebrations
     showRowBanner,
     rowBannerData,
@@ -630,6 +752,6 @@ export function useGameState(profileId: string | null) {
     handleWordTap,
     handleLevelUpClose,
     markTutorialSeen,
-    isReady: !!wordPool && !!profile,
+    isReady: !!wordPool && !!profile && (profile.wordMode !== "nonsense" || fillPool !== undefined),
   };
 }

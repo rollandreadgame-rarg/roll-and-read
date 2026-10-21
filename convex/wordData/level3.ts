@@ -38,15 +38,11 @@ export const LEVEL3_WORDS: WordEntry[] = [
   // 3A nonsense
   { word: "voil", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
   { word: "zoy", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oy", phonicPattern: "vowel-team-oy" },
-  { word: "digh", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "igh", phonicPattern: "vowel-team-igh" },
   { word: "boit", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
-  { word: "wight", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "igh", phonicPattern: "vowel-team-igh" },
   { word: "foy", isNonsense: true, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oy", phonicPattern: "vowel-team-oy" },
   // 3A additional words
   { word: "broil", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
-  { word: "groin", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
   { word: "hoist", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
-  { word: "loin", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
   { word: "moist", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
   { word: "noise", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
   { word: "void", isNonsense: false, level: "3A", levelNumber: 3, coinValue: 12, phonicFamily: "oi", phonicPattern: "vowel-team-oi" },
@@ -100,9 +96,8 @@ export const LEVEL3_WORDS: WordEntry[] = [
   { word: "draw", isNonsense: false, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "au-aw", phonicPattern: "au-aw" },
   { word: "straw", isNonsense: false, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "au-aw", phonicPattern: "au-aw" },
   // 3B nonsense
-  { word: "vie", isNonsense: true, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "ie", phonicPattern: "vowel-team-ie" },
   { word: "phom", isNonsense: true, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "ph", phonicPattern: "ph" },
-  { word: "dread", isNonsense: true, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "ea-short", phonicPattern: "ea-short" },
+  { word: "dread", isNonsense: false, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "ea-short", phonicPattern: "ea-short" },
   { word: "zaw", isNonsense: true, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "au-aw", phonicPattern: "au-aw" },
   { word: "faud", isNonsense: true, level: "3B", levelNumber: 3, coinValue: 12, phonicFamily: "au-aw", phonicPattern: "au-aw" },
   // 3B additional words
@@ -202,13 +197,11 @@ export const LEVEL3_WORDS: WordEntry[] = [
   { word: "explosion", isNonsense: false, level: "3C", levelNumber: 3, coinValue: 12, phonicFamily: "-sion", phonicPattern: "suffix-sion" },
   { word: "vestion", isNonsense: true, level: "3C", levelNumber: 3, coinValue: 12, phonicFamily: "-tion", phonicPattern: "suffix-tion" },
   { word: "bansion", isNonsense: true, level: "3C", levelNumber: 3, coinValue: 12, phonicFamily: "-sion", phonicPattern: "suffix-sion" },
-  { word: "pention", isNonsense: true, level: "3C", levelNumber: 3, coinValue: 12, phonicFamily: "-tion", phonicPattern: "suffix-tion" },
 
   // 3D – soft c/g, schwa, doubling rule, suffixes
   { word: "cell", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "cent", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "city", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
-  { word: "cycle", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "place", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "race", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "space", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
@@ -234,7 +227,7 @@ export const LEVEL3_WORDS: WordEntry[] = [
   { word: "vace", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "zell", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "fage", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-g", phonicPattern: "soft-g" },
-  { word: "drumming", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
+  { word: "drumming", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
   { word: "bipping", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
   // 3D additional words
   { word: "ice", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
@@ -257,12 +250,17 @@ export const LEVEL3_WORDS: WordEntry[] = [
   { word: "getting", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
   { word: "napping", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
   { word: "slipping", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "doubling-rule", phonicPattern: "doubling-rule" },
-  { word: "lucky", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "doubling-rule" },
-  { word: "kindly", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "doubling-rule" },
-  { word: "peaceful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "doubling-rule" },
-  { word: "thankful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "doubling-rule" },
-  { word: "cheerful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "doubling-rule" },
+  { word: "lucky", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "suffix-rule" },
+  { word: "kindly", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "suffix-rule" },
+  { word: "peaceful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "suffix-rule" },
+  { word: "thankful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "suffix-rule" },
+  { word: "cheerful", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "suffix-rule", phonicPattern: "suffix-rule" },
   { word: "fice", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
   { word: "zange", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-g", phonicPattern: "soft-g" },
   { word: "glurge", isNonsense: true, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-g", phonicPattern: "soft-g" },
+  // Moved here by the 2026-10-21 curriculum audit (needed this sublevel's skill)
+  { word: "face", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
+  { word: "lace", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
+  { word: "urge", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-g", phonicPattern: "soft-g" },
+  { word: "raced", isNonsense: false, level: "3D", levelNumber: 3, coinValue: 12, phonicFamily: "soft-c", phonicPattern: "soft-c" },
 ];

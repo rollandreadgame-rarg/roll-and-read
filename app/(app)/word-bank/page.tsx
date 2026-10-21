@@ -54,9 +54,12 @@ export default function WordBankPage() {
     [wordBank, levelFilter, modeFilter, search]
   );
 
+  // "Known" = read correctly at least once (a word skipped after 7 misses is
+  // in the bank for practice but not learned yet).
+  const learned = useMemo(() => (wordBank ?? []).filter((w: any) => w.timesCorrect > 0), [wordBank]);
   const totalValue = useMemo(
-    () => (wordBank ?? []).reduce((sum: any, w: any) => sum + w.coinValue, 0),
-    [wordBank]
+    () => learned.reduce((sum: number, w: any) => sum + w.coinValue, 0),
+    [learned]
   );
 
   return (
@@ -68,7 +71,7 @@ export default function WordBankPage() {
         </h1>
         <p className="text-pretty" style={{ color: "var(--color-text-muted)" }}>
           You know{" "}
-          <strong style={{ color: "var(--color-brand)" }}>{wordBank?.length ?? 0} words</strong>{" "}
+          <strong style={{ color: "var(--color-brand)" }}>{learned.length} words</strong>{" "}
           worth{" "}
           <strong style={{ color: "var(--color-accent-gold)" }}>
             💎 {totalValue.toLocaleString()} coins
@@ -223,7 +226,7 @@ export default function WordBankPage() {
                 </div>
 
                 <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                  Read {w.timesCorrect}×
+                  {w.timesCorrect > 0 ? `Read ${w.timesCorrect}×` : "Not read yet"}
                 </div>
               </motion.div>
             ))}

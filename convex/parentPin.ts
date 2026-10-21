@@ -24,6 +24,9 @@ export const setParentPin = mutation({
   handler: async (ctx, args) => {
     if (!isValidPinFormat(args.pin)) throw new Error("PIN must be 4 digits");
     const user = await requireUser(ctx);
+    // First-time setup only — replacing a PIN goes through change (needs the
+    // current PIN) or the email-verified reset flow.
+    if (user.parentPinHash) throw new Error("A PIN is already set");
     const parentPinHash = await hashPin(user._id, args.pin);
     await ctx.db.patch(user._id, {
       parentPinHash,

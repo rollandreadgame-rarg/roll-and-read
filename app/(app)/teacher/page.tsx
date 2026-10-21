@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { sessionAccuracy } from "@/lib/game/accuracy";
 import { LEVEL_SEQUENCE } from "@/lib/utils";
 import RequireParentPin from "@/components/parent-pin/RequireParentPin";
 
@@ -34,7 +35,7 @@ function ProfileCard({ profile }: { profile: any }) {
     profileId: profile._id as Id<"profiles">,
   });
 
-  const wordsLearned = wordBank?.length ?? 0;
+  const wordsLearned = (wordBank ?? []).filter((w: any) => w.timesCorrect > 0).length;
   const practiceWords = (wordBank ?? []).filter((w: any) => w.needsPractice);
 
   // accuracyHistory stores fractions (0–1); display as a percentage.
@@ -65,7 +66,7 @@ function ProfileCard({ profile }: { profile: any }) {
     .map((s: any, i: number) => ({
       session: `#${i + 1}`,
       accuracy: Math.round(
-        (s.firstAttemptCorrect / Math.max(s.wordsCorrect, 1)) * 100
+        sessionAccuracy(s) * 100
       ),
     }));
 
@@ -374,8 +375,7 @@ function ProfileCard({ profile }: { profile: any }) {
                               style={{ color: "var(--color-success)" }}
                             >
                               {Math.round(
-                                (s.firstAttemptCorrect /
-                                  Math.max(s.wordsCorrect, 1)) *
+                                sessionAccuracy(s) *
                                   100
                               )}
                               %

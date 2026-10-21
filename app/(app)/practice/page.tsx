@@ -7,7 +7,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { speakWord } from "@/lib/tts/webSpeechTTS";
+import { speakWord, cancelSpeech } from "@/lib/tts/webSpeechTTS";
 import { playSound } from "@/lib/audio/soundManager";
 
 const PRACTICE_COIN_REWARD = 3;
@@ -31,7 +31,9 @@ export default function PracticePage() {
     clerkUser?._id ? { userId: clerkUser._id } : "skip"
   );
 
-  const profileId = profiles?.[0]?._id as Id<"profiles"> | undefined;
+  // Family/classroom accounts pick which reader is practising.
+  const [chosenProfileId, setChosenProfileId] = useState<Id<"profiles"> | null>(null);
+  const profileId = (chosenProfileId ?? profiles?.[0]?._id) as Id<"profiles"> | undefined;
   const wordBank = useQuery(
     api.wordBank.getForProfile,
     profileId ? { profileId } : "skip"
@@ -40,20 +42,41 @@ export default function PracticePage() {
   const markPracticed = useMutation(api.wordBank.markPracticed);
   const awardCoins = useMutation(api.profiles.awardCoins);
 
-  // Snapshot the practice queue once per session — re-querying after each
+  // Snapshot the practice queue once per reader — re-querying after each
   // mutation would shrink it mid-drill and skip ahead unpredictably.
-  const initialQueue = useMemo<PracticeWord[]>(() => {
-    if (!wordBank) return [];
-    return (wordBank as any[])
-      .filter((w) => w.needsPractice)
-      .map((w) => ({
-        _id: w._id,
-        word: w.word,
-        level: w.level,
-        isNonsense: w.isNonsense,
-        coinValue: w.coinValue,
-      }));
-  }, [wordBank?.length]);
+  const [snapshot, setSnapshot] = useState<{ profileId: string; queue: PracticeWord[] } | null>(null);
+  useEffect(() => {
+    if (!wordBank || !profileId || snapshot?.profileId === profileId) return;
+    setSnapshot({
+      profileId,
+      queue: (wordBank as any[])
+        .filter((w) => w.needsPractice)
+        .map((w) => ({
+          _id: w._id,
+          word: w.word,
+          level: w.level,
+          isNonsense: w.isNonsense,
+          coinValue: w.coinValue,
+        })),
+    });
+  }, [wordBank, profileId, snapshot?.profileId]);
+  const initialQueue = useMemo<PracticeWord[]>(
+    () => (snapshot && snapshot.profileId === profileId ? snapshot.queue : []),
+    [snapshot, profileId]
+  );
+
+  const switchReader = (id: Id<"profiles">) => {
+    if (id === profileId) return;
+    cancelSpeech();
+    setChosenProfileId(id);
+    setSnapshot(null);
+    setIdx(0);
+    setDone(false);
+    setResultsBatch({ gotIt: 0, stillHard: 0, coinsEarned: 0 });
+  };
+
+  // One answer at a time — a double tap must not award coins twice.
+  const [busy, setBusy] = useState(false);
 
   const [idx, setIdx] = useState(0);
   const [resultsBatch, setResultsBatch] = useState<{ gotIt: number; stillHard: number; coinsEarned: number }>({
@@ -66,12 +89,15 @@ export default function PracticePage() {
   const current: PracticeWord | undefined = initialQueue[idx];
 
   // Auto-speak each word as it appears.
+  const currentWord = current?.word;
+  const currentId = current?._id;
   useEffect(() => {
-    if (current) {
-      const t = setTimeout(() => speakWord(current.word), 150);
-      return () => clearTimeout(t);
-    }
-  }, [current?._id]);
+    if (!currentWord) return;
+    const t = setTimeout(() => speakWord(currentWord), 150);
+    return () => clearTimeout(t);
+  }, [currentId, currentWord]);
+
+  useEffect(() => () => cancelSpeech(), []);
 
   const advance = () => {
     if (idx + 1 >= initialQueue.length) {
@@ -82,34 +108,68 @@ export default function PracticePage() {
   };
 
   const handleGotIt = async () => {
-    if (!current || !profileId) return;
+    if (!current || !profileId || busy) return;
+    setBusy(true);
     playSound("correct");
-    setResultsBatch((p) => ({
-      ...p,
-      gotIt: p.gotIt + 1,
-      coinsEarned: p.coinsEarned + PRACTICE_COIN_REWARD,
-    }));
-    await Promise.all([
-      markPracticed({ wordBankId: current._id, stillNeedsPractice: false }),
-      awardCoins({ profileId, amount: PRACTICE_COIN_REWARD }),
-    ]);
-    advance();
+    try {
+      await Promise.all([
+        markPracticed({ wordBankId: current._id, stillNeedsPractice: false }),
+        awardCoins({ profileId, amount: PRACTICE_COIN_REWARD }),
+      ]);
+      setResultsBatch((p) => ({
+        ...p,
+        gotIt: p.gotIt + 1,
+        coinsEarned: p.coinsEarned + PRACTICE_COIN_REWARD,
+      }));
+    } catch (err) {
+      console.error("[practice] save failed:", err);
+    } finally {
+      setBusy(false);
+      advance();
+    }
   };
 
   const handleStillHard = async () => {
-    if (!current) return;
+    if (!current || busy) return;
+    setBusy(true);
     playSound("wrong");
     setResultsBatch((p) => ({ ...p, stillHard: p.stillHard + 1 }));
-    await markPracticed({ wordBankId: current._id, stillNeedsPractice: true });
-    advance();
+    try {
+      await markPracticed({ wordBankId: current._id, stillNeedsPractice: true });
+    } catch (err) {
+      console.error("[practice] save failed:", err);
+    } finally {
+      setBusy(false);
+      advance();
+    }
   };
 
   const handleSkip = () => {
     advance();
   };
 
+  const readerPicker =
+    profiles && profiles.length > 1 ? (
+      <div className="flex flex-wrap justify-center gap-2 mb-6" role="group" aria-label="Choose who is practising">
+        {(profiles as any[]).map((p) => (
+          <button
+            key={p._id}
+            onClick={() => switchReader(p._id)}
+            aria-pressed={p._id === profileId}
+            className="px-3 py-1.5 rounded-full text-sm font-semibold"
+            style={{
+              background: p._id === profileId ? "var(--color-brand)" : "rgba(255,255,255,0.06)",
+              color: p._id === profileId ? "white" : "var(--color-text-primary)",
+            }}
+          >
+            <span aria-hidden="true">{p.avatarEmoji}</span> {p.name}
+          </button>
+        ))}
+      </div>
+    ) : null;
+
   // Loading
-  if (!clerkUser || !profiles || !wordBank) {
+  if (!clerkUser || !profiles || !wordBank || !snapshot) {
     return (
       <div className="p-8 text-center" style={{ color: "var(--color-text-muted)" }}>
         Loading…
@@ -121,6 +181,7 @@ export default function PracticePage() {
   if (initialQueue.length === 0) {
     return (
       <div className="mx-auto max-w-md px-4 py-12 text-center">
+        {readerPicker}
         <div className="text-6xl mb-4">🎯</div>
         <h1
           className="text-3xl font-extrabold mb-2 text-balance"
@@ -222,6 +283,7 @@ export default function PracticePage() {
   const progress = Math.round((idx / initialQueue.length) * 100);
   return (
     <div className="mx-auto max-w-md px-4 py-8 flex flex-col items-center">
+      {readerPicker}
       <div className="w-full mb-6">
         <div
           className="h-2 rounded-full overflow-hidden"
@@ -291,7 +353,8 @@ export default function PracticePage() {
       <div className="grid grid-cols-2 gap-3 w-full mb-3">
         <button
           onClick={handleStillHard}
-          className="py-4 rounded-2xl font-bold transition-colors"
+          disabled={busy}
+          className="py-4 rounded-2xl font-bold transition-colors disabled:opacity-60"
           style={{
             background: "rgba(239,68,68,0.15)",
             border: "1px solid rgba(239,68,68,0.4)",
@@ -302,7 +365,8 @@ export default function PracticePage() {
         </button>
         <button
           onClick={handleGotIt}
-          className="py-4 rounded-2xl font-bold text-white"
+          disabled={busy}
+          className="py-4 rounded-2xl font-bold text-white disabled:opacity-60"
           style={{
             background: "linear-gradient(135deg, var(--color-success), color-mix(in srgb, var(--color-success) 70%, black))",
           }}

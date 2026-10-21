@@ -22,22 +22,7 @@ export function formatCoins(amount: number): string {
   return amount.toLocaleString();
 }
 
-// Must match the sublevels seeded in convex/wordData (25 total, 1A–5B).
-export const LEVEL_SEQUENCE = [
-  "1A", "1B", "1C", "1D", "1E", "1F", "1G", "1H",
-  "2A", "2B", "2C", "2D", "2E", "2F", "2G", "2H",
-  "3A", "3B", "3C", "3D",
-  "4A", "4B", "4C",
-  "5A", "5B",
-] as const;
-
-export type Level = typeof LEVEL_SEQUENCE[number];
-
-export function getNextLevel(currentLevel: string): string | null {
-  const idx = LEVEL_SEQUENCE.indexOf(currentLevel as Level);
-  if (idx === -1 || idx >= LEVEL_SEQUENCE.length - 1) return null;
-  return LEVEL_SEQUENCE[idx + 1];
-}
+export { LEVEL_SEQUENCE, getNextLevel, isValidLevel, normalizeLevel, type Level } from "./levels";
 
 export function getLevelNumber(level: string): number {
   return parseInt(level.charAt(0));

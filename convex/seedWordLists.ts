@@ -78,26 +78,22 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "zip", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
   { word: "win", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
   { word: "pin", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
-  { word: "sin", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-in", phonicPattern: "short-i" },
   { word: "pig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "wig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "rig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "dig", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   // 1A nonsense
-  { word: "vat", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
+  { word: "vat", isNonsense: false, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
   { word: "baf", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-af", phonicPattern: "short-a" },
   { word: "mab", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ab", phonicPattern: "short-a" },
-  { word: "kap", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ap", phonicPattern: "short-a" },
   { word: "zat", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-at", phonicPattern: "short-a" },
   { word: "mib", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ib", phonicPattern: "short-i" },
   { word: "fip", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
   { word: "wib", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ib", phonicPattern: "short-i" },
   { word: "kip", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
   { word: "bim", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-im", phonicPattern: "short-i" },
-  { word: "zit", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-it", phonicPattern: "short-i" },
   { word: "tig", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ig", phonicPattern: "short-i" },
   { word: "vip", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ip", phonicPattern: "short-i" },
-  { word: "dilt", isNonsense: true, level: "1A", levelNumber: 1, coinValue: 5, phonicFamily: "-ilt", phonicPattern: "short-i" },
 
   // ─── LEVEL 1B — Short Vowels o/u/e ───
   { word: "dog", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-og", phonicPattern: "short-o" },
@@ -153,11 +149,8 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "jug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
   { word: "bug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
   { word: "mug", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ug", phonicPattern: "short-u" },
-  { word: "gun", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-un", phonicPattern: "short-u" },
   { word: "pun", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-un", phonicPattern: "short-u" },
   { word: "gum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
-  { word: "bum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
-  { word: "rum", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-um", phonicPattern: "short-u" },
   { word: "pen", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-en", phonicPattern: "short-e" },
   { word: "jet", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
   { word: "met", isNonsense: false, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-et", phonicPattern: "short-e" },
@@ -175,7 +168,6 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "zem", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-em", phonicPattern: "short-e" },
   { word: "wep", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ep", phonicPattern: "short-e" },
   { word: "ked", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-ed", phonicPattern: "short-e" },
-  { word: "veg", isNonsense: true, level: "1B", levelNumber: 1, coinValue: 5, phonicFamily: "-eg", phonicPattern: "short-e" },
 
   // ─── LEVEL 1C — Digraphs + Floss Rule ───
   { word: "chip", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-ip", phonicPattern: "digraph-ch" },
@@ -214,7 +206,6 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "chess", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-ess", phonicPattern: "digraph-ch" },
   { word: "chum", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-um", phonicPattern: "digraph-ch" },
   { word: "shack", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ack", phonicPattern: "digraph-sh" },
-  { word: "shift", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ift", phonicPattern: "digraph-sh" },
   { word: "shock", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ock", phonicPattern: "digraph-sh" },
   { word: "shut", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-ut", phonicPattern: "digraph-sh" },
   { word: "thud", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "th-ud", phonicPattern: "digraph-th" },
@@ -243,18 +234,15 @@ const LEVEL1A_TO_1C: WordEntry[] = [
   { word: "fuss", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-uss", phonicPattern: "floss-ss" },
   { word: "mess", isNonsense: false, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ess", phonicPattern: "floss-ss" },
   // 1C nonsense
-  { word: "chiv", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-iv", phonicPattern: "digraph-ch" },
   { word: "shup", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "sh-up", phonicPattern: "digraph-sh" },
   { word: "thef", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "th-ef", phonicPattern: "digraph-th" },
   { word: "whin", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "wh-in", phonicPattern: "digraph-wh" },
   { word: "chab", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-ab", phonicPattern: "digraph-ch" },
   { word: "vell", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ell", phonicPattern: "floss-ll" },
   { word: "ziff", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-iff", phonicPattern: "floss-ff" },
-  { word: "fult", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "-ult", phonicPattern: "floss" },
-  { word: "chelt", isNonsense: true, level: "1C", levelNumber: 1, coinValue: 5, phonicFamily: "ch-elt", phonicPattern: "digraph-ch" },
 ];
 
-const WORD_DATA: WordEntry[] = [
+export const WORD_DATA: WordEntry[] = [
   ...LEVEL1A_TO_1C,
   ...LEVEL1_WORDS,
   ...LEVEL2_WORDS,

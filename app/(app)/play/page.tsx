@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -21,7 +21,6 @@ import LevelUpOverlay from "@/components/celebrations/LevelUpOverlay";
 import TutorialModal from "@/components/celebrations/TutorialModal";
 import UpgradeModal from "@/components/celebrations/UpgradeModal";
 import NonsenseCoachmark from "@/components/celebrations/NonsenseCoachmark";
-import type { WordEntry } from "@/lib/game/boardGenerator";
 
 export default function PlayPage() {
   const { setTheme } = useTheme();
@@ -29,18 +28,19 @@ export default function PlayPage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showNonsenseTip, setShowNonsenseTip] = useState(false);
 
-  const wordRefs = useRef<Record<string, React.RefObject<HTMLButtonElement | null>>>({});
-
   const gameState = useGameState(profileId);
 
-  // Catalog + owned ids for the reward-pick flow.
-  const allStickers = useQuery(api.stickersDb.getAll);
+  // Catalog + owned ids for the reward-pick flow — only loaded once a board is
+  // finished (the catalog is ~600 stickers; no need to fetch it every session).
+  const needStickers = gameState.showBoardComplete || gameState.showPickCategory;
+  const allStickers = useQuery(api.stickersDb.getAll, needStickers ? {} : "skip");
   const profileStickers = useQuery(
     api.stickersDb.getForProfile,
-    profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
+    profileId && needStickers ? { profileId: profileId as Id<"profiles"> } : "skip"
   );
-  const ownedStickerIds = new Set(
-    (profileStickers ?? []).map((ps: { stickerId: string }) => ps.stickerId)
+  const ownedStickerIds = useMemo(
+    () => new Set((profileStickers ?? []).map((ps: { stickerId: string }) => ps.stickerId)),
+    [profileStickers]
   );
 
   const {
@@ -50,6 +50,7 @@ export default function PlayPage() {
     clearedWords,
     activeRow,
     isRolling,
+    rollBusy,
     diceResult,
     wrongWord,
     correctWord,
@@ -128,7 +129,14 @@ export default function PlayPage() {
   // while a row is active (you can't roll again until the row is cleared).
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || isRolling || !board) return;
+      if (e.code !== "Space" || isRolling || rollBusy || !board) return;
+      // Never roll behind an open dialog (tutorial, rewards, level-up, ...).
+      if (
+        showTutorial || showNonsenseTip || showBoardComplete ||
+        showPickCategory || showLevelUp || showLevelLocked
+      ) {
+        return;
+      }
       // Don't hijack Space when a control is focused — Space is the native
       // activation key for buttons/word cards/links, which keyboard and
       // screen-reader users rely on. Only use it as a roll/repeat shortcut
@@ -151,16 +159,10 @@ export default function PlayPage() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [isRolling, activeRow, board, rollDice, repeatWord]);
-
-  const handleWordTapWithRect = useCallback(
-    (word: WordEntry) => {
-      const ref = wordRefs.current[word._id];
-      const rect = ref?.current?.getBoundingClientRect();
-      handleWordTap(word, rect);
-    },
-    [handleWordTap]
-  );
+  }, [
+    isRolling, rollBusy, activeRow, board, rollDice, repeatWord, showTutorial, showNonsenseTip,
+    showBoardComplete, showPickCategory, showLevelUp, showLevelLocked,
+  ]);
 
   const handleTutorialClose = useCallback(() => {
     setShowTutorial(false);
@@ -205,7 +207,7 @@ export default function PlayPage() {
               diceResult={diceResult}
               clearedFaces={clearedRows}
               onRoll={rollDice}
-              disabled={activeRow !== null || isRolling}
+              disabled={activeRow !== null || isRolling || rollBusy}
               rowActive={activeRow !== null}
               onRepeat={repeatWord}
             />
@@ -273,8 +275,7 @@ export default function PlayPage() {
             wrongWord={wrongWord}
             correctWord={correctWord}
             hintWordId={hintWordId}
-            onWordTap={handleWordTapWithRect}
-            wordRefs={wordRefs.current}
+            onWordTap={handleWordTap}
           />
         </div>
       </div>

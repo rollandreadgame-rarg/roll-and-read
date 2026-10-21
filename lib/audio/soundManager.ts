@@ -55,12 +55,24 @@ export function playSound(
   sound.play();
 }
 
+// Mirrored here so word audio (plain HTMLAudioElement, not Howler) can follow
+// the same mute/volume settings as the sound effects.
+let masterVolume = 1;
+let isMuted = false;
+
 export function setMasterVolume(volume: number): void {
+  masterVolume = volume;
   Howler.volume(volume);
 }
 
 export function setMuted(muted: boolean): void {
+  isMuted = muted;
   Howler.mute(muted);
+}
+
+/** Effective 0–1 volume for non-Howler audio (word pronunciations). */
+export function getEffectiveVolume(): number {
+  return isMuted ? 0 : masterVolume;
 }
 
 export function stopAll(): void {

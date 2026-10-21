@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     await convex.mutation(api.users.createUser, {
       clerkId: data.id,
       email: primary?.email_address ?? "",
-      plan: "free",
+      syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
   }
 
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       await convex.mutation(api.users.updateEmailFromClerk, {
         clerkId: data.id,
         email: primary.email_address,
+        syncSecret: process.env.CONVEX_SYNC_SECRET,
       });
     }
   }

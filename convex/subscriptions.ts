@@ -7,38 +7,19 @@ import {
   planFromLookupKey,
   isPaidStatus,
 } from "./subscriptionConfig";
+import { assertSyncSecret, isCallerOrTrusted } from "./authHelpers";
 
-// These two mutations MUST stay public because they're called from Next.js
-// server routes via an unauthenticated ConvexHttpClient (webhook + checkout),
-// which can't call internal functions and carries no ctx.auth identity. To
-// stop anyone from calling them from a browser console to grant themselves a
-// paid plan, the trusted callers pass a shared secret.
-//
-// The trusted callers (the Vercel webhook + checkout routes) send the raw
-// secret from their own CONVEX_SYNC_SECRET env var. We verify it by comparing
-// its SHA-256 against a baked-in hash — a hash is not a credential, so it's
-// safe to keep in source, and Convex never has to store the secret itself.
-const SYNC_SECRET_SHA256 =
-  "55f872a2c31c47ce8dc5e7dc5ecc89784b2ec424fe468e35ff490a54b664e05f";
+// setStripeCustomerId / syncFromStripe MUST stay public because they're called
+// from Next.js server routes via an unauthenticated ConvexHttpClient (webhook +
+// checkout), which can't call internal functions and carries no ctx.auth
+// identity. The trusted callers pass the shared sync secret (see authHelpers).
 
-async function sha256Hex(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function assertSyncSecret(provided) {
-  if (typeof provided !== "string" || provided.length === 0) {
-    throw new Error("Forbidden");
-  }
-  const h = await sha256Hex(provided);
-  if (h !== SYNC_SECRET_SHA256) throw new Error("Forbidden");
-}
-
+// Readable by the signed-in owner (billing/settings pages) or a trusted server
+// route (checkout/portal) — never by an arbitrary caller with someone's clerkId.
 export const getByClerkId = query({
-  args: { clerkId: v.string() },
+  args: { clerkId: v.string(), syncSecret: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    if (!(await isCallerOrTrusted(ctx, args.clerkId, args.syncSecret))) return null;
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

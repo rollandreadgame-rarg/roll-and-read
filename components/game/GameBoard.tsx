@@ -12,8 +12,7 @@ interface GameBoardProps {
   wrongWord: string | null;
   correctWord: string | null;
   hintWordId: string | null;
-  onWordTap: (word: WordEntry) => void;
-  wordRefs?: Record<string, React.RefObject<HTMLButtonElement | null>>;
+  onWordTap: (word: WordEntry, rect?: DOMRect) => void;
 }
 
 export default function GameBoard({
@@ -24,7 +23,6 @@ export default function GameBoard({
   correctWord,
   hintWordId,
   onWordTap,
-  wordRefs,
 }: GameBoardProps) {
   return (
     <div
@@ -44,7 +42,6 @@ export default function GameBoard({
               correctWord={correctWord}
               hintWordId={hintWordId}
               onWordTap={onWordTap}
-              wordRefs={wordRefs}
             />
           )
         ))}
