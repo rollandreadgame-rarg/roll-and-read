@@ -37,14 +37,17 @@ function ProfileCard({ profile }: { profile: any }) {
   const wordsLearned = wordBank?.length ?? 0;
   const practiceWords = (wordBank ?? []).filter((w: any) => w.needsPractice);
 
+  // accuracyHistory stores fractions (0–1); display as a percentage.
   const accuracyHistory = profile.accuracyHistory ?? [];
   const avgAccuracy =
     accuracyHistory.length > 0
       ? Math.round(
-          accuracyHistory.reduce(
+          (accuracyHistory.reduce(
             (a: number, b: number) => a + b,
             0
-          ) / accuracyHistory.length
+          ) /
+            accuracyHistory.length) *
+            100
         )
       : null;
 
@@ -463,8 +466,9 @@ export default function TeacherPage() {
   const overallAvgAccuracy =
     profileAvgAccuracies.length > 0
       ? Math.round(
-          profileAvgAccuracies.reduce((a, b) => a + b, 0) /
-            profileAvgAccuracies.length
+          (profileAvgAccuracies.reduce((a, b) => a + b, 0) /
+            profileAvgAccuracies.length) *
+            100
         )
       : null;
 

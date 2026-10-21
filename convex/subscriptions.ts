@@ -14,15 +14,26 @@ import {
 // stop anyone from calling them from a browser console to grant themselves a
 // paid plan, the trusted callers pass a shared secret.
 //
-// Enforcement is gated on ENFORCE_SYNC_SECRET so it can be turned on AFTER the
-// server routes that send the secret are deployed — a Convex env change takes
-// effect immediately with no code redeploy, giving a zero-downtime cutover.
-function assertSyncSecret(provided) {
-  if (process.env.ENFORCE_SYNC_SECRET !== "true") return;
-  const expected = process.env.CONVEX_SYNC_SECRET;
-  if (!expected || provided !== expected) {
+// The trusted callers (the Vercel webhook + checkout routes) send the raw
+// secret from their own CONVEX_SYNC_SECRET env var. We verify it by comparing
+// its SHA-256 against a baked-in hash — a hash is not a credential, so it's
+// safe to keep in source, and Convex never has to store the secret itself.
+const SYNC_SECRET_SHA256 =
+  "55f872a2c31c47ce8dc5e7dc5ecc89784b2ec424fe468e35ff490a54b664e05f";
+
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function assertSyncSecret(provided) {
+  if (typeof provided !== "string" || provided.length === 0) {
     throw new Error("Forbidden");
   }
+  const h = await sha256Hex(provided);
+  if (h !== SYNC_SECRET_SHA256) throw new Error("Forbidden");
 }
 
 export const getByClerkId = query({
@@ -59,7 +70,7 @@ export const setStripeCustomerId = mutation({
     syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertSyncSecret(args.syncSecret);
+    await assertSyncSecret(args.syncSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -87,7 +98,7 @@ export const syncFromStripe = mutation({
     syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertSyncSecret(args.syncSecret);
+    await assertSyncSecret(args.syncSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_stripe_customer", (q) =>

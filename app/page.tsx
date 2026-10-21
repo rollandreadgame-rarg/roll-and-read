@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: "🎴",
     title: "Earn Stickers & Rewards",
-    desc: "Roll the dice, read the words, earn coins, and spend them on 200+ collectible stickers across 8 exciting categories.",
+    desc: "Roll the dice, read the words, earn coins, and spend them on nearly 600 collectible stickers across 10 exciting categories.",
   },
 ];
 
@@ -25,8 +25,8 @@ const LEVELS = [
   { level: "1B", name: "Short Vowels o, u, e", color: "#10B981" },
   { level: "1C", name: "Digraphs & Floss Rule", color: "#10B981" },
   { level: "1D", name: "Beginning Blends", color: "#10B981" },
-  { level: "2A", name: "Open Syllables", color: "#3B82F6" },
-  { level: "2B", name: "Vowel Teams ai, ay", color: "#3B82F6" },
+  { level: "2A", name: "Vowel Teams ai, ay", color: "#3B82F6" },
+  { level: "2B", name: "Vowel Teams ee, ea", color: "#3B82F6" },
   { level: "3A", name: "Vowel Teams oi, oy", color: "#A855F7" },
   { level: "4A", name: "Consonant-le Syllable", color: "#F59E0B" },
   { level: "5A", name: "Silent Letters", color: "#EF4444" },
@@ -283,7 +283,7 @@ export default async function LandingPage() {
             fontSize: "16px",
           }}
         >
-          5 levels · 29 sub-levels · Hundreds of real and nonsense words
+          5 levels · 25 sub-levels · Hundreds of real and nonsense words
         </p>
         <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
           {LEVELS.map(({ level, name, color }) => (
@@ -330,7 +330,7 @@ export default async function LandingPage() {
               fontSize: "14px",
             }}
           >
-            + 20 more levels →
+            + 16 more levels →
           </div>
         </div>
       </section>

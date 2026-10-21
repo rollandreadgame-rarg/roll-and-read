@@ -531,7 +531,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/animals_cat_wearing-a-crown-and-fancy-dress_512.webp"
   },
   {
-    "name": "With A Cowboy Hat And Bandana",
+    "name": "Cat With A Cowboy Hat And Bandana",
     "category": "Animals",
     "subcategory": "CAT",
     "rarity": "uncommon",
@@ -540,7 +540,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/animals_cat_with-a-cowboy-hat-and-bandana_512.webp"
   },
   {
-    "name": "With Bell Collar",
+    "name": "Cat With Bell Collar",
     "category": "Animals",
     "subcategory": "CAT",
     "rarity": "common",
@@ -549,7 +549,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/animals_cat_with-bell-collar_512.webp"
   },
   {
-    "name": "With Butterfly",
+    "name": "Cat With Butterfly",
     "category": "Animals",
     "subcategory": "CAT",
     "rarity": "common",
@@ -558,7 +558,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/animals_cat_with-butterfly_512.webp"
   },
   {
-    "name": "With Fish",
+    "name": "Cat With Fish",
     "category": "Animals",
     "subcategory": "CAT",
     "rarity": "common",
@@ -567,7 +567,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/animals_cat_with-fish_512.webp"
   },
   {
-    "name": "With Hat",
+    "name": "Cat With Hat",
     "category": "Animals",
     "subcategory": "CAT",
     "rarity": "common",
@@ -3888,7 +3888,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_baseball-bats_robot-holding-metal-bat_512.webp"
   },
   {
-    "name": "Adventure And Travel_alien Hoops",
+    "name": "Alien Hoops",
     "category": "Sports & Games",
     "subcategory": "Basketballs",
     "rarity": "common",
@@ -3897,7 +3897,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_basketballs_adventure-and-travel-alien-hoops_512.webp"
   },
   {
-    "name": "Adventure And Travel_bunny Dribbler",
+    "name": "Bunny Dribbler",
     "category": "Sports & Games",
     "subcategory": "Basketballs",
     "rarity": "common",
@@ -3906,7 +3906,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_basketballs_adventure-and-travel-bunny-dribbler_512.webp"
   },
   {
-    "name": "Adventure And Travel_cat Point Guard",
+    "name": "Cat Point Guard",
     "category": "Sports & Games",
     "subcategory": "Basketballs",
     "rarity": "common",
@@ -3915,7 +3915,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_basketballs_adventure-and-travel-cat-point-guard_512.webp"
   },
   {
-    "name": "Adventure And Travel_panda Layup",
+    "name": "Panda Layup",
     "category": "Sports & Games",
     "subcategory": "Basketballs",
     "rarity": "uncommon",
@@ -3924,7 +3924,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_basketballs_adventure-and-travel-panda-layup_512.webp"
   },
   {
-    "name": "Adventure And Travel_penguin Baller",
+    "name": "Penguin Baller",
     "category": "Sports & Games",
     "subcategory": "Basketballs",
     "rarity": "legendary",
@@ -4068,7 +4068,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_chess-pieces_rook-piece-character_512.webp"
   },
   {
-    "name": "Adventure And Travel_bear Downhill Ride",
+    "name": "Bear Downhill Ride",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "common",
@@ -4077,7 +4077,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_adventure-and-travel-bear-downhill-ride_512.webp"
   },
   {
-    "name": "Adventure And Travel_bear Downhill Ride_light",
+    "name": "Bear Downhill Ride (Light)",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "common",
@@ -4086,7 +4086,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_adventure-and-travel-bear-downhill-ride-light_512.webp"
   },
   {
-    "name": "Adventure And Travel_cat Skater Girl",
+    "name": "Cat Skater Girl",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "uncommon",
@@ -4095,7 +4095,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_adventure-and-travel-cat-skater-girl_512.webp"
   },
   {
-    "name": "Adventure And Travel_dragon Skater",
+    "name": "Dragon Skater",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "uncommon",
@@ -4104,7 +4104,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_adventure-and-travel-dragon-skater_512.webp"
   },
   {
-    "name": "Adventure And Travel_panda Skater",
+    "name": "Panda Skater",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "common",
@@ -4113,7 +4113,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_adventure-and-travel-panda-skater_512.webp"
   },
   {
-    "name": "Adventure And Travel_robot Skater",
+    "name": "Robot Skater",
     "category": "Sports & Games",
     "subcategory": "skate boards",
     "rarity": "common",
@@ -4167,7 +4167,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_skate-boards_robot-hover-skating_512.webp"
   },
   {
-    "name": "Adventure And Travel_classic Soccer Ball Kick",
+    "name": "Classic Soccer Ball Kick",
     "category": "Sports & Games",
     "subcategory": "Soccer balls",
     "rarity": "rare",
@@ -4176,7 +4176,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_soccer-balls_adventure-and-travel-classic-soccer-ball-kick_512.webp"
   },
   {
-    "name": "Adventure And Travel_crown Soccer Ball Champion",
+    "name": "Crown Soccer Ball Champion",
     "category": "Sports & Games",
     "subcategory": "Soccer balls",
     "rarity": "common",
@@ -4185,7 +4185,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_soccer-balls_adventure-and-travel-crown-soccer-ball-champion_512.webp"
   },
   {
-    "name": "Adventure And Travel_flame Soccer Ball Shot",
+    "name": "Flame Soccer Ball Shot",
     "category": "Sports & Games",
     "subcategory": "Soccer balls",
     "rarity": "uncommon",
@@ -4194,7 +4194,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_soccer-balls_adventure-and-travel-flame-soccer-ball-shot_512.webp"
   },
   {
-    "name": "Adventure And Travel_galaxy Soccer Ball Juggle",
+    "name": "Galaxy Soccer Ball Juggle",
     "category": "Sports & Games",
     "subcategory": "Soccer balls",
     "rarity": "common",
@@ -4203,7 +4203,7 @@
     "imageFullUrl": "https://pub-960217aea7c5430e820e8595dc3cbcde.r2.dev/stickers/sports-and-games_soccer-balls_adventure-and-travel-galaxy-soccer-ball-juggle_512.webp"
   },
   {
-    "name": "Adventure And Travel_graffiti Soccer Ball",
+    "name": "Graffiti Soccer Ball",
     "category": "Sports & Games",
     "subcategory": "Soccer balls",
     "rarity": "rare",
