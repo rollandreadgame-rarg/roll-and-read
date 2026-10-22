@@ -260,10 +260,11 @@ export default function DashboardPage() {
       {/* Session history */}
       {(sessions?.length ?? 0) > 0 && (
         <section className="panel p-4 sm:p-5">
-          <h2 className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
+          <h2 id="recent-sessions-title" className="text-lg font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>
             Recent sessions
           </h2>
-          <div className="overflow-x-auto">
+          {/* Scrolls sideways on phones, so it must be reachable by keyboard. */}
+          <div className="overflow-x-auto rounded-lg" tabIndex={0} role="region" aria-labelledby="recent-sessions-title">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ color: "var(--color-text-muted)" }}>

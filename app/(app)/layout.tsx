@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ParentGateProvider } from "@/providers/ParentGateProvider";
 import TopNav from "@/components/navigation/TopNav";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorReporter from "@/components/system/ErrorReporter";
 
 const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
 
@@ -21,6 +22,7 @@ export default async function AppLayout({
     <ThemeProvider>
       <ParentGateProvider>
         <div className="min-h-dvh flex flex-col" style={{ background: "var(--color-bg-primary)" }}>
+          <ErrorReporter />
           <TopNav />
           <main className="flex-1 flex flex-col">
             <ErrorBoundary>{children}</ErrorBoundary>

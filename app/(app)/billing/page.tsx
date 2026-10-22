@@ -60,6 +60,18 @@ function noticeStyle(token: string): React.CSSProperties {
 
 const SUCCESS_TEXT = "var(--color-success-text)";
 
+// Stripe subscription statuses in plain words for the "Current plan" line.
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  trialing: "Free trial",
+  past_due: "Payment failed",
+  unpaid: "Unpaid",
+  canceled: "Cancelled",
+  incomplete: "Waiting for payment",
+  incomplete_expired: "Payment expired",
+  paused: "Paused",
+};
+
 function StatusBanner({ status }: { status: string | null }) {
   if (!status) return null;
   if (status === "success") {
@@ -145,6 +157,24 @@ function BillingPageInner() {
 
       <StatusBanner status={status} />
 
+      {(sub?.subscriptionStatus === "past_due" || sub?.subscriptionStatus === "unpaid") && (
+        <div role="alert" className="rounded-2xl px-4 py-4" style={noticeStyle("var(--color-error)")}>
+          <p className="font-bold" style={{ color: "var(--color-error-text)" }}>
+            Your last payment didn&apos;t go through.
+          </p>
+          <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+            Update your card to keep every level unlocked. Stripe will try the payment again.
+          </p>
+          <button
+            onClick={openPortal}
+            disabled={busyKey === "portal"}
+            className="btn-primary mt-3 px-5 py-2.5 text-sm"
+          >
+            {busyKey === "portal" ? "Opening…" : "Update payment method"}
+          </button>
+        </div>
+      )}
+
       {errorMsg && (
         <div
           role="alert"
@@ -178,7 +208,7 @@ function BillingPageInner() {
             </div>
             {sub?.subscriptionStatus && (
               <div className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
-                Status: {sub.subscriptionStatus}
+                Status: {STATUS_LABELS[sub.subscriptionStatus] ?? sub.subscriptionStatus}
                 {periodEnd ? ` · renews ${periodEnd}` : ""}
                 {sub.cancelAtPeriodEnd ? " · cancels at period end" : ""}
               </div>

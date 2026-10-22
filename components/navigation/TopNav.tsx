@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap, CreditCard, Target } from "lucide-react";
+import { BookOpen, Settings, Dices, Star, ShoppingBag, BarChart2, GraduationCap, CreditCard, Target, CircleHelp } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ export default function TopNav() {
           style={{ color: "var(--color-text-primary)" }}
         >
           <MiniDie face={5} className="size-7 -rotate-6" />
-          <span className="md:sr-only xl:not-sr-only">Roll &amp; Read</span>
+          <span className="sr-only sm:not-sr-only md:sr-only xl:not-sr-only">Roll &amp; Read</span>
         </Link>
 
         {/* Nav links */}
@@ -101,6 +101,15 @@ export default function TopNav() {
               <Icon size={20} aria-hidden="true" />
             </Link>
           ))}
+          <Link
+            href="/help"
+            className="flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--color-hover)]"
+            style={{ color: "var(--color-text-muted)" }}
+            aria-label="Help"
+            title="Help"
+          >
+            <CircleHelp size={20} aria-hidden="true" />
+          </Link>
           <Link
             href="/settings"
             aria-current={pathname === "/settings" ? "page" : undefined}

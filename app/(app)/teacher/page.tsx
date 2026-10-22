@@ -1,8 +1,8 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,7 +21,15 @@ import { LEVEL_SEQUENCE } from "@/lib/utils";
 import { LEVEL_SKILLS, type Level } from "@/lib/levels";
 import RequireParentPin from "@/components/parent-pin/RequireParentPin";
 import MiniDie from "@/components/game/MiniDie";
-import { Printer, ChevronDown } from "lucide-react";
+import { useParentGate } from "@/providers/ParentGateProvider";
+import {
+  MetricInfoButton,
+  MetricInfoPanel,
+  useMetricInfo,
+} from "@/components/teacher-tour/MetricInfo";
+import { useTeacherTour } from "@/components/teacher-tour/useTeacherTour";
+import { ON_TRACK_ACCURACY_PCT, type MetricId } from "@/lib/teacher-tour/metrics";
+import { Printer, ChevronDown, CircleHelp } from "lucide-react";
 
 // Status tokens mixed toward the theme text colour so numbers stay readable
 // (AA) on both the dark and the light themes.
@@ -32,8 +40,12 @@ const GOLD_TEXT = "var(--color-gold-text)";
 // ─── ProfileCard ─────────────────────────────────────────────────────────────
 // Separate component so each card calls its own useQuery hooks (Rules of Hooks)
 
-function ProfileCard({ profile }: { profile: any }) {
+// `tourAnchors`: only the first card carries the data-tour hooks the
+// onboarding tour spotlights, so the tour always lands on one reader.
+function ProfileCard({ profile, tourAnchors = false }: { profile: any; tourAnchors?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const info = useMetricInfo(`reader-${profile._id}`);
+  const tour = (anchorId: string) => (tourAnchors ? anchorId : undefined);
 
   const sessions = useQuery(api.gameSessions.getForProfile, {
     profileId: profile._id as Id<"profiles">,
@@ -89,6 +101,7 @@ function ProfileCard({ profile }: { profile: any }) {
         className="w-full text-left p-5 transition-colors hover:bg-[var(--color-hover)]"
         aria-expanded={isExpanded}
         aria-controls={`profile-detail-${profile._id}`}
+        data-tour={tour("reader-card-toggle")}
       >
         <div className="flex items-center gap-3 mb-4">
           <span className="text-4xl" aria-hidden="true">{profile.avatarEmoji}</span>
@@ -133,7 +146,7 @@ function ProfileCard({ profile }: { profile: any }) {
               value: avgAccuracy !== null ? `${avgAccuracy}%` : "—",
               color:
                 avgAccuracy !== null
-                  ? avgAccuracy >= 70
+                  ? avgAccuracy >= ON_TRACK_ACCURACY_PCT
                     ? SUCCESS_TEXT
                     : WARN_TEXT
                   : "var(--color-text-muted)",
@@ -190,21 +203,30 @@ function ProfileCard({ profile }: { profile: any }) {
               className="px-5 pb-5 flex flex-col gap-6"
               style={{ borderTop: "1px solid var(--color-line)" }}
             >
-              {/* 4 stat tiles */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-5">
-                {[
-                  { label: "Current level", value: profile.currentLevel },
-                  { label: "Boards cleared", value: profile.totalBoardsCleared },
-                  {
-                    label: "Avg accuracy",
-                    value: avgAccuracy !== null ? `${avgAccuracy}%` : "—",
-                  },
-                  { label: "Words learned", value: wordsLearned },
-                ].map(({ label, value }) => (
+              {/* 4 stat tiles (+ their "?" explainers, which open below the grid) */}
+              <div className="flex flex-col gap-2 pt-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(
+                  [
+                    { label: "Current level", value: profile.currentLevel },
+                    {
+                      label: "Boards cleared",
+                      value: profile.totalBoardsCleared,
+                      metricId: "boards",
+                    },
+                    {
+                      label: "Avg accuracy",
+                      value: avgAccuracy !== null ? `${avgAccuracy}%` : "—",
+                      metricId: "accuracy",
+                    },
+                    { label: "Words learned", value: wordsLearned },
+                  ] as { label: string; value: string | number; metricId?: MetricId }[]
+                ).map(({ label, value, metricId }) => (
                   <div
                     key={label}
                     className="rounded-xl p-3 text-center"
                     style={{ background: "var(--color-surface-2)" }}
+                    data-tour={metricId ? tour(`metric-${metricId}`) : undefined}
                   >
                     <div
                       className="font-extrabold text-lg tabular-nums"
@@ -213,23 +235,31 @@ function ProfileCard({ profile }: { profile: any }) {
                       {value}
                     </div>
                     <div
-                      className="text-xs"
+                      className="text-xs flex items-center justify-center gap-1"
                       style={{ color: "var(--color-text-muted)" }}
                     >
                       {label}
+                      {metricId && <MetricInfoButton metricId={metricId} info={info} />}
                     </div>
                   </div>
                 ))}
               </div>
+              <MetricInfoPanel metricId="boards" info={info} />
+              <MetricInfoPanel metricId="accuracy" info={info} />
+              </div>
 
               {/* Level progress */}
-              <div>
-                <h3
-                  className="text-sm font-bold mb-2"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  Level progress
-                </h3>
+              <div data-tour={tour("metric-level-progress")}>
+                <div className="flex items-center gap-1 mb-2">
+                  <h3
+                    className="text-sm font-bold"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
+                    Level progress
+                  </h3>
+                  <MetricInfoButton metricId="level-progress" info={info} />
+                </div>
+                <MetricInfoPanel metricId="level-progress" info={info} className="mb-2" />
                 <div className="flex flex-nowrap gap-1.5 overflow-x-auto p-1 pb-2">
                   {LEVEL_SEQUENCE.map((level, i) => {
                     const isCompleted = i < levelIdx;
@@ -268,13 +298,17 @@ function ProfileCard({ profile }: { profile: any }) {
 
               {/* Accuracy trend chart */}
               {accuracyData.length > 0 && (
-                <div>
-                  <h3
-                    className="text-sm font-bold mb-3"
-                    style={{ color: "var(--color-text-primary)" }}
-                  >
-                    Accuracy trend (last {accuracyData.length} sessions)
-                  </h3>
+                <div data-tour={tour("metric-trend")}>
+                  <div className="flex items-center gap-1 mb-3">
+                    <h3
+                      className="text-sm font-bold"
+                      style={{ color: "var(--color-text-primary)" }}
+                    >
+                      Accuracy trend (last {accuracyData.length} sessions)
+                    </h3>
+                    <MetricInfoButton metricId="trend" info={info} />
+                  </div>
+                  <MetricInfoPanel metricId="trend" info={info} className="mb-3" />
                   <ResponsiveContainer width="100%" height={140}>
                     <LineChart data={accuracyData}>
                       <CartesianGrid
@@ -328,7 +362,11 @@ function ProfileCard({ profile }: { profile: any }) {
                   Loading sessions…
                 </p>
               ) : sessions.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-6 text-center" style={{ color: "var(--color-text-muted)" }}>
+                <div
+                  className="flex flex-col items-center gap-2 py-6 text-center"
+                  style={{ color: "var(--color-text-muted)" }}
+                  data-tour={tour("metric-trend")}
+                >
                   <MiniDie face={1} tone="dim" className="w-8 h-8" />
                   <p
                     className="text-sm font-semibold"
@@ -407,21 +445,41 @@ function ProfileCard({ profile }: { profile: any }) {
                 </div>
               )}
 
-              {/* Needs practice words */}
-              {practiceWords.length > 0 && (
+              {/* Needs practice words (shown empty too, so the explainer and
+                  the tour step are always reachable once the word bank loads) */}
+              {wordBank !== undefined && (
                 <div
                   className="rounded-2xl p-4"
-                  style={{
-                    background: "color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface))",
-                    border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)",
-                  }}
+                  data-tour={tour("metric-practice")}
+                  style={
+                    practiceWords.length > 0
+                      ? {
+                          background: "color-mix(in srgb, var(--color-warning) 10%, var(--color-bg-surface))",
+                          border: "1px solid color-mix(in srgb, var(--color-warning) 35%, transparent)",
+                        }
+                      : {
+                          background: "var(--color-surface-2)",
+                          border: "1px solid var(--color-line)",
+                        }
+                  }
                 >
-                  <h3
-                    className="text-sm font-bold mb-3"
-                    style={{ color: "var(--color-text-primary)" }}
-                  >
-                    Needs practice ({practiceWords.length} words)
-                  </h3>
+                  <div className="flex items-center gap-1 mb-3">
+                    <h3
+                      className="text-sm font-bold"
+                      style={{ color: "var(--color-text-primary)" }}
+                    >
+                      {practiceWords.length > 0
+                        ? `Needs practice (${practiceWords.length} ${practiceWords.length === 1 ? "word" : "words"})`
+                        : "Needs practice"}
+                    </h3>
+                    <MetricInfoButton metricId="practice" info={info} />
+                  </div>
+                  <MetricInfoPanel metricId="practice" info={info} className="mb-3" />
+                  {practiceWords.length === 0 && (
+                    <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      Nothing to practise right now.
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-1.5">
                     {practiceWords.map((w: any) => (
                       <span
@@ -492,6 +550,60 @@ export default function TeacherPage() {
     (clerkUser !== null && profiles === undefined);
   const hasNoProfiles = !isLoading && (profiles?.length ?? 0) === 0;
 
+  // ── Onboarding tour ──
+  const gate = useParentGate();
+  const { start: startTour, announcement } = useTeacherTour({
+    variant: hasNoProfiles ? "empty" : "full",
+    hasPin: gate.hasPin,
+  });
+  const markTourSeen = useMutation(api.users.markTeacherTourSeen);
+  const autoStartedRef = useRef(false);
+  // Auto-launch once, on the first visit that has a reader to explain and
+  // the dashboard actually on screen (PIN unlocked). With zero readers we
+  // don't auto-launch or set the flag, so the full tour still plays the
+  // first time a reader exists; "How this works" runs the short version.
+  const canAutoStart =
+    !isLoading &&
+    !hasNoProfiles &&
+    Boolean(clerkUser) &&
+    clerkUser?.hasSeenTeacherTour !== true &&
+    gate.loaded &&
+    (!gate.hasPin || gate.unlocked);
+
+  useEffect(() => {
+    if (!canAutoStart || autoStartedRef.current) return;
+    // Let the dashboard paint (and the cards animate in) first.
+    const t = setTimeout(() => {
+      autoStartedRef.current = true;
+      void startTour();
+      markTourSeen({}).catch((err) => console.error("markTeacherTourSeen failed", err));
+    }, 700);
+    return () => clearTimeout(t);
+  }, [canAutoStart, startTour, markTourSeen]);
+
+  const tourLiveRegion = (
+    <p className="sr-only" aria-live="polite" aria-atomic="true">
+      {announcement}
+    </p>
+  );
+
+  const howThisWorksButton = (
+    <button
+      type="button"
+      data-tour="tour-replay"
+      onClick={() => void startTour()}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-colors hover:bg-[var(--color-hover)]"
+      style={{
+        background: "var(--color-surface-2)",
+        border: "1px solid var(--color-line)",
+        color: "var(--color-text-primary)",
+      }}
+    >
+      <CircleHelp size={16} aria-hidden="true" />
+      How this works
+    </button>
+  );
+
   if (isLoading) {
     return (
       <div
@@ -516,10 +628,13 @@ export default function TeacherPage() {
         </p>
         <a
           href="/settings"
+          data-tour="add-reader"
           className="btn-primary inline-flex items-center justify-center px-6 py-3"
         >
           Create a profile in Settings
         </a>
+        {howThisWorksButton}
+        {tourLiveRegion}
       </div>
     );
   }
@@ -557,6 +672,8 @@ export default function TeacherPage() {
               Progress overview for all readers
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          {howThisWorksButton}
           <button
             onClick={() => window.print()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-colors hover:bg-[var(--color-hover)]"
@@ -569,10 +686,11 @@ export default function TeacherPage() {
             <Printer size={16} aria-hidden="true" />
             Print report
           </button>
+          </div>
         </div>
 
         {/* Overview strip */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3" data-tour="overview">
           {[
             {
               label: "Profiles",
@@ -622,11 +740,12 @@ export default function TeacherPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
             >
-              <ProfileCard profile={profile} />
+              <ProfileCard profile={profile} tourAnchors={i === 0} />
             </motion.div>
           ))}
         </div>
       </div>
+      {tourLiveRegion}
     </>
     </RequireParentPin>
   );

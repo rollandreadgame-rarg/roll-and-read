@@ -38,6 +38,8 @@ export const create = mutation({
     userId: v.id("users"),
     name: v.string(),
     avatarEmoji: v.string(),
+    // Grown-up's chosen starting sublevel (defaults to 1A).
+    startingLevel: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -55,11 +57,19 @@ export const create = mutation({
       );
     }
 
+    const startingLevel = args.startingLevel ?? "1A";
+    if (!isValidLevel(startingLevel)) throw new Error(`Invalid level ${startingLevel}`);
+    if (!isLevelAllowed(user.plan, startingLevel)) {
+      throw new Error(
+        `LEVEL_LOCKED: Your ${user.plan} plan only includes Level 1. Upgrade to unlock ${startingLevel}.`
+      );
+    }
+
     return await ctx.db.insert("profiles", {
       userId: args.userId,
       name: args.name,
       avatarEmoji: args.avatarEmoji,
-      currentLevel: "1A",
+      currentLevel: startingLevel,
       boardsClearedAtLevel: 0,
       totalBoardsCleared: 0,
       coins: 0,
@@ -186,6 +196,31 @@ export const advanceLevel = mutation({
 
     await ctx.db.patch(args.profileId, {
       currentLevel: args.nextLevel,
+      boardsClearedAtLevel: 0,
+      accuracyHistory: [],
+    });
+  },
+});
+
+// A grown-up places a reader at any sublevel their plan includes (up for a
+// reader who already knows the early patterns, down for one who needs more
+// practice). Progress toward the next level starts over.
+export const setLevel = mutation({
+  args: {
+    profileId: v.id("profiles"),
+    level: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user, profile } = await requireProfileOwner(ctx, args.profileId);
+    if (!isValidLevel(args.level)) throw new Error(`Invalid level ${args.level}`);
+    if (!isLevelAllowed(user.plan, args.level)) {
+      throw new Error(
+        `LEVEL_LOCKED: Your ${user.plan} plan only includes Level 1. Upgrade to unlock ${args.level}.`
+      );
+    }
+    if (profile.currentLevel === args.level) return;
+    await ctx.db.patch(args.profileId, {
+      currentLevel: args.level,
       boardsClearedAtLevel: 0,
       accuracyHistory: [],
     });

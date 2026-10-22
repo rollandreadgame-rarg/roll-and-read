@@ -3,12 +3,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useId, useRef, type ReactNode } from "react";
 import MiniDie from "@/components/game/MiniDie";
+import { playClip, cancelSpeech } from "@/lib/tts/webSpeechTTS";
 
 interface TutorialModalProps {
   show: boolean;
   onClose: () => void;
 }
 
+// Each step is also read aloud (public/audio/tutorial/step-N.mp3, same voice
+// as the words) because most players can't read these instructions yet.
 const SLIDES: { icon: ReactNode; title: string; desc: string }[] = [
   {
     icon: <MiniDie face={5} className="w-20 h-20" />,
@@ -23,12 +26,12 @@ const SLIDES: { icon: ReactNode; title: string; desc: string }[] = [
       </span>
     ),
     title: "Find the row with that many dots",
-    desc: "The row with the same dots lights up. That's the row you play.",
+    desc: "That row lights up. It's the row you play.",
   },
   {
     icon: <span aria-hidden="true">👂</span>,
     title: "Listen",
-    desc: "Listen to the word. Press the space bar to hear it again.",
+    desc: "Listen to the word. Tap Hear it again to hear it one more time.",
   },
   {
     icon: <span aria-hidden="true">👆</span>,
@@ -77,6 +80,15 @@ export default function TutorialModal({ show, onClose }: TutorialModalProps) {
     if (slide < SLIDES.length - 1) setSlide((s) => s + 1);
     else onClose();
   };
+
+  // Read the step aloud when it appears; stop talking when the tutorial closes.
+  useEffect(() => {
+    if (!show) return;
+    playClip(`/audio/tutorial/step-${slide + 1}.mp3`);
+  }, [show, slide]);
+  useEffect(() => {
+    if (!show) cancelSpeech();
+  }, [show]);
 
   const current = SLIDES[slide];
   const isLast = slide === SLIDES.length - 1;
@@ -138,9 +150,16 @@ export default function TutorialModal({ show, onClose }: TutorialModalProps) {
                   >
                     {current.title}
                   </h3>
-                  <p className="text-base mb-8" style={{ color: "var(--color-text-secondary)" }}>
+                  <p className="text-base mb-4" style={{ color: "var(--color-text-secondary)" }}>
                     {current.desc}
                   </p>
+                  <button
+                    onClick={() => playClip(`/audio/tutorial/step-${slide + 1}.mp3`)}
+                    className="mx-auto mb-6 flex items-center gap-2 px-4 rounded-2xl text-sm font-semibold transition-colors hover:bg-[var(--color-hover)]"
+                    style={{ color: "var(--color-text-primary)", border: "1px solid var(--color-line-strong)" }}
+                  >
+                    <span aria-hidden="true">🔊</span> Hear it
+                  </button>
                 </motion.div>
               </AnimatePresence>
 

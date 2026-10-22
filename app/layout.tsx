@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Andika, Lexend } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
+import MotionPreferences from "@/components/system/MotionPreferences";
+import SiteAnalytics from "@/components/system/SiteAnalytics";
 import "./globals.css";
 
 // Interface text: Lexend was designed around reading-fluency research.
@@ -48,8 +50,9 @@ export default function RootLayout({
     <html lang="en" data-theme="ocean" className={`${lexend.variable} ${andika.variable}`}>
       <body>
         <ConvexClientProvider>
-          {children}
+          <MotionPreferences>{children}</MotionPreferences>
         </ConvexClientProvider>
+        <SiteAnalytics />
       </body>
     </html>
   );

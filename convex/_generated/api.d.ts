@@ -11,6 +11,7 @@
 import type * as adminStickers from "../adminStickers.js";
 import type * as adminTesters from "../adminTesters.js";
 import type * as authHelpers from "../authHelpers.js";
+import type * as clientErrors from "../clientErrors.js";
 import type * as e2eSetup from "../e2eSetup.js";
 import type * as gameSessions from "../gameSessions.js";
 import type * as maintenance from "../maintenance.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   adminStickers: typeof adminStickers;
   adminTesters: typeof adminTesters;
   authHelpers: typeof authHelpers;
+  clientErrors: typeof clientErrors;
   e2eSetup: typeof e2eSetup;
   gameSessions: typeof gameSessions;
   maintenance: typeof maintenance;

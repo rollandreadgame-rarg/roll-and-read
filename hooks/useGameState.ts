@@ -80,6 +80,27 @@ export function useGameState(profileId: string | null) {
       : "skip"
   );
 
+  // Review words from earlier sublevels. The seed rotates the older levels
+  // every 3 boards; the last result is kept while a new one loads so a board
+  // never starts without review words just because the query is in flight.
+  const reviewSeed = profile ? Math.floor(profile.totalBoardsCleared / 3) : 0;
+  const reviewQuery = useQuery(
+    api.wordLists.getReviewPool,
+    profile && level ? { level, wordMode: profile.wordMode, seed: reviewSeed } : "skip"
+  );
+  const [reviewCache, setReviewCache] = useState<{ level: string; words: WordEntry[] } | null>(null);
+  useEffect(() => {
+    if (reviewQuery && level) setReviewCache({ level, words: reviewQuery as WordEntry[] });
+  }, [reviewQuery, level]);
+  const reviewReady = !!level && reviewCache?.level === level;
+  const reviewPool = reviewReady ? reviewCache!.words : [];
+
+  // Words this reader is still practising come back on the board.
+  const practiceWords = useQuery(
+    api.wordBank.getPracticeWords,
+    profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
+  );
+
   const wordBankStats = useQuery(
     api.wordBank.getStats,
     profileId ? { profileId: profileId as Id<"profiles"> } : "skip"
@@ -173,6 +194,21 @@ export function useGameState(profileId: string | null) {
   const deferredLockedRef = useRef(false);
   const lockPromptShownRef = useRef(false);
 
+  // Unclaimed sticker picks survive a reload or a closed tab (per device), so
+  // a child who leaves before picking still gets their stickers next time.
+  const pendingKey = profileId ? `rr:pendingRewards:${profileId}` : null;
+  const savePending = (list: MilestoneTrigger[]) => {
+    if (!pendingKey) return;
+    try {
+      if (list.length) localStorage.setItem(pendingKey, JSON.stringify(list));
+      else localStorage.removeItem(pendingKey);
+    } catch {
+      // Storage unavailable (private mode): rewards just won't survive a reload.
+    }
+  };
+  const restoredPicksRef = useRef(false);
+  const restoreCheckedRef = useRef<string | null>(null);
+
   // Session tracking
   const sessionRef = useRef<SessionStats>({
     wordsCorrect: 0,
@@ -239,7 +275,7 @@ export function useGameState(profileId: string | null) {
 
   // Start a new board
   const startNewBoard = useCallback(() => {
-    if (!wordPool || !profile || !level) return;
+    if (!wordPool || !profile || !level || !reviewReady || practiceWords === undefined) return;
     if (profile.wordMode === "nonsense" && fillPool === undefined) return;
 
     const newBoard = generateBoard({
@@ -249,6 +285,8 @@ export function useGameState(profileId: string | null) {
       nextLevelPool: canAdvance ? ((nextWordPool ?? []) as WordEntry[]) : [],
       fillPool: (fillPool ?? []) as WordEntry[],
       recentAccuracy: profile.accuracyHistory ?? [],
+      reviewPool,
+      practicePool: (practiceWords ?? []) as WordEntry[],
     });
     preloadWords(newBoard.rows.flatMap((r) => r.words.map((w) => w.word)));
 
@@ -273,7 +311,7 @@ export function useGameState(profileId: string | null) {
       coinsEarned: 0,
       startTime: Date.now(),
     };
-  }, [wordPool, fillPool, profile, level, nextWordPool, canAdvance]);
+  }, [wordPool, fillPool, profile, level, nextWordPool, canAdvance, reviewPool, reviewReady, practiceWords]);
 
   // Roll the dice
   const rollDice = useCallback(async () => {
@@ -349,7 +387,8 @@ export function useGameState(profileId: string | null) {
         // CORRECT — lock input until the next word (or row clear) is set up.
         busyRef.current = true;
         try {
-          const wasFirstAttempt = attemptsRef.current === 0;
+          const misses = attemptsRef.current;
+          const wasFirstAttempt = misses === 0;
           if (wasFirstAttempt) sessionRef.current.firstAttemptCorrect++;
           sessionRef.current.wordsCorrect++;
           sessionRef.current.coinsEarned += target.coinValue;
@@ -404,6 +443,7 @@ export function useGameState(profileId: string | null) {
               isNonsense: target.isNonsense,
               coinValue: target.coinValue,
               needsPractice: false,
+              missesBeforeCorrect: misses,
             }),
             "addWord"
           );
@@ -613,6 +653,7 @@ export function useGameState(profileId: string | null) {
       // Do NOT auto-grant. Queue the milestone choices for the pick flow, and
       // stash the level-up so it fires only after every reward is claimed.
       setPendingRewards(milestones);
+      savePending(milestones);
       deferredLevelUpRef.current = isLevelUp ? nextLevel : null;
 
       setBoardCompleteData({
@@ -685,13 +726,36 @@ export function useGameState(profileId: string | null) {
   const handleRewardClaimed = useCallback(() => {
     setPendingRewards((prev) => {
       const next = prev.slice(1);
+      savePending(next);
       if (next.length === 0) {
         setShowPickCategory(false);
-        setTimeout(resolveAfterRewards, 50); // let the modal unmount cleanly
+        if (restoredPicksRef.current) {
+          // Picks left over from an earlier visit: the current board stays.
+          restoredPicksRef.current = false;
+        } else {
+          setTimeout(resolveAfterRewards, 50); // let the modal unmount cleanly
+        }
       }
       return next;
     });
-  }, [resolveAfterRewards]);
+  }, [resolveAfterRewards, pendingKey]);
+
+  // On arriving with a board ready, offer any picks left unclaimed last time.
+  useEffect(() => {
+    if (!pendingKey || !board || restoreCheckedRef.current === pendingKey) return;
+    restoreCheckedRef.current = pendingKey;
+    if (showBoardComplete || showPickCategory || pendingRewards.length > 0) return;
+    let stored: MilestoneTrigger[] = [];
+    try {
+      stored = JSON.parse(localStorage.getItem(pendingKey) ?? "[]");
+    } catch {
+      stored = [];
+    }
+    if (!Array.isArray(stored) || stored.length === 0) return;
+    restoredPicksRef.current = true;
+    setPendingRewards(stored);
+    setShowPickCategory(true);
+  }, [pendingKey, board]);
 
   const handleLevelUpClose = useCallback(() => {
     setShowLevelUp(false);
@@ -752,6 +816,11 @@ export function useGameState(profileId: string | null) {
     handleWordTap,
     handleLevelUpClose,
     markTutorialSeen,
-    isReady: !!wordPool && !!profile && (profile.wordMode !== "nonsense" || fillPool !== undefined),
+    isReady:
+      !!wordPool &&
+      !!profile &&
+      reviewReady &&
+      practiceWords !== undefined &&
+      (profile.wordMode !== "nonsense" || fillPool !== undefined),
   };
 }

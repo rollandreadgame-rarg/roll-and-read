@@ -33,6 +33,42 @@ const RETIRED_LEVELS: Record<string, Level> = {
   "5E": "5B",
 };
 
+/** Position of a sublevel in the curriculum (-1 if unknown). */
+export function levelIndex(level: string): number {
+  return LEVEL_SEQUENCE.indexOf(level as Level);
+}
+
+// Small seeded PRNG so a Convex query (which must be deterministic) can still
+// vary which older levels it reviews from board to board.
+function seededRandom(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Earlier sublevels to draw review words from: the two just before this one
+ * (most review), plus up to three older ones picked by `seed` so every older
+ * pattern keeps coming back over time.
+ */
+export function getReviewLevels(level: string, seed: number): { recent: Level[]; older: Level[] } {
+  const idx = levelIndex(level);
+  if (idx <= 0) return { recent: [], older: [] };
+  const earlier = LEVEL_SEQUENCE.slice(0, idx);
+  const recent = earlier.slice(-2);
+  const pool = earlier.slice(0, -2);
+  const rand = seededRandom(seed);
+  const older: Level[] = [];
+  while (older.length < 3 && pool.length > 0) {
+    older.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+  }
+  return { recent, older };
+}
+
 /** The valid level a stored level should be treated as (itself if valid). */
 export function normalizeLevel(level: string): Level {
   if (isValidLevel(level)) return level;

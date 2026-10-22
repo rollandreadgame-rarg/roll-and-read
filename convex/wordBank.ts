@@ -2,6 +2,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireProfileOwner, ownsProfile } from "./authHelpers";
+import { levelIndex, normalizeLevel } from "../lib/levels";
 
 export const getForProfile = query({
   args: { profileId: v.id("profiles") },
@@ -24,6 +25,8 @@ export const addWord = mutation({
     isNonsense: v.boolean(),
     coinValue: v.number(),
     needsPractice: v.boolean(),
+    // Wrong taps before the right one. Optional for older clients.
+    missesBeforeCorrect: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireProfileOwner(ctx, args.profileId);
@@ -34,12 +37,24 @@ export const addWord = mutation({
       )
       .first();
 
-    // A word skipped after 7 misses (needsPractice) is recorded for practice
-    // but NOT counted as read correctly — it isn't "learned" yet.
+    // Practice status: skipped (7 misses) or needed the hint (3+ misses) →
+    // practise it; read on the first try → done practising; one or two misses
+    // → no change. Older clients send only needsPractice.
+    const misses = args.missesBeforeCorrect;
+    const needsPractice = args.needsPractice
+      ? true
+      : misses === undefined || misses === 0
+        ? false
+        : misses >= 3
+          ? true
+          : (existing?.needsPractice ?? false);
+
+    // A word skipped after 7 misses is recorded for practice but NOT counted
+    // as read correctly — it isn't "learned" yet.
     if (existing) {
       await ctx.db.patch(existing._id, {
         timesCorrect: existing.timesCorrect + (args.needsPractice ? 0 : 1),
-        needsPractice: args.needsPractice,
+        needsPractice,
       });
       return existing._id;
     }
@@ -51,7 +66,7 @@ export const addWord = mutation({
       level: args.level,
       isNonsense: args.isNonsense,
       coinValue: args.coinValue,
-      needsPractice: args.needsPractice,
+      needsPractice,
       firstEarned: Date.now(),
       timesCorrect: args.needsPractice ? 0 : 1,
     });
@@ -67,6 +82,33 @@ export const getTotalValue = query({
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
       .collect();
     return words.reduce((sum, w) => sum + (w.timesCorrect > 0 ? w.coinValue : 0), 0);
+  },
+});
+
+// Words this reader is still practising, as full word-list entries, so the
+// game can put them back on the board. Only levels up to the reader's current
+// one, and no silly words for a real-words-only reader.
+export const getPracticeWords = query({
+  args: { profileId: v.id("profiles") },
+  handler: async (ctx, args) => {
+    const owned = await ownsProfile(ctx, args.profileId);
+    if (!owned) return [];
+    const { profile } = owned;
+    const maxIdx = levelIndex(normalizeLevel(profile.currentLevel));
+    const entries = await ctx.db
+      .query("word_bank")
+      .withIndex("by_profile_practice", (q) =>
+        q.eq("profileId", args.profileId).eq("needsPractice", true)
+      )
+      .take(40);
+    const words = [];
+    for (const e of entries) {
+      const w = await ctx.db.get(e.wordId);
+      if (!w || levelIndex(w.level) > maxIdx) continue;
+      if (profile.wordMode === "real" && w.isNonsense) continue;
+      words.push(w);
+    }
+    return words;
   },
 });
 

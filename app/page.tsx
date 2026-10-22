@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import MiniDie from "@/components/game/MiniDie";
 import { LEVEL_SEQUENCE, LEVEL_SKILLS } from "@/lib/levels";
 
@@ -90,8 +88,6 @@ function keepSuffixesWhole(text: string) {
   ));
 }
 
-const IS_E2E = process.env.NEXT_PUBLIC_E2E_MODE === "true";
-
 function DemoCard({ w, silly, active }: { w: string; silly?: boolean; active?: boolean }) {
   if (!active) {
     return (
@@ -134,11 +130,9 @@ function DemoCard({ w, silly, active }: { w: string; silly?: boolean; active?: b
   );
 }
 
-export default async function LandingPage() {
-  if (!IS_E2E) {
-    const { userId } = await auth();
-    if (userId) redirect("/play");
-  }
+// Static page: signed-in visitors are sent to /play by the middleware, so the
+// page itself never needs the session and can be served from the CDN.
+export default function LandingPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
@@ -283,8 +277,9 @@ export default async function LandingPage() {
             ))}
           </ol>
           <p className="mt-10 max-w-2xl leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-            Clear all six rows to finish a board. After seven boards with steady accuracy, your
-            reader moves up to the next skill.
+            Clear all six rows to finish a board. After seven boards with 80% of words read right
+            the first time, your reader moves up to the next skill. Every board also brings back
+            words from earlier skills, and any word your reader missed returns until they get it.
           </p>
         </section>
 
@@ -428,6 +423,7 @@ export default async function LandingPage() {
             {[
               ["/sign-in", "Sign in"],
               ["/sign-up", "Sign up"],
+              ["/help", "Help"],
               ["/privacy", "Privacy policy"],
               ["/terms", "Terms"],
             ].map(([href, label]) => (

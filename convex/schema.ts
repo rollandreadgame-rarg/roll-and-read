@@ -22,6 +22,8 @@ export default defineSchema({
     stripePriceId: v.optional(v.string()),
     currentPeriodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.optional(v.boolean()),
+    // Grown-up dashboard welcome tour (on the adult, not the child profile).
+    hasSeenTeacherTour: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -77,6 +79,7 @@ export default defineSchema({
   })
     .index("by_profile", ["profileId"])
     .index("by_profile_word", ["profileId", "wordId"])
+    .index("by_profile_practice", ["profileId", "needsPractice"])
     .index("by_word", ["wordId"]),
 
   stickers: defineTable({
@@ -123,4 +126,17 @@ export default defineSchema({
   })
     .index("by_profile", ["profileId"])
     .index("by_profile_date", ["profileId", "completedAt"]),
+
+  // Client-side crashes reported by signed-in browsers (no child data: just
+  // the error text, page path and browser).
+  client_errors: defineTable({
+    message: v.string(),
+    stack: v.optional(v.string()),
+    path: v.string(),
+    userAgent: v.string(),
+    clerkId: v.string(),
+    at: v.number(),
+  })
+    .index("by_at", ["at"])
+    .index("by_clerk_at", ["clerkId", "at"]),
 });

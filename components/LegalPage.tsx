@@ -1,8 +1,17 @@
 // components/LegalPage.tsx
-// Shared shell for the public Privacy/Terms pages — readable, dark-themed,
-// with a back-to-home link. Server component (no client JS needed).
+// Shared shell for the public Help, Privacy and Terms pages: readable prose on
+// the theme tokens, a back-to-home link and a small footer. Server component
+// (no client JS needed).
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SUPPORT_EMAIL } from "@/lib/contact";
+
+const FOOTER_LINKS: [href: string, label: string][] = [
+  ["/", "Home"],
+  ["/help", "Help"],
+  ["/privacy", "Privacy policy"],
+  ["/terms", "Terms"],
+];
 
 export default function LegalPage({
   title,
@@ -15,7 +24,7 @@ export default function LegalPage({
 }) {
   return (
     <div style={{ minHeight: "100dvh", background: "var(--color-bg-primary)", color: "var(--color-text-secondary)" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 56px" }}>
         <Link
           href="/"
           style={{ color: "var(--color-brand-secondary)", textDecoration: "none", fontSize: 15, fontWeight: 600 }}
@@ -45,7 +54,29 @@ export default function LegalPage({
         >
           {children}
         </div>
-      </div>
+      </main>
+
+      <footer style={{ borderTop: "1px solid var(--color-line)" }}>
+        <nav
+          aria-label="Footer"
+          style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 40px", color: "var(--color-text-secondary)", fontSize: 16 }}
+        >
+          <ul className="flex flex-wrap" style={{ listStyle: "none", margin: 0, padding: 0, columnGap: 8 }}>
+            {FOOTER_LINKS.map(([href, label]) => (
+              <li key={href}>
+                <Link href={href} className="flex items-center rounded-lg px-2 hover:underline">
+                  {label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center rounded-lg px-2 hover:underline">
+                Contact
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </footer>
 
       {/* Shared readable typography for the legal prose */}
       <style>{`

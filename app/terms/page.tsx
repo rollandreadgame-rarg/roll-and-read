@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Roll & Read",
   description: "The terms that govern your use of Roll & Read.",
 };
-
-const SUPPORT_EMAIL = "support@rollandreadgame.com";
 
 export default function TermsPage() {
   return (

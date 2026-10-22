@@ -10,6 +10,8 @@ import { useProfileSelector } from "@/hooks/useProfile";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id } from "@/convex/_generated/dataModel";
 import MiniDie from "@/components/game/MiniDie";
+import LevelSelect from "@/components/LevelSelect";
+import type { Plan } from "@/convex/subscriptionConfig";
 
 const AVATARS: [string, string][] = [
   ["🦊", "fox"], ["🐻", "bear"], ["🐼", "panda"], ["🦁", "lion"], ["🐯", "tiger"],
@@ -27,12 +29,14 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAvatar, setNewAvatar] = useState("🦊");
+  const [newLevel, setNewLevel] = useState("1A");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useCurrentUser();
   const sub = useQuery(api.subscriptions.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const atLimit = !!sub && profiles.length >= sub.profileLimit;
+  const plan = (sub?.plan ?? "free") as Plan;
 
   const handleCreate = async () => {
     if (!newName.trim() || !clerkUser || saving) return;
@@ -43,6 +47,7 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
         userId: clerkUser._id as Id<"users">,
         name: newName.trim(),
         avatarEmoji: newAvatar,
+        startingLevel: newLevel,
       });
       onSelect(id as string);
     } catch (err) {
@@ -50,7 +55,9 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
       setError(
         msg.includes("PROFILE_LIMIT_REACHED")
           ? "Your plan is full. Upgrade to add more readers."
-          : "Couldn't add the reader — please try again."
+          : msg.includes("LEVEL_LOCKED")
+            ? "That level needs a paid plan. Pick a Level 1 sublevel or upgrade."
+            : "Couldn't add the reader. Please try again."
       );
     } finally {
       setSaving(false);
@@ -179,6 +186,24 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
               autoFocus
               maxLength={20}
             />
+
+            <label
+              htmlFor="first-reader-level"
+              className="block text-sm font-semibold mb-2"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Starting level (for grown-ups)
+            </label>
+            <LevelSelect
+              id="first-reader-level"
+              value={newLevel}
+              onChange={setNewLevel}
+              plan={plan}
+              describedBy="first-reader-level-help"
+            />
+            <p id="first-reader-level-help" className="text-xs mt-2 mb-4" style={{ color: "var(--color-text-muted)" }}>
+              Not sure? Start at 1A. You can change it any time in Settings.
+            </p>
 
             {error && (
               <p

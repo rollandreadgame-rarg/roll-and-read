@@ -1,0 +1,151 @@
+/* Themes the driver.js tour popover with the app's design tokens so it works
+   in all 5 themes (3 dark, 2 light). Loaded only with the tour chunk on
+   /teacher. Selectors are doubled-up (.driver-popover.rr-tour) to beat
+   driver.css, which uses `all: unset` on its popover and buttons. */
+
+.driver-popover.rr-tour {
+  --driver-popover-font-family: var(--font-ui);
+  font-family: var(--font-ui);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--color-bg-primary) 30%, black);
+  padding: 18px;
+  min-width: min(260px, calc(100vw - 32px));
+  max-width: min(340px, calc(100vw - 32px));
+}
+
+.driver-popover.rr-tour .driver-popover-title {
+  color: var(--color-text-primary);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.35;
+  padding-right: 36px; /* room for the close button */
+  text-wrap: balance;
+}
+
+.driver-popover.rr-tour .driver-popover-description {
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.driver-popover.rr-tour .driver-popover-description p + p {
+  margin-top: 0.5rem;
+}
+.driver-popover.rr-tour .rr-tour-good {
+  color: var(--color-success-text);
+  font-weight: 700;
+}
+.driver-popover.rr-tour .rr-tour-watch {
+  color: var(--color-warning-text);
+  font-weight: 700;
+}
+
+.driver-popover.rr-tour .driver-popover-footer {
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.driver-popover.rr-tour .driver-popover-progress-text {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+.driver-popover.rr-tour .driver-popover-navigation-btns {
+  gap: 8px;
+}
+.driver-popover.rr-tour .driver-popover-navigation-btns button + button {
+  margin-left: 0;
+}
+
+/* Footer buttons: Next/Done = .btn-primary look; Back = quiet surface button. */
+.driver-popover.rr-tour .driver-popover-footer-btn {
+  box-sizing: border-box;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: none;
+  cursor: pointer;
+}
+.driver-popover.rr-tour .driver-popover-next-btn {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  border: 1px solid transparent;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--color-brand) 60%, black);
+}
+.driver-popover.rr-tour .driver-popover-next-btn:hover,
+.driver-popover.rr-tour .driver-popover-next-btn:focus {
+  background: var(--color-brand);
+  filter: brightness(1.08);
+}
+.driver-popover.rr-tour .driver-popover-prev-btn {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-line-strong);
+}
+.driver-popover.rr-tour .driver-popover-prev-btn:hover,
+.driver-popover.rr-tour .driver-popover-prev-btn:focus {
+  background: var(--color-surface-2);
+  filter: brightness(1.05);
+}
+
+.driver-popover.rr-tour .driver-popover-close-btn {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  top: 6px;
+  right: 6px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;
+  color: var(--color-text-muted);
+}
+.driver-popover.rr-tour .driver-popover-close-btn:hover,
+.driver-popover.rr-tour .driver-popover-close-btn:focus {
+  color: var(--color-text-primary);
+  background: var(--color-hover);
+}
+
+/* driver.css resets outlines with `all: unset`; restore the app's focus ring. */
+.driver-popover.rr-tour button:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+/* Arrow: driver.css paints the visible side white; use the popover surface. */
+.driver-popover.rr-tour .driver-popover-arrow-side-left {
+  border-left-color: var(--color-bg-surface);
+}
+.driver-popover.rr-tour .driver-popover-arrow-side-right {
+  border-right-color: var(--color-bg-surface);
+}
+.driver-popover.rr-tour .driver-popover-arrow-side-top {
+  border-top-color: var(--color-bg-surface);
+}
+.driver-popover.rr-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--color-bg-surface);
+}
+
+/* Ring around the spotlighted element so it stands out in light themes too. */
+.driver-active .driver-active-element {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover.rr-tour,
+  .driver-popover.rr-tour * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

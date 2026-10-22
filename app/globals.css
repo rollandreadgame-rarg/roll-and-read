@@ -342,6 +342,15 @@ button, [role="button"], a, input, select {
   min-width: 44px;
 }
 
+/* Fast taps from small hands: no double-tap zoom delay, and a long press on a
+   button doesn't select its text or open the iOS callout menu. */
+button, [role="button"] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* ── Background effects per theme ── */
 .theme-bg-ocean,
 .theme-bg-space,

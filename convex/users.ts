@@ -55,6 +55,27 @@ export const getByClerkId = query({
   },
 });
 
+// Record that the signed-in grown-up has seen the /teacher onboarding tour, so
+// it only auto-launches once. Takes no ids: the caller is resolved from
+// ctx.auth, so nobody can flip another account's flag.
+export const markTeacherTourSeen = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+    if (!user) return; // user row not bootstrapped yet; nothing to mark
+    if (user.hasSeenTeacherTour === true) return;
+    await ctx.db.patch(user._id, {
+      hasSeenTeacherTour: true,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // Sync a user's email when Clerk fires user.updated.
 // IMPORTANT: never touches `plan` — Stripe (via subscriptions.syncFromStripe)
 // is the single source of truth for billing tier. Writing plan here would

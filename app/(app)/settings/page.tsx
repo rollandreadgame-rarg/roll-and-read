@@ -16,6 +16,9 @@ import ParentPinSetup from "@/components/parent-pin/ParentPinSetup";
 import ParentPinNudge from "@/components/parent-pin/ParentPinNudge";
 import PinInput from "@/components/parent-pin/PinInput";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
+import LevelSelect from "@/components/LevelSelect";
+import { LEVEL_SKILLS, isValidLevel } from "@/lib/levels";
+import type { Plan } from "@/convex/subscriptionConfig";
 
 // Swatch hex values mirror each theme's tokens in app/globals.css. They are
 // only used for the little preview in the theme picker.
@@ -97,6 +100,10 @@ export default function SettingsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAvatar, setNewAvatar] = useState("🦊");
+  const [newLevel, setNewLevel] = useState("1A");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [pendingLevel, setPendingLevel] = useState<string | null>(null);
+  const [levelMsg, setLevelMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -120,6 +127,7 @@ export default function SettingsPage() {
   // Treat unknown (still loading) as NOT paid so premium gates aren't briefly
   // bypassable while clerkUser is undefined.
   const isPaid = !!clerkUser && clerkUser.plan !== "free";
+  const plan = (clerkUser?.plan ?? "free") as Plan;
   const profilesLoading = clerkUser === undefined || (clerkUser !== null && profiles === undefined);
   const profileCount = profiles?.length ?? 0;
   const profileLimit = subscription?.profileLimit ?? 1;
@@ -137,19 +145,51 @@ export default function SettingsPage() {
   const createProfile = useMutation(api.profiles.create);
   const updateProfile = useMutation(api.profiles.update);
   const removeProfile = useMutation(api.profiles.remove);
+  const setLevel = useMutation(api.profiles.setLevel);
   const changePin = useMutation(api.parentPin.changeParentPin);
   const removePin = useMutation(api.parentPin.removeParentPin);
 
   const handleCreateProfile = async () => {
     if (!newName.trim() || !clerkUser) return;
-    await createProfile({
-      userId: clerkUser._id,
-      name: newName.trim(),
-      avatarEmoji: newAvatar,
-    });
+    setCreateError(null);
+    try {
+      await createProfile({
+        userId: clerkUser._id,
+        name: newName.trim(),
+        avatarEmoji: newAvatar,
+        startingLevel: newLevel,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setCreateError(
+        msg.includes("PROFILE_LIMIT_REACHED")
+          ? "Your plan is full. Upgrade to add more readers."
+          : msg.includes("LEVEL_LOCKED")
+            ? "That level needs a paid plan. Pick a Level 1 sublevel or upgrade."
+            : "Couldn't add the reader. Please try again."
+      );
+      return;
+    }
     setIsCreating(false);
     setNewName("");
     setNewAvatar("🦊");
+    setNewLevel("1A");
+  };
+
+  const shownLevel = pendingLevel ?? (profile && isValidLevel(profile.currentLevel) ? profile.currentLevel : "1A");
+  const handleSaveLevel = async () => {
+    if (!profile || !pendingLevel || pendingLevel === profile.currentLevel) return;
+    try {
+      await setLevel({ profileId: profile._id as Id<"profiles">, level: pendingLevel });
+      setLevelMsg({ text: `${profile.name} now plays ${pendingLevel}: ${LEVEL_SKILLS[pendingLevel as keyof typeof LEVEL_SKILLS]}.`, ok: true });
+      setPendingLevel(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setLevelMsg({
+        text: msg.includes("LEVEL_LOCKED") ? "That level needs a paid plan." : "Couldn't change the level. Please try again.",
+        ok: false,
+      });
+    }
   };
 
   const handleUpdateWordMode = async (mode: WordModeType) => {
@@ -367,13 +407,99 @@ export default function SettingsPage() {
               style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-line-strong)", color: "var(--color-text-primary)" }}
               autoFocus
             />
+            <label htmlFor="new-reader-level" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
+              Starting level
+            </label>
+            <LevelSelect id="new-reader-level" value={newLevel} onChange={setNewLevel} plan={plan} describedBy="new-reader-level-help" />
+            <p id="new-reader-level-help" className="text-xs mt-2 mb-4" style={{ color: "var(--color-text-muted)" }}>
+              Not sure? Start at 1A. You can change it any time here.
+            </p>
+            {createError && (
+              <p role="alert" className="text-sm font-semibold mb-3" style={{ color: ERROR_TEXT }}>
+                {createError}
+              </p>
+            )}
             <div className="flex gap-2">
-              <button onClick={() => setIsCreating(false)} className={`${SECONDARY_BTN} flex-1 py-2.5 text-sm`}>Cancel</button>
+              <button onClick={() => { setIsCreating(false); setCreateError(null); }} className={`${SECONDARY_BTN} flex-1 py-2.5 text-sm`}>Cancel</button>
               <button onClick={handleCreateProfile} disabled={!newName.trim()} className="btn-primary flex-1 py-2.5 text-sm">Create</button>
             </div>
           </div>
         )}
       </section>
+
+      {/* Per-reader settings: which reader they apply to */}
+      {profile && (profiles?.length ?? 0) > 1 && (
+        <section className={SECTION_CLASS} aria-labelledby="reader-picker-title">
+          <h2 id="reader-picker-title" className={`${H2_CLASS} mb-1`} style={{ color: "var(--color-text-primary)" }}>
+            Change settings for
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            Reading level and word mode are set for each reader.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(profiles ?? []).map((p: any) => {
+              const selected = p._id === selectedProfileId;
+              return (
+                <button
+                  key={p._id}
+                  onClick={() => { setActiveProfileId(p._id); setPendingLevel(null); setLevelMsg(null); }}
+                  aria-pressed={selected}
+                  className="flex items-center gap-2 px-4 py-2 rounded-2xl font-semibold text-sm transition-colors"
+                  style={{
+                    background: selected ? "color-mix(in srgb, var(--color-brand) 14%, var(--color-bg-surface))" : "var(--color-surface-2)",
+                    border: selected ? "2px solid var(--color-brand-secondary)" : "2px solid transparent",
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  <span aria-hidden="true">{p.avatarEmoji}</span>
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Reading level */}
+      {profile && (
+        <section className={SECTION_CLASS} aria-labelledby="reading-level-title">
+          <h2 id="reading-level-title" className={`${H2_CLASS} mb-1`} style={{ color: "var(--color-text-primary)" }}>
+            Reading level
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            <span aria-hidden="true">{profile.avatarEmoji}</span> {profile.name} is on{" "}
+            <strong style={{ color: "var(--color-text-primary)" }}>
+              {profile.currentLevel}
+              {isValidLevel(profile.currentLevel) ? `: ${LEVEL_SKILLS[profile.currentLevel]}` : ""}
+            </strong>
+            , with {profile.boardsClearedAtLevel} {profile.boardsClearedAtLevel === 1 ? "board" : "boards"} cleared at this level.
+          </p>
+          <label htmlFor="reader-level" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
+            Move to a different level
+          </label>
+          <LevelSelect
+            id="reader-level"
+            value={shownLevel}
+            onChange={(l) => { setPendingLevel(l); setLevelMsg(null); }}
+            plan={plan}
+            describedBy="reader-level-help"
+          />
+          <p id="reader-level-help" className="text-xs mt-2 mb-4" style={{ color: "var(--color-text-muted)" }}>
+            Readers move up on their own after 7 boards at a level with 80% or more read right the first time.
+            Changing the level here starts that count over.
+          </p>
+          <button
+            onClick={handleSaveLevel}
+            disabled={!pendingLevel || pendingLevel === profile.currentLevel}
+            className="btn-primary px-5 py-2.5 text-sm"
+          >
+            Save level
+          </button>
+          <p role="status" className="text-sm font-semibold mt-3 min-h-[1.25rem]" style={{ color: levelMsg?.ok ? SUCCESS_TEXT : ERROR_TEXT }}>
+            {levelMsg?.text ?? ""}
+          </p>
+        </section>
+      )}
 
       {/* Word Mode */}
       {profile && (
