@@ -50,6 +50,10 @@ export const LEVEL_UP_ACCURACY = 0.8;
 export const LEVEL_UP_MIN_BOARDS = 7;
 const REVIEW_PER_BOARD = 6;
 const PRACTICE_PER_BOARD = 4;
+// Accuracies are fractions like 21/30; their average can land a hair under the
+// threshold in floating point (21/30 + 24/30 + 27/30 averages 0.7999999999999999).
+// Anything this close to the threshold counts as meeting it.
+const ACCURACY_EPSILON = 1e-9;
 
 export function generateBoard(config: BoardConfig): GameBoard {
   const {
@@ -67,7 +71,7 @@ export function generateBoard(config: BoardConfig): GameBoard {
   // a reader who's doing well (a struggling reader keeps practising this level).
   const recent = recentAccuracy.slice(-3);
   const doingWell =
-    recent.length === 0 || recent.reduce((a, b) => a + b, 0) / recent.length >= BLEND_MIN_ACCURACY;
+    recent.length === 0 || recent.reduce((a, b) => a + b, 0) / recent.length >= BLEND_MIN_ACCURACY - ACCURACY_EPSILON;
   let nextRatio = 0;
   if (boardsCleared >= 4 && doingWell) {
     const blendBoard = boardsCleared - 3;
@@ -138,5 +142,5 @@ export function checkLevelAdvancement(
   const recent = accuracyHistory.slice(-3);
   if (recent.length < 3) return false;
   const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  return avg >= LEVEL_UP_ACCURACY;
+  return avg >= LEVEL_UP_ACCURACY - ACCURACY_EPSILON;
 }

@@ -32,10 +32,15 @@ export default function ParentPinPrompt() {
     const res = await verify({ pin: value });
     if (res.ok) { markUnlocked(); return; }
     setPin("");
-    setError(res.lockedUntil ? "Too many tries — wait a minute." : "Incorrect PIN.");
+    const ms = res.lockedUntil ? res.lockedUntil - Date.now() : 0;
+    const minutes = Math.max(1, Math.ceil(ms / 60_000));
+    setError(
+      res.lockedUntil
+        ? `Too many tries. Wait ${minutes} ${minutes === 1 ? "minute" : "minutes"}, or choose Forgot PIN.`
+        : "Incorrect PIN."
+    );
     if (res.lockedUntil) {
       setLocked(true);
-      const ms = res.lockedUntil - Date.now();
       setTimeout(() => setLocked(false), ms > 0 ? ms : 0);
     }
     if (!reduced) { setShake(true); setTimeout(() => setShake(false), 400); }

@@ -57,7 +57,7 @@ export const verifyParentPin = mutation({
     }
     const next = registerFailure(user.parentPinAttempts, now);
     await ctx.db.patch(user._id, {
-      parentPinAttempts: next.lockedUntil ? 0 : next.attempts,
+      parentPinAttempts: next.attempts,
       parentPinLockedUntil: next.lockedUntil,
     });
     return { ok: false, lockedUntil: next.lockedUntil || undefined };
@@ -77,7 +77,7 @@ export const changeParentPin = mutation({
     if (current !== user.parentPinHash) {
       const next = registerFailure(user.parentPinAttempts, now);
       await ctx.db.patch(user._id, {
-        parentPinAttempts: next.lockedUntil ? 0 : next.attempts,
+        parentPinAttempts: next.attempts,
         parentPinLockedUntil: next.lockedUntil,
       });
       return { ok: false, lockedUntil: next.lockedUntil || undefined };
@@ -105,7 +105,7 @@ export const removeParentPin = mutation({
     if (current !== user.parentPinHash) {
       const next = registerFailure(user.parentPinAttempts, now);
       await ctx.db.patch(user._id, {
-        parentPinAttempts: next.lockedUntil ? 0 : next.attempts,
+        parentPinAttempts: next.attempts,
         parentPinLockedUntil: next.lockedUntil,
       });
       return { ok: false, lockedUntil: next.lockedUntil || undefined };

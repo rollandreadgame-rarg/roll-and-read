@@ -45,6 +45,8 @@ export const openPack = mutation({
     if (profile.coins < pack.cost) throw new Error("INSUFFICIENT_COINS");
 
     const allStickers = await ctx.db.query("stickers").collect();
+    // Never take coins for an empty pack.
+    if (allStickers.length === 0) throw new Error("NO_STICKERS_AVAILABLE");
     const owned = await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))

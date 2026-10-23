@@ -28,6 +28,14 @@ export const grantSticker = mutation({
   },
   handler: async (ctx, args) => {
     await requireProfileOwner(ctx, args.profileId);
+    if (!(await ctx.db.get(args.stickerId))) throw new Error("Sticker not found");
+    // Already collected → keep the one row (no double-counting in the album).
+    const owned = await ctx.db
+      .query("profile_stickers")
+      .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    const existing = owned.find((ps) => String(ps.stickerId) === String(args.stickerId));
+    if (existing) return existing._id;
     return await ctx.db.insert("profile_stickers", {
       profileId: args.profileId,
       stickerId: args.stickerId,

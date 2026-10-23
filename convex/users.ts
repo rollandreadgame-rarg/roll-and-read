@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { isCallerOrTrusted } from "./authHelpers";
+import { assertSyncSecret, isCallerOrTrusted } from "./authHelpers";
 
 // Called by the Clerk webhook (trusted, sends the sync secret) and by the
 // signed-in client as a fallback when the webhook lags. New users always start
@@ -87,9 +87,9 @@ export const updateEmailFromClerk = mutation({
     syncSecret: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!(await isCallerOrTrusted(ctx, args.clerkId, args.syncSecret))) {
-      throw new Error("Forbidden");
-    }
+    // Webhook only. A signed-in browser must not be able to rewrite its own
+    // stored email (it is how operators find accounts, e.g. adminTesters).
+    await assertSyncSecret(args.syncSecret);
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

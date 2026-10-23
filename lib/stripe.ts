@@ -24,6 +24,9 @@ function getStripe(): Stripe {
 // while collecting the API routes.
 export const stripe = new Proxy({} as Stripe, {
   get(_target, prop, receiver) {
+    // Not a thenable: `await stripe` / returning it from an async function
+    // probes `.then`, which must not construct the client (or throw without a key).
+    if (prop === "then") return undefined;
     const client = getStripe();
     const value = Reflect.get(client as object, prop, receiver);
     return typeof value === "function" ? value.bind(client) : value;

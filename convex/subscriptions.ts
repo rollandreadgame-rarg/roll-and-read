@@ -7,7 +7,7 @@ import {
   planFromLookupKey,
   isPaidStatus,
 } from "./subscriptionConfig";
-import { assertSyncSecret, isCallerOrTrusted } from "./authHelpers";
+import { assertSyncSecret, isCallerOrTrusted, ownsProfile } from "./authHelpers";
 
 // setStripeCustomerId / syncFromStripe MUST stay public because they're called
 // from Next.js server routes via an unauthenticated ConvexHttpClient (webhook +
@@ -91,6 +91,19 @@ export const syncFromStripe = mutation({
     const paid = isPaidStatus(args.subscriptionStatus);
     const plan = paid ? planFromLookupKey(args.priceLookupKey) : "free";
 
+    // A late or retried event about an OLD subscription (e.g. the deletion of
+    // an unpaid one after the customer started a new plan) must not downgrade
+    // the subscription they are paying for now.
+    if (
+      !paid &&
+      args.stripeSubscriptionId &&
+      user.stripeSubscriptionId &&
+      args.stripeSubscriptionId !== user.stripeSubscriptionId &&
+      isPaidStatus(user.subscriptionStatus)
+    ) {
+      return { ignored: "stale subscription" };
+    }
+
     await ctx.db.patch(user._id, {
       plan,
       subscriptionStatus: args.subscriptionStatus ?? undefined,
@@ -104,13 +117,13 @@ export const syncFromStripe = mutation({
 });
 
 // UI helper — does this profile's user's plan allow the requested level?
+// Owner-only, like every other profile read (no peeking at other families'
+// plans by profile id).
 export const canAccessLevel = query({
   args: { profileId: v.id("profiles"), level: v.string() },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) return false;
-    const user = await ctx.db.get(profile.userId);
-    if (!user) return false;
-    return isLevelAllowed(user.plan, args.level);
+    const owned = await ownsProfile(ctx, args.profileId);
+    if (!owned) return false;
+    return isLevelAllowed(owned.user.plan, args.level);
   },
 });

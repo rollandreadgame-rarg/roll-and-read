@@ -19,8 +19,23 @@ export const save = mutation({
   },
   handler: async (ctx, args) => {
     await requireProfileOwner(ctx, args.profileId);
+    // Clamp rather than reject, so a client glitch never loses a real session,
+    // but the dashboard never shows negative counts or accuracy above 100%.
+    const n = (x: number) => (Number.isFinite(x) && x > 0 ? Math.round(x) : 0);
+    const wordsAttempted = n(args.wordsAttempted);
+    const wordsCorrect = Math.min(n(args.wordsCorrect), wordsAttempted);
     return await ctx.db.insert("game_sessions", {
-      ...args,
+      profileId: args.profileId,
+      level: args.level,
+      boardsPlayed: n(args.boardsPlayed),
+      wordsAttempted,
+      wordsCorrect,
+      firstAttemptCorrect: Math.min(n(args.firstAttemptCorrect), wordsCorrect),
+      wordsSkipped: n(args.wordsSkipped),
+      hintsUsed: n(args.hintsUsed),
+      coinsEarned: n(args.coinsEarned),
+      stickersEarned: n(args.stickersEarned),
+      duration: n(args.duration),
       completedAt: Date.now(),
     });
   },

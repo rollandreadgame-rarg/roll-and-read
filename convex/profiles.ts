@@ -162,6 +162,10 @@ export const spendCoins = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
+    // A negative "spend" would mint coins; NaN would corrupt the balance.
+    if (!Number.isFinite(args.amount) || args.amount < 0) {
+      throw new Error("Invalid coin amount");
+    }
     const { profile } = await requireProfileOwner(ctx, args.profileId);
     if (profile.coins < args.amount) throw new Error("Insufficient coins");
 

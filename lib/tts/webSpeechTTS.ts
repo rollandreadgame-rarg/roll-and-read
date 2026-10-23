@@ -120,7 +120,9 @@ export function preloadWords(words: string[]): void {
 export function cancelSpeech(): void {
   playId++;
   if (player && !player.paused) player.pause();
-  if (typeof window !== "undefined") {
+  // Some browsers (e.g. Android in-app WebViews) have no speechSynthesis; the
+  // MP3 must still play there, so never assume it exists.
+  if (typeof window !== "undefined" && window.speechSynthesis) {
     window.speechSynthesis.cancel();
     currentUtterance = null;
   }
@@ -142,7 +144,8 @@ function _findPreferredVoice(): SpeechSynthesisVoice | null {
 }
 
 function _speakFallback(word: string, rate: number, volume: number): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (typeof SpeechSynthesisUtterance === "undefined") return;
   window.speechSynthesis.cancel();
   currentUtterance = new SpeechSynthesisUtterance(word);
   currentUtterance.rate = rate;
@@ -170,7 +173,7 @@ function _speakFallback(word: string, rate: number, volume: number): void {
 
 export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   return new Promise((resolve) => {
-    if (typeof window === "undefined") { resolve([]); return; }
+    if (typeof window === "undefined" || !window.speechSynthesis) { resolve([]); return; }
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) { resolve(voices); return; }
     window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());

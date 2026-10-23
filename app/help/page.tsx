@@ -304,7 +304,7 @@ export default function HelpPage() {
         </p>
 
         <h3>What if someone keeps guessing?</h3>
-        <p>After 5 wrong tries, the PIN screen asks you to wait a minute before trying again.</p>
+        <p>After 5 wrong tries, the PIN screen asks you to wait a minute. Each wrong try after that doubles the wait, up to an hour. A correct PIN, or choosing “Forgot PIN?”, clears it.</p>
 
         <h3>What do you collect about my child?</h3>
         <p>

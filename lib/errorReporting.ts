@@ -11,6 +11,9 @@ export function setErrorSink(next: Sink | null) {
 }
 
 export function reportError(err: unknown) {
+  // No sink yet (e.g. an ErrorBoundary catch before ErrorReporter's effect ran):
+  // don't mark the error as seen, or its later occurrences would be dropped too.
+  if (!sink) return;
   const e = err instanceof Error ? err : new Error(typeof err === "string" ? err : "Unknown error");
   const key = `${e.message}|${e.stack?.split("\n")[1] ?? ""}`;
   if (seen.has(key)) return; // once per page load

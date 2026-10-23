@@ -27,7 +27,11 @@ export const PRICE_LOOKUP_TO_PLAN: Record<string, Plan> = {
 
 export function planFromLookupKey(lookupKey: string | null | undefined): Plan {
   if (!lookupKey) return "free";
-  return PRICE_LOOKUP_TO_PLAN[lookupKey] ?? "free";
+  // Own keys only: "toString", "constructor" etc. must not resolve to
+  // Object.prototype members.
+  return Object.prototype.hasOwnProperty.call(PRICE_LOOKUP_TO_PLAN, lookupKey)
+    ? PRICE_LOOKUP_TO_PLAN[lookupKey]
+    : "free";
 }
 
 // Stripe subscription statuses that grant paid access. anything else → treat as free.

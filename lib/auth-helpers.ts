@@ -27,7 +27,8 @@ export async function getEffectiveEmail(): Promise<string | null> {
   try {
     const { currentUser } = await import("@clerk/nextjs/server");
     const u = await currentUser();
-    return u?.emailAddresses[0]?.emailAddress ?? null;
+    // Primary first: emailAddresses[0] is not necessarily the primary address.
+    return u?.primaryEmailAddress?.emailAddress ?? u?.emailAddresses[0]?.emailAddress ?? null;
   } catch {
     return null;
   }

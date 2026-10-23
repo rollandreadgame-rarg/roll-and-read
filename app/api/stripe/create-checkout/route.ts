@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    // Strip a trailing slash so "https://x.com/" never yields "https://x.com//billing".
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,

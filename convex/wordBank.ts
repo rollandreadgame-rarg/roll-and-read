@@ -30,6 +30,10 @@ export const addWord = mutation({
   },
   handler: async (ctx, args) => {
     await requireProfileOwner(ctx, args.profileId);
+    // Word text, level and coin value come from the curriculum, never from
+    // the client. A word removed from the curriculum mid-game is not banked.
+    const wordDoc = await ctx.db.get(args.wordId);
+    if (!wordDoc) return null;
     const existing = await ctx.db
       .query("word_bank")
       .withIndex("by_profile_word", (q) =>
@@ -62,10 +66,10 @@ export const addWord = mutation({
     return await ctx.db.insert("word_bank", {
       profileId: args.profileId,
       wordId: args.wordId,
-      word: args.word,
-      level: args.level,
-      isNonsense: args.isNonsense,
-      coinValue: args.coinValue,
+      word: wordDoc.word,
+      level: wordDoc.level,
+      isNonsense: wordDoc.isNonsense,
+      coinValue: wordDoc.coinValue,
       needsPractice,
       firstEarned: Date.now(),
       timesCorrect: args.needsPractice ? 0 : 1,
@@ -99,14 +103,16 @@ export const getPracticeWords = query({
       .query("word_bank")
       .withIndex("by_profile_practice", (q) =>
         q.eq("profileId", args.profileId).eq("needsPractice", true)
-      )
-      .take(40);
+      );
+    // Cap AFTER filtering, so words above the reader's level (e.g. after a
+    // grown-up moved them down) don't crowd out the eligible ones.
     const words = [];
-    for (const e of entries) {
+    for await (const e of entries) {
       const w = await ctx.db.get(e.wordId);
       if (!w || levelIndex(w.level) > maxIdx) continue;
       if (profile.wordMode === "real" && w.isNonsense) continue;
       words.push(w);
+      if (words.length >= 40) break;
     }
     return words;
   },
