@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -92,6 +92,12 @@ export default function PracticePage() {
     coinsEarned: 0,
   });
   const [done, setDone] = useState(false);
+  // The results screen replaces the whole drill; move focus to its heading so
+  // keyboard and screen-reader users land on it instead of the page top.
+  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (done) doneHeadingRef.current?.focus();
+  }, [done]);
 
   const current: PracticeWord | undefined = initialQueue[idx];
 
@@ -215,7 +221,9 @@ export default function PracticePage() {
       <div className="mx-auto w-full max-w-md px-4 py-12 text-center">
         <div className="text-6xl mb-4" aria-hidden="true">🎉</div>
         <h1
-          className="text-2xl sm:text-3xl font-extrabold mb-2 text-balance"
+          ref={doneHeadingRef}
+          tabIndex={-1}
+          className="text-2xl sm:text-3xl font-extrabold mb-2 text-balance outline-none"
           style={{ color: "var(--color-text-primary)" }}
         >
           Practice complete!
@@ -290,11 +298,15 @@ export default function PracticePage() {
             }}
           />
         </div>
+        {/* aria-disabled (not disabled) on the answer buttons while saving keeps
+            keyboard focus on them; this status line tells screen readers the
+            card moved on. */}
         <div
           className="text-xs mt-2 text-center tabular-nums"
           style={{ color: "var(--color-text-muted)" }}
+          role="status"
         >
-          {idx + 1} of {initialQueue.length}
+          Word {idx + 1} of {initialQueue.length}
         </div>
       </div>
 
@@ -352,8 +364,8 @@ export default function PracticePage() {
       <div className="grid grid-cols-2 gap-3 w-full mb-3">
         <button
           onClick={handleStillHard}
-          disabled={busy}
-          className="py-4 px-2 rounded-2xl font-bold transition-colors hover:bg-[var(--color-hover)] disabled:opacity-60 disabled:cursor-not-allowed"
+          aria-disabled={busy}
+          className="py-4 px-2 rounded-2xl font-bold transition-colors hover:bg-[var(--color-hover)] aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
           style={{
             ...secondaryButtonStyle,
             border: "1px solid color-mix(in srgb, var(--color-error) 55%, var(--color-line))",
@@ -363,7 +375,7 @@ export default function PracticePage() {
         </button>
         <button
           onClick={handleGotIt}
-          disabled={busy}
+          aria-disabled={busy}
           className="btn-primary py-4 px-2"
         >
           <span aria-hidden="true">✅</span> Got it (+{PRACTICE_COIN_REWARD}<span aria-hidden="true">💰</span><span className="sr-only"> coins</span>)

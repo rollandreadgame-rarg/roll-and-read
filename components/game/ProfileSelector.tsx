@@ -117,7 +117,7 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
                 {p.name}
               </div>
               <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-                Level {p.currentLevel} • 💰 {p.coins.toLocaleString()}
+                Level {p.currentLevel} <span aria-hidden="true">• 💰</span><span className="sr-only">,</span> {p.coins.toLocaleString()}<span className="sr-only"> coins</span>
               </div>
             </motion.button>
           ))}

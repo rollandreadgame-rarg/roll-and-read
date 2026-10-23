@@ -47,9 +47,12 @@ export default function DicePanel({
 
       <div className="flex flex-col gap-3 flex-1 w-full min-w-0">
         {/* Roll Button — becomes "Hear it again" while a row is active */}
+        {/* aria-disabled, not disabled, while rolling: a disabled button
+            drops keyboard focus, and the same button becomes "Hear it again". */}
         <motion.button
-          onClick={showRepeat ? onRepeat : onRoll}
-          disabled={showRepeat ? false : !canRoll}
+          data-roll-button
+          onClick={showRepeat ? onRepeat : canRoll ? onRoll : undefined}
+          aria-disabled={!showRepeat && !canRoll}
           className={cn(
             "btn-primary w-full py-3 px-4 min-h-[56px]",
             "text-lg font-extrabold select-none",

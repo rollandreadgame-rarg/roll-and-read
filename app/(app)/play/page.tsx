@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -125,6 +125,54 @@ export default function PlayPage() {
     }
   }, [profile?.selectedTheme]);
 
+  // Screen-reader announcements for what the eyes get from animation: which
+  // row was rolled, right and wrong taps, and the hint.
+  const [announcement, setAnnouncement] = useState("");
+  const announce = useCallback((msg: string) => {
+    // Clear first so the same message twice in a row is still read.
+    setAnnouncement("");
+    requestAnimationFrame(() => setAnnouncement(msg));
+  }, []);
+  const wordText = useCallback(
+    (id: string | null) => board?.rows.flatMap((r) => r.words).find((w) => w._id === id)?.word,
+    [board]
+  );
+  useEffect(() => {
+    if (activeRow !== null) announce(`Row ${activeRow}. Listen, then tap the word.`);
+  }, [activeRow]);
+  useEffect(() => {
+    const word = wordText(correctWord);
+    if (word) announce(`Yes! ${word}.`);
+  }, [correctWord]);
+  useEffect(() => {
+    if (wrongWord) announce("Not that one. Listen again.");
+  }, [wrongWord]);
+  useEffect(() => {
+    const word = wordText(hintWordId);
+    if (word) announce(`Hint: the word is ${word}.`);
+  }, [hintWordId]);
+
+  // Keep keyboard focus in the game. Cleared cards and the reader picker leave
+  // the page, which would drop focus to the top of the page and make keyboard
+  // and screen-reader players Tab through the menu again. When focus falls to
+  // the page body, move it to the next card in the row, or to the Roll button.
+  const gameAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!board) return;
+    const t = window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body) return;
+      const area = gameAreaRef.current;
+      if (!area) return;
+      const next =
+        (activeRow !== null &&
+          area.querySelector<HTMLButtonElement>('button[aria-label^="Word card"]:not([disabled])')) ||
+        area.querySelector<HTMLButtonElement>("[data-roll-button]");
+      next?.focus();
+    }, 400); // after the card's exit animation
+    return () => window.clearTimeout(t);
+  }, [board, activeRow, clearedWords, isRolling]);
+
   // Keyboard support: Spacebar rolls when idle, and repeats the current word
   // while a row is active (you can't roll again until the row is cleared).
   useEffect(() => {
@@ -195,7 +243,7 @@ export default function PlayPage() {
   return (
     <div className="table-surface flex flex-col flex-1 overflow-hidden">
       {/* Main game area */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-3 lg:gap-5 p-3 lg:p-6 overflow-auto min-h-0 w-full max-w-[1280px] mx-auto">
+      <div ref={gameAreaRef} className="flex flex-col lg:flex-row flex-1 gap-3 lg:gap-5 p-3 lg:p-6 overflow-auto min-h-0 w-full max-w-[1280px] mx-auto">
         {/* Dice Panel — left on desktop, top on mobile */}
         <div className="lg:w-60 shrink-0">
           <div className="panel lg:sticky lg:top-4">
@@ -242,7 +290,6 @@ export default function PlayPage() {
               <p
                 className="hidden md:block text-sm font-medium"
                 style={{ color: "var(--color-text-muted)" }}
-                aria-live="polite"
               >
                 {activeRow !== null ? "Listen, then tap the word" : "Roll to pick a row"}
               </p>
@@ -266,6 +313,10 @@ export default function PlayPage() {
           />
         </div>
       </div>
+
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </p>
 
       {/* Coin popups */}
       {coinPopups.map((popup) => (

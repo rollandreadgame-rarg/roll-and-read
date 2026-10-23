@@ -220,12 +220,13 @@ h1, h2, h3 {
   box-shadow: 0 4px 0 color-mix(in srgb, var(--color-brand) 60%, black);
   transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
 }
-.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
-.btn-primary:active:not(:disabled) {
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) { filter: brightness(1.08); }
+.btn-primary:active:not(:disabled):not([aria-disabled="true"]) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-brand) 60%, black);
 }
-.btn-primary:disabled {
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
   background: var(--color-surface-2);
   color: var(--color-text-muted);
   box-shadow: none;

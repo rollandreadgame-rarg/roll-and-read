@@ -72,7 +72,7 @@ export default function RowClearBanner({ show, wordsAdded, coinsEarned }: RowCle
               transition={{ delay: 0.2 }}
               className="relative z-10"
             >
-              💰 +{coinsEarned}
+              <span aria-hidden="true">💰</span> +{coinsEarned}<span className="sr-only"> coins</span>
             </motion.span>
           </div>
         </motion.div>
