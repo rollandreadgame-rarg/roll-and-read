@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { sendEmail } from "./send";
 import { paymentFailedEmail, welcomeEmail } from "./templates";

@@ -1,5 +1,5 @@
 // Run: npx tsx --test lib/game/boardGenerator.test.ts
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { generateBoard, checkLevelAdvancement, type WordEntry } from "./boardGenerator";
 import { getReviewLevels } from "../levels";
