@@ -2,6 +2,8 @@ import { Webhook } from "svix";
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { sendEmail } from "@/lib/email/send";
+import { welcomeEmail } from "@/lib/email/templates";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -37,6 +39,13 @@ export async function POST(req: NextRequest) {
       email: primary?.email_address ?? "",
       syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
+    if (primary?.email_address) {
+      await sendEmail({
+        to: primary.email_address,
+        ...welcomeEmail(),
+        idempotencyKey: `welcome/${data.id}`,
+      });
+    }
   }
 
   if (event.type === "user.updated") {
