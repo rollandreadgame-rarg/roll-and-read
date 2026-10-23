@@ -153,7 +153,11 @@ export async function runTeacherTour(opts: RunTourOptions): Promise<Driver> {
       const i = state.activeIndex ?? 0;
       announce(`Step ${i + 1} of ${steps.length}: ${titles[i] ?? ""}`);
     },
-    onDestroyed: () => {
+    // Every close (Esc, ×, overlay click, Done) comes through here. driver.js
+    // skips onDestroyed when the tour closes mid-animation, so this does the
+    // closing itself rather than relying on it.
+    onDestroyStarted: () => {
+      d.destroy();
       announce("Tour closed.");
       // driver.js tries to restore focus to whatever was focused when the
       // last step opened (often a popover button that no longer exists).

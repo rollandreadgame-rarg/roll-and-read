@@ -192,6 +192,15 @@ export default function SettingsPage() {
     }
   };
 
+  // A blank name keeps the old one.
+  const saveName = (profileId: string) => {
+    const name = editName.trim();
+    if (!name) return;
+    updateProfile({ profileId: profileId as Id<"profiles">, name }).catch((err) =>
+      console.error("Rename failed", err)
+    );
+  };
+
   const handleUpdateWordMode = async (mode: WordModeType) => {
     if (!selectedProfileId) return;
     await updateProfile({
@@ -199,6 +208,13 @@ export default function SettingsPage() {
       wordMode: mode,
     });
   };
+
+  // The theme belongs to the reader, so show the selected reader's saved theme
+  // (a new device would otherwise show the browser's default).
+  const profileTheme = profile?.selectedTheme as Parameters<typeof setTheme>[0] | undefined;
+  useEffect(() => {
+    if (profileTheme && profileTheme !== theme) setTheme(profileTheme);
+  }, [profileTheme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdateTheme = async (themeId: string) => {
     if (!isPaid && !["ocean", "classic"].includes(themeId)) {
@@ -274,10 +290,11 @@ export default function SettingsPage() {
                   <div className="flex gap-2">
                     <input
                       value={editName}
+                      maxLength={20}
                       onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          updateProfile({ profileId: p._id as Id<"profiles">, name: editName.trim() });
+                          saveName(p._id);
                           setEditingProfileId(null);
                         }
                       }}
@@ -288,7 +305,7 @@ export default function SettingsPage() {
                     />
                     <button
                       onClick={() => {
-                        updateProfile({ profileId: p._id as Id<"profiles">, name: editName.trim() });
+                        saveName(p._id);
                         setEditingProfileId(null);
                       }}
                       className="btn-primary shrink-0 px-3 text-sm"
@@ -400,6 +417,7 @@ export default function SettingsPage() {
             <input
               id="new-reader-name"
               value={newName}
+              maxLength={20}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Reader's name"
               onKeyDown={(e) => e.key === "Enter" && handleCreateProfile()}
@@ -555,7 +573,7 @@ export default function SettingsPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {THEMES.map((t) => {
-            const selected = theme === t.id;
+            const selected = (profileTheme ?? theme) === t.id;
             return (
               <button
                 key={t.id}

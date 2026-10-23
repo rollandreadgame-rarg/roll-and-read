@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { generateBoard, checkLevelAdvancement, type GameBoard, type WordEntry } from "@/lib/game/boardGenerator";
 import { getMilestonesForBoard, type MilestoneTrigger } from "@/lib/game/milestones";
+import { parseSavedBoard, savedBoardKey, type SavedBoard } from "@/lib/game/savedBoard";
 import { getNextLevel, isValidLevel, normalizeLevel } from "@/lib/levels";
 import { isLevelAllowed, type Plan } from "@/convex/subscriptionConfig";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -273,10 +274,75 @@ export function useGameState(profileId: string | null) {
     );
   }, [profile?.currentLevel, profileId]);
 
+  // The board in progress is saved per reader on this device (see
+  // lib/game/savedBoard.ts); the first board after arriving resumes it.
+  const boardKey = profileId ? savedBoardKey(profileId) : null;
+  const resumeCheckedRef = useRef<string | null>(null);
+  const tryResumeBoard = (): boolean => {
+    if (!boardKey || !profile || !level || resumeCheckedRef.current === boardKey) return false;
+    resumeCheckedRef.current = boardKey;
+    let saved: SavedBoard | null = null;
+    try {
+      saved = parseSavedBoard(localStorage.getItem(boardKey), {
+        level,
+        wordMode: profile.wordMode,
+        now: Date.now(),
+      });
+    } catch {
+      saved = null;
+    }
+    if (!saved) return false;
+    preloadWords(saved.board.rows.flatMap((r) => r.words.map((w) => w.word)));
+    busyRef.current = false;
+    rollingRef.current = false;
+    setRollBusy(false);
+    setBoard(saved.board);
+    setClearedRows(saved.clearedRows);
+    commitCleared(new Set(saved.clearedWords));
+    setActiveRow(saved.activeRow);
+    setDiceResult(saved.activeRow);
+    const words = saved.board.rows.flatMap((r) => r.words);
+    // Not spoken here: iPhone/iPad only play audio after a tap, so the reader
+    // taps "Hear the word again".
+    setTarget(words.find((w) => w._id === saved.targetId) ?? null);
+    setWrongWord(null);
+    setCorrectWord(null);
+    setHintWordId(null);
+    sessionRef.current = { ...saved.session };
+    rowWordCountRef.current = { words: 0, coins: 0 };
+    return true;
+  };
+
+  useEffect(() => {
+    if (!boardKey || !board || !level || !profile) return;
+    try {
+      if (clearedRows.length >= 6) {
+        localStorage.removeItem(boardKey);
+        return;
+      }
+      const saved: SavedBoard = {
+        v: 1,
+        level,
+        wordMode: profile.wordMode,
+        savedAt: Date.now(),
+        board,
+        clearedRows,
+        clearedWords: [...clearedWords],
+        activeRow,
+        targetId: currentTarget?._id ?? null,
+        session: { ...sessionRef.current },
+      };
+      localStorage.setItem(boardKey, JSON.stringify(saved));
+    } catch {
+      // Storage unavailable (private mode): the board just won't survive a reload.
+    }
+  }, [boardKey, board, clearedRows, clearedWords, activeRow, currentTarget, wrongWord]);
+
   // Start a new board
   const startNewBoard = useCallback(() => {
     if (!wordPool || !profile || !level || !reviewReady || practiceWords === undefined) return;
     if (profile.wordMode === "nonsense" && fillPool === undefined) return;
+    if (tryResumeBoard()) return;
 
     const newBoard = generateBoard({
       currentLevel: level,

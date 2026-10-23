@@ -145,6 +145,41 @@ describe("create", () => {
   });
 });
 
+describe("names, avatars and themes are checked", () => {
+  test("create trims the name and refuses blank or overlong names", async () => {
+    const t = setup();
+    const a = await seedUser(t, "user_a", "family");
+    const me = as(t, "user_a");
+    const id = await me.mutation(api.profiles.create, { userId: a, name: "  Ann   Lee ", avatarEmoji: "🐶" });
+    expect((await getProfile(t, id))?.name).toBe("Ann Lee");
+    for (const name of ["", "   ", "x".repeat(31)]) {
+      await expect(me.mutation(api.profiles.create, { userId: a, name, avatarEmoji: "🐶" })).rejects.toThrow(
+        "INVALID_NAME"
+      );
+    }
+    await expect(
+      me.mutation(api.profiles.create, { userId: a, name: "Bo", avatarEmoji: "x".repeat(200) })
+    ).rejects.toThrow("INVALID_AVATAR");
+    expect(await countProfiles(t, a)).toBe(1);
+  });
+
+  test("update refuses blank names, unknown themes and huge avatars", async () => {
+    const t = setup();
+    const a = await seedFamily(t, "user_a", "free", { name: "Ann" });
+    const upd = (args: Record<string, unknown>) =>
+      a.client.mutation(api.profiles.update, { profileId: a.profileId, ...args });
+    await expect(upd({ name: " " })).rejects.toThrow("INVALID_NAME");
+    await expect(upd({ name: "y".repeat(31) })).rejects.toThrow("INVALID_NAME");
+    await expect(upd({ selectedTheme: "<script>" })).rejects.toThrow("INVALID_THEME");
+    await expect(upd({ avatarEmoji: "" })).rejects.toThrow("INVALID_AVATAR");
+    expect((await getProfile(t, a.profileId))?.name).toBe("Ann");
+    await upd({ name: " Annie ", selectedTheme: "classic" });
+    const p = await getProfile(t, a.profileId);
+    expect(p?.name).toBe("Annie");
+    expect(p?.selectedTheme).toBe("classic");
+  });
+});
+
 describe("update", () => {
   test("owner can patch; omitted fields are untouched", async () => {
     const t = setup();

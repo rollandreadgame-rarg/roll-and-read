@@ -54,6 +54,36 @@ Status values: TODO, IN PROGRESS, DONE (verified how), NEEDS OWNER (what is need
 | X2 | Phone menu wrapped to three rows after adding Help | DONE | Wordmark hidden (still read by screen readers) below 640px; two rows at 360/390/430px. |
 | X3 | Help page facts | DONE | Teacher dashboard isn't actually limited to the Classroom plan in code (copy says it's part of Classroom). Left as is: generous, not broken. |
 
+## Automated tests (2026-10-23)
+
+`npm test` (vitest): backend functions against an in-memory Convex (convex-test), API routes, middleware and lib code. `npm run test:e2e` (Playwright): the real app on the LOCAL dev server with the dev account (never production; global setup refuses non-dev keys). Run e2e one test at a time; a full run takes about 9 minutes and leaves a few coins/stickers on the dev reader.
+
+| # | Bug found by the tests | Status | Fix |
+|---|------|--------|-----|
+| T1 | `spendCoins` accepted negative amounts (free coins) | FIXED | Rejects negative / non-finite. |
+| T2 | `wordBank.addWord` trusted the browser's word, level and coin value | FIXED | Read from the `word_lists` row. |
+| T3 | Practice list capped before filtering (could return too few words) | FIXED | Cap after filtering. |
+| T4 | `users.updateEmailFromClerk` callable by anyone | FIXED | Needs the webhook sync secret. |
+| T5 | `canAccessLevel` answered for any profile | FIXED | Owner only. |
+| T6 | Shop charged coins when no stickers were left | FIXED | Throws `NO_STICKERS_AVAILABLE` before charging. |
+| T7 | `grantSticker` accepted unknown stickers / duplicates | FIXED | Rejects both. |
+| T8 | A late Stripe event for an old subscription could downgrade a paid account | FIXED | Ignored while the stored subscription is paid. |
+| T9 | Game session stats accepted impossible numbers | FIXED | Clamped (non-negative, correct ≤ attempted, first-try ≤ correct). |
+| T10 | Parent PIN lockout was a flat 1 minute forever | FIXED | Doubles each lock, up to an hour; message says how long. |
+| T11 | Exactly 80% accuracy could miss the level-up (floating point) | FIXED | Epsilon compare. |
+| T12 | Crashes when the browser has no speech synthesis | FIXED | Guarded. |
+| T13 | E2E bypass could be switched on in a production build | FIXED | Also requires NODE_ENV ≠ production. |
+| T14 | Reload or leaving /play threw away a half-played board | FIXED | Board, active row and session saved per reader on the device (`rr:board:<profileId>`, 12h, same level/word mode). Reader taps "Hear the word again" (iPad audio needs a tap). |
+| T15 | Settings showed the device's theme, not the reader's saved theme | FIXED | Settings applies and highlights the selected reader's theme. |
+| T16 | Teacher tour closed mid-animation dropped focus to the page top | FIXED | Close handled in `onDestroyStarted` (driver.js skips `onDestroyed` mid-transition). |
+
+Known and left open (need a design decision, not a quick fix):
+- Parent PIN reset trusts the browser that the emailed code was entered (no server proof). Fix needs a server-checked code or Clerk re-verification.
+- Coins, stickers and level-ups are decided in the browser; the server checks ownership and limits but not that a board was really played.
+- `createUser` fallback trusts the email the browser sends (the webhook normally sets it).
+- No length limit on reader names.
+- Stripe checkout can't be tested locally: the Stripe test key in `.env.local` has expired.
+
 ## Live verification (2026-10-23, deploy f5fac3a)
 
 - Keyboard-only on rollandreadgame.com with the QA account: picking a reader lands focus on "Roll the dice"; Space rolls, focus stays on the button (now "Hear the word again"); screen readers hear "Row 2. Listen, then tap the word."; reader button reads "Sam, Level 1A, 280 coins".

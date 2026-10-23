@@ -33,6 +33,19 @@ export const get = query({
   },
 });
 
+// Reader names show on cards and reports; keep them short and non-blank.
+export const MAX_NAME_LENGTH = 30;
+function cleanName(name: string): string {
+  const n = name.replace(/\s+/g, " ").trim();
+  if (!n || n.length > MAX_NAME_LENGTH) throw new Error(`INVALID_NAME: 1-${MAX_NAME_LENGTH} characters`);
+  return n;
+}
+function cleanAvatar(avatar: string): string {
+  if (!avatar || avatar.length > 16) throw new Error("INVALID_AVATAR");
+  return avatar;
+}
+const THEMES = ["ocean", "space", "forest", "candy", "classic"];
+
 export const create = mutation({
   args: {
     userId: v.id("users"),
@@ -67,8 +80,8 @@ export const create = mutation({
 
     return await ctx.db.insert("profiles", {
       userId: args.userId,
-      name: args.name,
-      avatarEmoji: args.avatarEmoji,
+      name: cleanName(args.name),
+      avatarEmoji: cleanAvatar(args.avatarEmoji),
       currentLevel: startingLevel,
       boardsClearedAtLevel: 0,
       totalBoardsCleared: 0,
@@ -98,6 +111,11 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { profileId, ...rest } = args;
     await requireProfileOwner(ctx, profileId);
+    if (rest.name !== undefined) rest.name = cleanName(rest.name);
+    if (rest.avatarEmoji !== undefined) rest.avatarEmoji = cleanAvatar(rest.avatarEmoji);
+    if (rest.selectedTheme !== undefined && !THEMES.includes(rest.selectedTheme)) {
+      throw new Error("INVALID_THEME");
+    }
     const updates = Object.fromEntries(
       Object.entries(rest).filter(([, val]) => val !== undefined)
     );
