@@ -11,6 +11,9 @@ const PUBLIC = new Set([
   "gameSessions:save",
   "gameSessions:getForProfile",
   "maintenance:runDataFixes", // maintenance-secret gated
+  "adminTesters:comp", // maintenance-secret gated
+  "adminTesters:uncomp", // maintenance-secret gated
+  "adminTesters:listAccounts", // maintenance-secret gated
   "parentPin:setParentPin",
   "parentPin:verifyParentPin",
   "parentPin:changeParentPin",

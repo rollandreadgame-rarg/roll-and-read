@@ -38,6 +38,11 @@ export const getByClerkId = query({
       stripeSubscriptionId: user.stripeSubscriptionId ?? null,
       currentPeriodEnd: user.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: user.cancelAtPeriodEnd ?? false,
+      // Comped by the operator (adminTesters) and not also paying through
+      // Stripe: nothing to manage in the billing portal.
+      comped:
+        Boolean(user.compedTester) &&
+        !(user.stripeSubscriptionId && isPaidStatus(user.subscriptionStatus)),
       profileLimit: PROFILE_LIMITS[user.plan],
       profileCount: profileCount.length,
     };

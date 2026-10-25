@@ -94,9 +94,20 @@ describe("getByClerkId", () => {
       stripeSubscriptionId: null,
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
+      comped: false,
       profileLimit: 5,
       profileCount: 2,
     });
+  });
+
+  test("comped: true only for a tester who isn't also paying through Stripe", async () => {
+    const t = setup();
+    const { userId } = await seedFamily(t, "user_a", "family");
+    const comped = () => as(t, "user_a").query(api.subscriptions.getByClerkId, { clerkId: "user_a" });
+    await t.run((ctx) => ctx.db.patch(userId, { compedTester: true, subscriptionStatus: "active" }));
+    expect((await comped())?.comped).toBe(true);
+    await t.run((ctx) => ctx.db.patch(userId, { stripeSubscriptionId: "sub_1" }));
+    expect((await comped())?.comped).toBe(false);
   });
 
   test("trusted server route can read it", async () => {

@@ -206,7 +206,11 @@ function BillingPageInner() {
                 ? `${sub.profileCount} of ${sub.profileLimit} profile${sub.profileLimit === 1 ? "" : "s"} used`
                 : "Loading…"}
             </div>
-            {sub?.subscriptionStatus && (
+            {sub?.comped ? (
+              <div className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                Complimentary plan. No payment needed.
+              </div>
+            ) : sub?.subscriptionStatus && (
               <div className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
                 Status: {STATUS_LABELS[sub.subscriptionStatus] ?? sub.subscriptionStatus}
                 {periodEnd ? ` · renews ${periodEnd}` : ""}
@@ -214,7 +218,7 @@ function BillingPageInner() {
               </div>
             )}
           </div>
-          {currentPlan !== "free" && (
+          {currentPlan !== "free" && !sub?.comped && (
             <button
               onClick={openPortal}
               disabled={busyKey === "portal"}
