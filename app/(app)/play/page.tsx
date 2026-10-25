@@ -155,8 +155,27 @@ export default function PlayPage() {
   // Keep keyboard focus in the game. Cleared cards and the reader picker leave
   // the page, which would drop focus to the top of the page and make keyboard
   // and screen-reader players Tab through the menu again. When focus falls to
-  // the page body, move it to the next card in the row, or to the Roll button.
+  // the page body, move it to the next card in the row (keyboard players only:
+  // on a touch screen the focus ring on a card looks like a hint), or to the
+  // Roll button.
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  const usingKeyboardRef = useRef(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey && !e.ctrlKey && !e.altKey) usingKeyboardRef.current = true;
+    };
+    const onPointer = (e: PointerEvent) => {
+      // Framer Motion fires synthetic pointer events when Enter presses a
+      // motion button; only a real touch or click means "not keyboard".
+      if (e.isTrusted) usingKeyboardRef.current = false;
+    };
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("pointerdown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("pointerdown", onPointer, true);
+    };
+  }, []);
   useEffect(() => {
     if (!board) return;
     const t = window.setTimeout(() => {
@@ -166,6 +185,7 @@ export default function PlayPage() {
       if (!area) return;
       const next =
         (activeRow !== null &&
+          usingKeyboardRef.current &&
           area.querySelector<HTMLButtonElement>('button[aria-label^="Word card"]:not([disabled])')) ||
         area.querySelector<HTMLButtonElement>("[data-roll-button]");
       next?.focus();

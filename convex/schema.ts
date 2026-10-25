@@ -62,7 +62,10 @@ export default defineSchema({
     pendingRewards: v.optional(
       v.array(v.object({ type: v.string(), rarity: v.string(), label: v.string() }))
     ),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    // Retention clean-up (dataLifecycle.purgeInactiveReaders).
+    .index("by_last_played", ["lastPlayedAt"]),
 
   word_lists: defineTable({
     word: v.string(),

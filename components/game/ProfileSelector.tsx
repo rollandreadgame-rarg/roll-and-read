@@ -172,8 +172,8 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
 
             <input
               type="text"
-              placeholder="Reader's name"
-              aria-label="Reader's name"
+              placeholder="First name or nickname"
+              aria-label="Reader's first name or nickname (no last names)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -186,6 +186,12 @@ export default function ProfileSelector({ onSelect }: ProfileSelectorProps) {
               autoFocus
               maxLength={20}
             />
+            <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
+              A first name or nickname is all the game needs.{" "}
+              <a href="/privacy" className="underline" style={{ color: "var(--color-text-secondary)" }}>
+                How we protect children&apos;s information
+              </a>
+            </p>
 
             <label
               htmlFor="first-reader-level"

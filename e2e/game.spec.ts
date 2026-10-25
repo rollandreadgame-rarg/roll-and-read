@@ -226,6 +226,10 @@ test.describe("game loop", () => {
         await expect(card).toHaveCount(0);
         if (remaining === 1) break;
         target = await nextSpokenWord(page, n);
+        // A focus ring on a card would look like a hint to a child: after a
+        // tap, focus never lands on a card (it goes to the Roll button).
+        await page.waitForTimeout(600);
+        expect(await focused(page), "no card focused after a tap").not.toMatch(/^Word card: /);
       }
       await waitForRollReady(page);
       expect(await clearedRowCount(page)).toBe(1);

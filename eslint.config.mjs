@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Convex backend files use @ts-nocheck intentionally
     "convex/**",
+    // Playwright reports and traces (generated)
+    "e2e/artifacts/**",
+    "e2e/.auth/**",
   ]),
 ]);
 

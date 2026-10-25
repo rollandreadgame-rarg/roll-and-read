@@ -412,19 +412,24 @@ export default function SettingsPage() {
               ))}
             </div>
             <label htmlFor="new-reader-name" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
-              Name
+              First name or nickname (no last names)
             </label>
             <input
               id="new-reader-name"
               value={newName}
               maxLength={20}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Reader's name"
+              placeholder="First name or nickname"
               onKeyDown={(e) => e.key === "Enter" && handleCreateProfile()}
-              className="w-full px-3 py-2 rounded-xl mb-4 text-sm"
+              className="w-full px-3 py-2 rounded-xl mb-1 text-sm"
               style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-line-strong)", color: "var(--color-text-primary)" }}
               autoFocus
             />
+            <p className="text-xs mb-4" style={{ color: "var(--color-text-muted)" }}>
+              <a href="/privacy" className="underline" style={{ color: "var(--color-text-secondary)" }}>
+                How we protect children&apos;s information
+              </a>
+            </p>
             <label htmlFor="new-reader-level" className={FIELD_LABEL_CLASS} style={{ color: "var(--color-text-secondary)" }}>
               Starting level
             </label>

@@ -22,7 +22,7 @@ export default function LevelSelect({ id, value, onChange, plan, describedBy, cl
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-describedby={describedBy}
-      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold ${className ?? ""}`}
+      className={`w-full min-h-11 px-3 py-2.5 rounded-xl text-sm font-semibold ${className ?? ""}`}
       style={{
         background: "var(--color-bg-surface)",
         border: "1px solid var(--color-line-strong)",

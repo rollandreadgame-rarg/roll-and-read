@@ -9,15 +9,16 @@ const TEST_SECRET = "whsec_" + Buffer.from("unit-test-only-clerk-secret-01234567
 const OTHER_SECRET = "whsec_" + Buffer.from("some-other-secret-abcdefghijklmnop").toString("base64");
 const SYNC_SECRET = "unit-test-sync-secret";
 
-const h = vi.hoisted(() => ({ mutation: vi.fn(), sendEmail: vi.fn() }));
+const h = vi.hoisted(() => ({ mutation: vi.fn(), query: vi.fn(), sendEmail: vi.fn(), cancel: vi.fn() }));
 
 vi.mock("convex/browser", () => ({
   ConvexHttpClient: class {
     mutation = h.mutation;
-    query = vi.fn();
+    query = h.query;
   },
 }));
 vi.mock("@/lib/email/send", () => ({ sendEmail: h.sendEmail }));
+vi.mock("@/lib/stripe", () => ({ stripe: { subscriptions: { cancel: h.cancel } } }));
 
 import { POST } from "./route";
 
@@ -69,6 +70,8 @@ beforeEach(() => {
   vi.stubEnv("CONVEX_SYNC_SECRET", SYNC_SECRET);
   h.mutation.mockReset().mockResolvedValue("users_id_1");
   h.sendEmail.mockReset().mockResolvedValue({ sent: true });
+  h.query.mockReset().mockResolvedValue(null);
+  h.cancel.mockReset().mockResolvedValue({ status: "canceled" });
 });
 
 afterEach(() => {
@@ -222,7 +225,7 @@ describe("user.updated", () => {
 });
 
 describe("other events", () => {
-  test.each(["user.deleted", "session.created", "email.created", "organization.created"])(
+  test.each(["session.created", "email.created", "organization.created"])(
     "%s is acknowledged with 200 and ignored",
     async (type) => {
       const res = await POST(signed({ type, data: { id: "x" } }));
@@ -231,4 +234,65 @@ describe("other events", () => {
       expect(h.sendEmail).not.toHaveBeenCalled();
     }
   );
+});
+
+describe("user.deleted (grown-up deleted their account)", () => {
+  const deleted = (id = "user_abc") => signed({ type: "user.deleted", data: { id, deleted: true } });
+  const sub = (stripeSubscriptionId: string | null, subscriptionStatus: string | null) => ({
+    plan: "family",
+    subscriptionStatus,
+    stripeSubscriptionId,
+  });
+
+  test("cancels a live subscription, then deletes all the account's data", async () => {
+    h.query.mockResolvedValue(sub("sub_123", "active"));
+    const res = await POST(deleted());
+    expect(res.status).toBe(200);
+    expect(h.cancel).toHaveBeenCalledWith("sub_123");
+    expect(calledFunctions()).toEqual(["dataLifecycle:deleteAccount"]);
+    expect(h.mutation.mock.calls[0][1]).toEqual({ clerkId: "user_abc", syncSecret: SYNC_SECRET });
+    expect(h.cancel.mock.invocationCallOrder[0]).toBeLessThan(h.mutation.mock.invocationCallOrder[0]);
+  });
+
+  test.each([
+    ["free account", null, null],
+    ["already canceled", "sub_1", "canceled"],
+    ["expired checkout", "sub_1", "incomplete_expired"],
+  ])("%s: nothing to cancel, data still deleted", async (_name, id, status) => {
+    h.query.mockResolvedValue(id || status ? sub(id, status) : null);
+    const res = await POST(deleted());
+    expect(res.status).toBe(200);
+    expect(h.cancel).not.toHaveBeenCalled();
+    expect(calledFunctions()).toEqual(["dataLifecycle:deleteAccount"]);
+  });
+
+  test("a subscription Stripe no longer has is fine", async () => {
+    h.query.mockResolvedValue(sub("sub_gone", "active"));
+    h.cancel.mockRejectedValue(Object.assign(new Error("No such subscription"), { code: "resource_missing" }));
+    const res = await POST(deleted());
+    expect(res.status).toBe(200);
+    expect(calledFunctions()).toEqual(["dataLifecycle:deleteAccount"]);
+  });
+
+  test("Stripe down: 500 so Clerk retries, and data is NOT deleted yet (billing must stop first)", async () => {
+    h.query.mockResolvedValue(sub("sub_123", "active"));
+    h.cancel.mockRejectedValue(new Error("Stripe unavailable"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await POST(deleted());
+    expect(res.status).toBe(500);
+    expect(h.mutation).not.toHaveBeenCalled();
+  });
+
+  test("Convex down: 500 so Clerk retries", async () => {
+    h.mutation.mockRejectedValue(new Error("Convex unavailable"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await POST(deleted());
+    expect(res.status).toBe(500);
+  });
+
+  test("an event without a user id is acknowledged and ignored", async () => {
+    const res = await POST(signed({ type: "user.deleted", data: {} }));
+    expect(res.status).toBe(200);
+    expect(h.mutation).not.toHaveBeenCalled();
+  });
 });

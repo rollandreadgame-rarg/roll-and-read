@@ -3,14 +3,14 @@
 /* OpenDyslexic */
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+  src: url('/fonts/opendyslexic/OpenDyslexic-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+  src: url('/fonts/opendyslexic/OpenDyslexic-Bold.woff') format('woff');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -202,6 +202,22 @@ h1, h2, h3 {
   background:
     radial-gradient(120% 80% at 50% 0%, var(--table-glow), transparent 70%),
     var(--color-bg-primary);
+  /* Little hands on tablets: no double-tap zoom or long-press text selection
+     anywhere on the board (pinch-zoom still works). */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Keyboard tips only where there is a keyboard and mouse (not iPads). */
+.kbd-hint {
+  display: none;
+}
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .kbd-hint {
+    display: block;
+  }
 }
 
 /* Shared panel surface */

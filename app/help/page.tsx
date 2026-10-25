@@ -315,8 +315,9 @@ export default function HelpPage() {
 
         <h3>Can teachers use it with students?</h3>
         <p>
-          Yes. Teachers can agree to its use for educational purposes on parents’ behalf, and
-          schools look after their own notices to parents. See the{" "}
+          Yes. A school can agree to its use for classroom learning on parents’ behalf. Student
+          information is used only to run the game for the class, never for ads or anything
+          commercial, and schools look after their own notices to parents. See the{" "}
           <Link href="/privacy">privacy policy</Link> for more.
         </p>
 
@@ -324,7 +325,9 @@ export default function HelpPage() {
         <p>
           To delete a reader, open Settings and use the delete button next to their name. This removes their
           progress, word bank, stickers and session history, and it can’t be undone. To delete your
-          whole account and its data, email {email}.
+          whole account, open the account menu (your picture at the top right), choose Manage account,
+          then Delete account. Every reader and their data goes with it, and any subscription is
+          canceled. You can also email {email}.
         </p>
       </Section>
 

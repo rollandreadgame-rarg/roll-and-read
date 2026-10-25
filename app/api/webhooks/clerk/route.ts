@@ -4,6 +4,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { sendEmail } from "@/lib/email/send";
 import { welcomeEmail } from "@/lib/email/templates";
+import { stripe } from "@/lib/stripe";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -67,6 +68,35 @@ export async function POST(req: NextRequest) {
         email: primary.email_address,
         syncSecret: process.env.CONVEX_SYNC_SECRET,
       });
+    }
+  }
+
+  if (event.type === "user.deleted") {
+    // The grown-up deleted their account: stop billing, then delete every
+    // reader and their data (Privacy Policy: deletion on request). A failure
+    // returns 500 so Clerk retries; both steps are safe to repeat.
+    const clerkId = (event.data as { id?: string }).id;
+    if (!clerkId) return NextResponse.json({ success: true });
+    try {
+      const sub = await convex.query(api.subscriptions.getByClerkId, {
+        clerkId,
+        syncSecret: process.env.CONVEX_SYNC_SECRET,
+      });
+      if (sub?.stripeSubscriptionId && !["canceled", "incomplete_expired"].includes(sub.subscriptionStatus ?? "")) {
+        try {
+          await stripe.subscriptions.cancel(sub.stripeSubscriptionId);
+        } catch (err) {
+          // Already canceled at Stripe: nothing left to stop.
+          if ((err as { code?: string })?.code !== "resource_missing") throw err;
+        }
+      }
+      await convex.mutation(api.dataLifecycle.deleteAccount, {
+        clerkId,
+        syncSecret: process.env.CONVEX_SYNC_SECRET,
+      });
+    } catch (err) {
+      console.error("[clerk-webhook] account deletion failed:", err instanceof Error ? err.message : err);
+      return NextResponse.json({ error: "Account deletion failed" }, { status: 500 });
     }
   }
 

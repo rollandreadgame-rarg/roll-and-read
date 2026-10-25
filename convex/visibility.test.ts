@@ -27,6 +27,7 @@ const PUBLIC = new Set([
   "profiles:setLevel",
   "profiles:completedBoard",
   "profiles:startBoard",
+  "dataLifecycle:deleteAccount",
   "shop:openPack",
   "stickersDb:getAll",
   "stickersDb:getForProfile",

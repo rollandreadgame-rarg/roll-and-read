@@ -80,7 +80,7 @@ export default function DicePanel({
 
         {/* Written instruction: how to repeat the spoken word */}
         <p
-          className="hidden lg:block text-center text-sm leading-snug"
+          className="kbd-hint text-center text-sm leading-snug"
           style={{ color: "var(--color-text-muted)" }}
         >
           {showRepeat ? "Press space to hear it again" : "Press space to roll"}
