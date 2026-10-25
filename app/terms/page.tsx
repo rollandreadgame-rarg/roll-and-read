@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/LegalPage";
-import { SUPPORT_EMAIL } from "@/lib/contact";
+import { OPERATOR, SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Roll & Read",
@@ -9,10 +9,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Service" lastUpdated="June 11, 2026">
+    <LegalPage title="Terms of Service" lastUpdated="October 25, 2026">
       <p>
         These Terms of Service (&ldquo;Terms&rdquo;) govern your use of Roll &amp; Read (the
-        &ldquo;Service&rdquo;). By creating an account or using the Service, you agree to these Terms.
+        &ldquo;Service&rdquo;), operated by {OPERATOR.legalName} (&ldquo;we&rdquo; or
+        &ldquo;us&rdquo;). By creating an account or using the Service, you agree to these Terms.
         If you do not agree, please do not use the Service.
       </p>
 
@@ -85,7 +86,9 @@ export default function TermsPage() {
 
       <h2>9. Termination</h2>
       <p>
-        You may stop using the Service and delete your account at any time. We may suspend or terminate
+        You may stop using the Service and delete your account at any time (signed in, open the
+        account menu, then Manage account, then Delete account). Deleting your account deletes your
+        children&rsquo;s profiles and progress and cancels any subscription. We may suspend or terminate
         access if you violate these Terms or to protect the Service or other users. Sections that by
         their nature should survive termination (such as intellectual property, disclaimers, and
         limitation of liability) will survive.
@@ -100,8 +103,11 @@ export default function TermsPage() {
 
       <h2>11. Governing law</h2>
       <p>
-        These Terms are governed by the laws of the United States and the state in which Roll &amp;
-        Read operates, without regard to conflict-of-laws principles.
+        These Terms are governed by the laws of the State of Texas and applicable United States
+        federal law, without regard to conflict-of-laws principles. Any dispute relating to these
+        Terms or the Service will be brought in the state or federal courts located in Texas, and you
+        and we consent to their jurisdiction. Nothing in this section takes away any rights you have
+        under the consumer-protection laws of the place where you live.
       </p>
 
       <h2>12. Contact us</h2>
