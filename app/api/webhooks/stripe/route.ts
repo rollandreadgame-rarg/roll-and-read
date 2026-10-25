@@ -3,8 +3,6 @@ import Stripe from "stripe";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { stripe } from "@/lib/stripe";
-import { sendEmail } from "@/lib/email/send";
-import { paymentFailedEmail } from "@/lib/email/templates";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -112,22 +110,9 @@ export async function POST(req: NextRequest) {
       syncSecret: process.env.CONVEX_SYNC_SECRET,
     });
 
-    // Email only on the first failed attempt: Stripe retries the card over
-    // several days and each retry fires this event again.
-    if (event.type === "invoice.payment_failed") {
-      const invoice = event.data.object as Stripe.Invoice;
-      if (invoice.attempt_count === 1 && invoice.customer_email) {
-        await sendEmail({
-          to: invoice.customer_email,
-          ...paymentFailedEmail({
-            planName: planName(price?.lookup_key),
-            amount: formatAmount(invoice.amount_due, invoice.currency),
-            payUrl: invoice.hosted_invoice_url,
-          }),
-          idempotencyKey: `payment-failed/${invoice.id}`,
-        });
-      }
-    }
+    // No email here: Stripe itself emails the customer about failed payments
+    // and expiring cards (Billing settings, turned on 2026-10-25), with a
+    // link to update the card.
 
     return NextResponse.json({ received: true, type: event.type });
   } catch (err) {
@@ -135,15 +120,4 @@ export async function POST(req: NextRequest) {
     console.error(`[stripe-webhook] ${event.type} failed:`, msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
-
-// "family_monthly" -> "Family"
-function planName(lookupKey: string | null | undefined): string | undefined {
-  const word = lookupKey?.split("_")[0];
-  return word ? word[0].toUpperCase() + word.slice(1) : undefined;
-}
-
-function formatAmount(cents: number | null | undefined, currency: string | null | undefined) {
-  if (cents == null || !currency) return undefined;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 }

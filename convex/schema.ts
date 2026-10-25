@@ -52,6 +52,16 @@ export default defineSchema({
     hasSeenTutorial: v.boolean(),
     selectedTheme: v.string(),
     createdAt: v.number(),
+    // Server-side record of the board in progress (wordBank.addWord counts
+    // answers; completedBoard needs a full board and resets them). Undefined
+    // on readers who haven't played since this was added.
+    boardWords: v.optional(v.number()),
+    boardFirstTry: v.optional(v.number()),
+    lastCoinAt: v.optional(v.number()),
+    // Sticker picks earned by finished boards and not yet claimed.
+    pendingRewards: v.optional(
+      v.array(v.object({ type: v.string(), rarity: v.string(), label: v.string() }))
+    ),
   }).index("by_user", ["userId"]),
 
   word_lists: defineTable({

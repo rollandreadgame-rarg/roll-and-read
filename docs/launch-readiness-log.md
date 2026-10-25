@@ -40,7 +40,7 @@ Status values: TODO, IN PROGRESS, DONE (verified how), NEEDS OWNER (what is need
 |---|------|--------|----------------------|
 | O1 | Error reporting | DONE | `client_errors` table; signed-in browsers report uncaught errors + ErrorBoundary crashes (message, path, browser only; 5/min/user cap). Read with `clientErrors:recent` + maintenance key. 2026-10-23: zero real reports since launch; a test error thrown on the live site with the QA account reached the prod table in seconds (row "qa-probe: error reporter check 2026-10-23"). |
 | O2 | Usage analytics (privacy-safe, no child data) | DONE | Vercel Web Analytics + Speed Insights (both were already enabled on the Vercel project but never added to the site). Cookieless; query strings stripped (sign-in links carry one-time tokens). Privacy policy updated (Oct 22, 2026). |
-| O3 | Emails: welcome, payment failed | NEEDS OWNER | Code DONE and live but dormant (2026-10-23, `lib/email/`): welcome email on sign-up, payment-failed email on an invoice's first failed attempt, idempotent against webhook retries, 7 unit tests, axe-clean HTML. Switches on when `RESEND_API_KEY` is set on Vercel (then verify the rollandreadgame.com sending domain in Resend; DNS is on Namecheap and can be added by API). Stripe built-in emails: owner said yes on 2026-10-23, but no connected Brave profile is signed in to Stripe (admin@nmtdirect.com) and signing in needs the owner. |
+| O3 | Emails: welcome, payment failed, receipts | DONE (Stripe) / welcome NEEDS OWNER | 2026-10-25, Stripe account acct_…jJoT (the Roll & Read one; the login also has a second "NMT Direct INC" account for 9x12 Postcard ads): turned on receipts for successful payments and refunds, and Billing emails for expiring cards, failed card payments and failed bank debits; verified after reload. The site's own payment-failed email was removed (Stripe sends it). Welcome email code is live but dormant until `RESEND_API_KEY` is set on Vercel. Still on Stripe, needs owner OK (account settings): public business name shows "NMT Direct INC" on receipts (statement descriptor already "ROLL AND READ GAME"); business website and the card-update links in Stripe emails still point to roll-and-read.vercel.app (the site now redirects that address to rollandreadgame.com). |
 | O7 | support@rollandreadgame.com receives mail | NEEDS OWNER | Found 2026-10-23: the domain uses Namecheap email forwarding, but NO forward exists, so mail to the address on Help, Privacy and Terms goes nowhere. Fix is one Namecheap API call; needs the owner's OK and which inbox to forward to. |
 | O4 | Sign-in emails say "Roll & Read", not "My Application" | DONE (already) | Checked Clerk's live environment endpoint for prod and dev: application name is "Roll & Read". |
 | O5 | Children's privacy (COPPA) policy reviewed by a lawyer | NEEDS OWNER | Privacy policy covers COPPA, adult-only accounts and the school exception; updated today for analytics and error reports. Needs a lawyer's read before marketing to schools. |
@@ -77,12 +77,15 @@ Status values: TODO, IN PROGRESS, DONE (verified how), NEEDS OWNER (what is need
 | T15 | Settings showed the device's theme, not the reader's saved theme | FIXED | Settings applies and highlights the selected reader's theme. |
 | T16 | Teacher tour closed mid-animation dropped focus to the page top | FIXED | Close handled in `onDestroyStarted` (driver.js skips `onDestroyed` mid-transition). |
 
-Known and left open (need a design decision, not a quick fix):
-- Parent PIN reset trusts the browser that the emailed code was entered (no server proof). Fix needs a server-checked code or Clerk re-verification.
-- Coins, stickers and level-ups are decided in the browser; the server checks ownership and limits but not that a board was really played.
-- `createUser` fallback trusts the email the browser sends (the webhook normally sets it).
-- No length limit on reader names.
-- Stripe checkout can't be tested locally: the Stripe test key in `.env.local` has expired.
+| T17 | Parent PIN reset had no server proof (any signed-in browser could replace the PIN) | FIXED (2026-10-25) | Reset goes through `/api/parent-pin/reset`, which requires Clerk reverification ("strict": password or emailed code within 10 min; the browser's `useReverification` shows Clerk's prompt). Convex `resetParentPin` only accepts the sync secret. |
+| T18 | Coins, sticker picks and level-ups were decided in the browser | FIXED (2026-10-25) | Server pays coins in `wordBank.addWord` (curriculum value, word within reach, 400ms human-pace floor, 30 per board) and `markPracticed` (3 for a practice word, once). `completedBoard` needs 28+ counted answers, computes accuracy, milestones and level-up itself and stores the picks (`pendingRewards`); `awardStickerFromCategory` spends one (old profiles get 3 legacy claims); `advanceLevel` re-checks the level-up rule. `awardCoins` is a no-op for old browsers; `grantSticker`/`awardMilestoneSticker` are internal. Picks now follow the reader across devices. |
+| T19 | Browser fallback `createUser` stored the email the browser sent | FIXED (2026-10-25) | Email comes from the verified Clerk token (or blank until the webhook fills it); the webhook's email wins. |
+| T20 | Reader names had no length limit | FIXED (2026-10-23) | 1–30 characters, trimmed; avatar and theme checked too. |
+| T21 | Old roll-and-read.vercel.app address (still in Stripe settings) can't sign in | FIXED (2026-10-25) | Redirects to rollandreadgame.com (API routes excluded so webhooks still work). |
+
+Still open:
+- Stripe checkout can't be tested locally: the Stripe test key in `.env.local` has expired (owner would need to create a new sandbox key).
+- What a child taps is still reported by the browser (which word was right, how many misses). Fully preventing a scripted "perfect" board needs the server to choose and check each word; not worth it for a kids' game whose rewards are stickers and coins.
 
 ## Live verification (2026-10-23, deploy f5fac3a)
 

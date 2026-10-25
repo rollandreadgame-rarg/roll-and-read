@@ -47,7 +47,6 @@ export default function PracticePage() {
   );
 
   const markPracticed = useMutation(api.wordBank.markPracticed);
-  const awardCoins = useMutation(api.profiles.awardCoins);
 
   // Snapshot the practice queue once per reader — re-querying after each
   // mutation would shrink it mid-drill and skip ahead unpredictably.
@@ -125,10 +124,9 @@ export default function PracticePage() {
     setBusy(true);
     playSound("correct");
     try {
-      await Promise.all([
-        markPracticed({ wordBankId: current._id, stillNeedsPractice: false }),
-        awardCoins({ profileId, amount: PRACTICE_COIN_REWARD }),
-      ]);
+      // The server pays PRACTICE_COIN_REWARD for a word that was waiting
+      // for practice (wordBank.markPracticed).
+      await markPracticed({ wordBankId: current._id, stillNeedsPractice: false });
       setResultsBatch((p) => ({
         ...p,
         gotIt: p.gotIt + 1,

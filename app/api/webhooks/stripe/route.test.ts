@@ -348,29 +348,7 @@ describe("invoice.payment_failed", () => {
     expect(h.sendEmail).not.toHaveBeenCalled();
   });
 
-  test("first failed attempt emails the customer with plan, amount, pay link and an idempotency key", async () => {
-    h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    await POST(signedRequest(event("invoice.payment_failed", invoice())));
-    expect(h.sendEmail).toHaveBeenCalledTimes(1);
-    const msg = h.sendEmail.mock.calls[0][0];
-    expect(msg.to).toBe("parent@example.com");
-    expect(msg.idempotencyKey).toBe("payment-failed/in_123");
-    expect(msg.subject).toMatch(/payment didn't go through/);
-    expect(msg.text).toContain("Family plan");
-    expect(msg.text).toContain("($12.99)");
-    expect(msg.text).toContain("https://invoice.stripe.com/i/abc");
-    expect(msg.html).toContain("Family plan");
-  });
-
-  test("email is sent only after the Convex sync succeeded", async () => {
-    h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    await POST(signedRequest(event("invoice.payment_failed", invoice())));
-    const syncOrder = h.mutation.mock.invocationCallOrder[0];
-    const emailOrder = h.sendEmail.mock.invocationCallOrder[0];
-    expect(syncOrder).toBeLessThan(emailOrder);
-  });
-
-  test.each([2, 3, 4])("retry attempt %i does not email again", async (attempt) => {
+  test.each([1, 2, 3])("attempt %i syncs but sends no email (Stripe emails the customer itself)", async (attempt) => {
     h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
     const res = await POST(signedRequest(event("invoice.payment_failed", invoice({ attempt_count: attempt }))));
     expect(res.status).toBe(200);
@@ -378,56 +356,10 @@ describe("invoice.payment_failed", () => {
     expect(h.sendEmail).not.toHaveBeenCalled();
   });
 
-  test("no customer_email means no email (but still syncs)", async () => {
+  test("Convex down: 500 so Stripe retries the event", async () => {
     h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    const res = await POST(signedRequest(event("invoice.payment_failed", invoice({ customer_email: null }))));
-    expect(res.status).toBe(200);
-    expect(syncCalls()).toHaveLength(1);
-    expect(h.sendEmail).not.toHaveBeenCalled();
-  });
-
-  test("missing amount/currency and unknown lookup key still produce a readable email", async () => {
-    h.retrieve.mockResolvedValue(subscription({}, { price: { id: "p", lookup_key: null } }));
-    await POST(
-      signedRequest(
-        event("invoice.payment_failed", invoice({ amount_due: null, currency: null, hosted_invoice_url: null }))
-      )
-    );
-    const msg = h.sendEmail.mock.calls[0][0];
-    expect(msg.text).toContain("your Roll & Read subscription.");
-    expect(msg.text).not.toContain("undefined");
-    expect(msg.text).not.toContain("null");
-    expect(msg.html).not.toContain("pay invoice");
-  });
-
-  test("an email delivery failure does not fail the webhook", async () => {
-    h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    h.sendEmail.mockResolvedValue({ sent: false, reason: "resend 500" });
-    const res = await POST(signedRequest(event("invoice.payment_failed", invoice())));
-    expect(res.status).toBe(200);
-  });
-
-  test("Convex down: 500, no email; Stripe's retry of the same event then emails exactly once", async () => {
-    h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    const evt = event("invoice.payment_failed", invoice(), "evt_retry");
-
     h.mutation.mockRejectedValueOnce(new Error("Convex unavailable"));
-    const first = await POST(signedRequest(evt));
-    expect(first.status).toBe(500);
-    expect(h.sendEmail).not.toHaveBeenCalled();
-
-    // Stripe redelivers the identical event (attempt_count is still 1 in it).
-    const second = await POST(signedRequest(evt));
-    expect(second.status).toBe(200);
-    expect(h.sendEmail).toHaveBeenCalledTimes(1);
-  });
-
-  test("a duplicate delivery after success re-sends with the SAME idempotency key (Resend dedupes)", async () => {
-    h.retrieve.mockResolvedValue(subscription({ status: "past_due" }));
-    const evt = event("invoice.payment_failed", invoice(), "evt_dup");
-    await POST(signedRequest(evt));
-    await POST(signedRequest(evt));
-    const keys = h.sendEmail.mock.calls.map(([m]) => m.idempotencyKey);
-    expect(keys).toEqual(["payment-failed/in_123", "payment-failed/in_123"]);
+    const res = await POST(signedRequest(event("invoice.payment_failed", invoice(), "evt_retry")));
+    expect(res.status).toBe(500);
   });
 });

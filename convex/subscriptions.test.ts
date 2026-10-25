@@ -280,7 +280,11 @@ describe("syncFromStripe", () => {
     installFakeTrustedSecrets();
     const t = setup();
     const userId = await seedUser(t, "user_a", "family", { stripeCustomerId: "cus_a" });
-    const p1 = await seedProfile(t, userId, { currentLevel: "3A" });
+    const p1 = await seedProfile(t, userId, {
+      currentLevel: "3A",
+      boardsClearedAtLevel: 7,
+      accuracyHistory: [0.9, 0.9, 0.9],
+    });
     await seedProfile(t, userId);
     await t.mutation(api.subscriptions.syncFromStripe, {
       stripeCustomerId: "cus_a",

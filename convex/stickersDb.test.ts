@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { as, seedFamily, seedSticker, seedUser, setup } from "./test.helpers";
 import type { T } from "./test.helpers";
@@ -31,19 +31,14 @@ describe("reads", () => {
   });
 });
 
-describe("grantSticker", () => {
-  test("refuses other families and anonymous callers", async () => {
+describe("operator-only grants", () => {
+  // (visibility.test.ts checks browsers can't reach these.)
+  test("an operator can grant a sticker", async () => {
     const t = setup();
     const s = await seedSticker(t, "Cat");
     const a = await seedFamily(t, "user_a");
-    await seedUser(t, "user_b");
-    await expect(
-      as(t, "user_b").mutation(api.stickersDb.grantSticker, { profileId: a.profileId, stickerId: s })
-    ).rejects.toThrow("Forbidden");
-    await expect(
-      t.mutation(api.stickersDb.grantSticker, { profileId: a.profileId, stickerId: s })
-    ).rejects.toThrow("Not authenticated");
-    expect(await owned(t, a.profileId)).toHaveLength(0);
+    await t.mutation(internal.stickersDb.grantSticker, { profileId: a.profileId, stickerId: s });
+    expect(await owned(t, a.profileId)).toHaveLength(1);
   });
 
   // Regression: granting a sticker the reader already has used to add a
@@ -52,14 +47,9 @@ describe("grantSticker", () => {
     const t = setup();
     const s = await seedSticker(t, "Cat");
     const a = await seedFamily(t, "user_a");
-    const first = await a.client.mutation(api.stickersDb.grantSticker, {
-      profileId: a.profileId,
-      stickerId: s,
-    });
-    const second = await a.client.mutation(api.stickersDb.grantSticker, {
-      profileId: a.profileId,
-      stickerId: s,
-    });
+    const args = { profileId: a.profileId, stickerId: s };
+    const first = await t.mutation(internal.stickersDb.grantSticker, args);
+    const second = await t.mutation(internal.stickersDb.grantSticker, args);
     expect(second).toBe(first);
     expect(await owned(t, a.profileId)).toHaveLength(1);
   });
@@ -70,53 +60,37 @@ describe("grantSticker", () => {
     await t.run((ctx) => ctx.db.delete(s));
     const a = await seedFamily(t, "user_a");
     await expect(
-      a.client.mutation(api.stickersDb.grantSticker, { profileId: a.profileId, stickerId: s })
+      t.mutation(internal.stickersDb.grantSticker, { profileId: a.profileId, stickerId: s })
     ).rejects.toThrow("Sticker not found");
     expect(await owned(t, a.profileId)).toHaveLength(0);
   });
 
-  // NOT FIXED (design): sticker rewards are decided in the browser. Any
-  // signed-in owner can call grantSticker / awardMilestoneSticker /
-  // awardStickerFromCategory as often as they like and fill the album for
-  // free. The server has no record of which milestones were earned. Low
-  // stakes (own child's album, no money), but it bypasses the shop economy.
-  test.fails("a reader can't collect stickers they haven't earned", async () => {
+  // Regression: any signed-in owner could call the award functions as often
+  // as they liked and fill the album for free. Claims now need a pick the
+  // server issued for a finished board (see awards.test.ts).
+  test("a reader can't collect stickers they haven't earned", async () => {
     const t = setup();
     for (let i = 0; i < 5; i++) await seedSticker(t, `S${i}`);
-    const a = await seedFamily(t, "user_a");
+    const a = await seedFamily(t, "user_a", "free", { pendingRewards: [] });
     for (let i = 0; i < 5; i++) {
       await a.client
-        .mutation(api.stickersDb.awardMilestoneSticker, {
+        .mutation(api.stickersDb.awardStickerFromCategory, {
           profileId: a.profileId,
+          category: "animals",
           preferredRarity: "common",
         })
         .catch(() => {});
     }
-    expect((await owned(t, a.profileId)).length).toBeLessThanOrEqual(1);
-  });
-});
-
-describe("awardMilestoneSticker", () => {
-  test("grants an unowned sticker of the preferred rarity", async () => {
-    const t = setup();
-    const owl = await seedSticker(t, "Owl", "uncommon");
-    await seedSticker(t, "Cat", "common");
-    await seedSticker(t, "Lion", "rare");
-    const a = await seedFamily(t, "user_a");
-    const picked = await a.client.mutation(api.stickersDb.awardMilestoneSticker, {
-      profileId: a.profileId,
-      preferredRarity: "uncommon",
-    });
-    expect(picked?._id).toBe(owl);
+    expect(await owned(t, a.profileId)).toHaveLength(0);
   });
 
-  test("falls through tiers, never duplicates, then returns null", async () => {
+  test("awardMilestoneSticker falls through tiers, never duplicates, then returns null", async () => {
     const t = setup();
     await seedSticker(t, "Cat", "common");
     await seedSticker(t, "Lion", "rare");
     const a = await seedFamily(t, "user_a");
     const award = () =>
-      a.client.mutation(api.stickersDb.awardMilestoneSticker, {
+      t.mutation(internal.stickersDb.awardMilestoneSticker, {
         profileId: a.profileId,
         preferredRarity: "rare",
       });
@@ -124,19 +98,6 @@ describe("awardMilestoneSticker", () => {
     expect((await award())?.name).toBe("Cat");
     expect(await award()).toBeNull();
     expect(await owned(t, a.profileId)).toHaveLength(2);
-  });
-
-  test("other families are refused", async () => {
-    const t = setup();
-    await seedSticker(t, "Cat");
-    const a = await seedFamily(t, "user_a");
-    await seedUser(t, "user_b");
-    await expect(
-      as(t, "user_b").mutation(api.stickersDb.awardMilestoneSticker, {
-        profileId: a.profileId,
-        preferredRarity: "common",
-      })
-    ).rejects.toThrow("Forbidden");
   });
 });
 

@@ -13,6 +13,19 @@ const countProfiles = (t: T, userId: Id<"users">) =>
       .length
   );
 
+// Puts a fully played board on the server's record (what 30 addWord calls
+// leave behind), then finishes it.
+type Family = Awaited<ReturnType<typeof seedFamily>>;
+async function complete(
+  t: T,
+  a: Family,
+  args: { accuracy?: number; localDate?: string } = {},
+  firstTry = 30
+) {
+  await t.run((ctx) => ctx.db.patch(a.profileId, { boardWords: 30, boardFirstTry: firstTry }));
+  return a.client.mutation(api.profiles.completedBoard, { profileId: a.profileId, accuracy: 1, ...args });
+}
+
 describe("reads are owner-only", () => {
   test("getByUser returns [] for anonymous and other users", async () => {
     const t = setup();
@@ -300,20 +313,13 @@ describe("remove", () => {
 });
 
 describe("coins", () => {
-  test("awardCoins adds to coins and lifetime coins", async () => {
+  // Coins are paid by the server (wordBank.addWord / markPracticed). The old
+  // client call is kept so older browsers don't error, but it pays nothing.
+  test.each([25, 100, 1e9, -1, NaN])("awardCoins(%s) changes nothing", async (amount) => {
     const t = setup();
     const a = await seedFamily(t, "user_a", "free", { coins: 10, lifetimeCoins: 40 });
-    await a.client.mutation(api.profiles.awardCoins, { profileId: a.profileId, amount: 25 });
-    expect(await getProfile(t, a.profileId)).toMatchObject({ coins: 35, lifetimeCoins: 65 });
-  });
-
-  test.each([-1, 101, NaN, Infinity, -Infinity])("awardCoins rejects %s", async (amount) => {
-    const t = setup();
-    const a = await seedFamily(t, "user_a", "free", { coins: 10, lifetimeCoins: 10 });
-    await expect(
-      a.client.mutation(api.profiles.awardCoins, { profileId: a.profileId, amount })
-    ).rejects.toThrow("Invalid coin amount");
-    expect(await getProfile(t, a.profileId)).toMatchObject({ coins: 10, lifetimeCoins: 10 });
+    await a.client.mutation(api.profiles.awardCoins, { profileId: a.profileId, amount });
+    expect(await getProfile(t, a.profileId)).toMatchObject({ coins: 10, lifetimeCoins: 40 });
   });
 
   test("awardCoins to someone else's reader is refused", async () => {
@@ -357,6 +363,9 @@ describe("coins", () => {
   });
 });
 
+// Meets the level-up goal: 7 boards at the level, last 3 averaging 80%+.
+const READY = { boardsClearedAtLevel: 7, accuracyHistory: [0.8, 0.8, 0.8] };
+
 describe("advanceLevel", () => {
   test("moves to the next sublevel and resets level progress", async () => {
     const t = setup();
@@ -393,7 +402,7 @@ describe("advanceLevel", () => {
 
   test("free plan stops at the end of Level 1", async () => {
     const t = setup();
-    const a = await seedFamily(t, "user_a", "free", { currentLevel: "1H" });
+    const a = await seedFamily(t, "user_a", "free", { currentLevel: "1H", ...READY });
     await expect(
       a.client.mutation(api.profiles.advanceLevel, { profileId: a.profileId, nextLevel: "2A" })
     ).rejects.toThrow("LEVEL_LOCKED");
@@ -402,9 +411,23 @@ describe("advanceLevel", () => {
 
   test("paid plan crosses into Level 2", async () => {
     const t = setup();
-    const a = await seedFamily(t, "user_a", "individual", { currentLevel: "1H" });
+    const a = await seedFamily(t, "user_a", "individual", { currentLevel: "1H", ...READY });
     await a.client.mutation(api.profiles.advanceLevel, { profileId: a.profileId, nextLevel: "2A" });
     expect((await getProfile(t, a.profileId))?.currentLevel).toBe("2A");
+  });
+
+  test.each([
+    ["too few boards", { boardsClearedAtLevel: 6, accuracyHistory: [1, 1, 1] }],
+    ["accuracy too low", { boardsClearedAtLevel: 9, accuracyHistory: [0.9, 0.7, 0.7] }],
+    ["fewer than 3 scores", { boardsClearedAtLevel: 9, accuracyHistory: [1, 1] }],
+    ["nothing played", {}],
+  ])("a reader who hasn't earned it can't move up (%s)", async (_name, progress) => {
+    const t = setup();
+    const a = await seedFamily(t, "user_a", "classroom", { currentLevel: "1A", ...progress });
+    await expect(
+      a.client.mutation(api.profiles.advanceLevel, { profileId: a.profileId, nextLevel: "1B" })
+    ).rejects.toThrow("NOT_READY");
+    expect((await getProfile(t, a.profileId))?.currentLevel).toBe("1A");
   });
 
   test("a reader stranded on a retired sublevel can only move to its replacement", async () => {
@@ -500,19 +523,45 @@ describe("completedBoard", () => {
     vi.setSystemTime(new Date(iso));
   };
 
-  test("counts the board and records clamped accuracy", async () => {
+  test("counts the board; accuracy comes from the server's count, not the client", async () => {
     const t = setup();
     const a = await seedFamily(t, "user_a", "free", {
       boardsClearedAtLevel: 2,
       totalBoardsCleared: 10,
     });
-    for (const accuracy of [1.5, -3, NaN, 0.75]) {
-      await a.client.mutation(api.profiles.completedBoard, { profileId: a.profileId, accuracy });
-    }
+    const r = await complete(t, a, { accuracy: 1 }, 24);
+    expect(r.accuracy).toBeCloseTo(0.8);
+    await complete(t, a, { accuracy: 0 }, 30);
     const p = await getProfile(t, a.profileId);
-    expect(p?.boardsClearedAtLevel).toBe(6);
-    expect(p?.totalBoardsCleared).toBe(14);
-    expect(p?.accuracyHistory).toEqual([1, 0, 0, 0.75]);
+    expect(p?.boardsClearedAtLevel).toBe(4);
+    expect(p?.totalBoardsCleared).toBe(12);
+    expect(p?.accuracyHistory).toEqual([0.8, 1]);
+    expect(p).toMatchObject({ boardWords: 0, boardFirstTry: 0 });
+  });
+
+  test.each([
+    [1.5, 1],
+    [-3, 0],
+    [NaN, 0],
+    [0.75, 0.75],
+  ])("a reader mid-board when counting began: client accuracy %s is clamped to %s, once", async (accuracy, kept) => {
+    const t = setup();
+    const a = await seedFamily(t, "user_a");
+    await a.client.mutation(api.profiles.completedBoard, { profileId: a.profileId, accuracy });
+    expect((await getProfile(t, a.profileId))?.accuracyHistory).toEqual([kept]);
+    // From then on the server counts, so an unplayed board is refused.
+    await expect(
+      a.client.mutation(api.profiles.completedBoard, { profileId: a.profileId, accuracy: 1 })
+    ).rejects.toThrow("BOARD_NOT_FINISHED");
+  });
+
+  test.each([0, 1, 27])("a board with %i answers is not finished", async (words) => {
+    const t = setup();
+    const a = await seedFamily(t, "user_a", "free", { boardWords: words, boardFirstTry: words });
+    await expect(
+      a.client.mutation(api.profiles.completedBoard, { profileId: a.profileId, accuracy: 1 })
+    ).rejects.toThrow("BOARD_NOT_FINISHED");
+    expect((await getProfile(t, a.profileId))?.totalBoardsCleared).toBe(0);
   });
 
   test("keeps only the last 10 accuracy scores", async () => {
@@ -530,11 +579,7 @@ describe("completedBoard", () => {
     const t = setup();
     const a = await seedFamily(t, "user_a");
     const play = (localDate: string) =>
-      a.client.mutation(api.profiles.completedBoard, {
-        profileId: a.profileId,
-        accuracy: 1,
-        localDate,
-      });
+      complete(t, a, { localDate });
     expect((await play("2026-10-01")).newStreakDays).toBe(1);
     expect((await play("2026-10-01")).newStreakDays).toBe(1);
     expect((await play("2026-10-02")).newStreakDays).toBe(2);
@@ -549,17 +594,9 @@ describe("completedBoard", () => {
       streakDays: 4,
       lastPlayedLocalDate: "2026-12-31",
     });
-    const r1 = await a.client.mutation(api.profiles.completedBoard, {
-      profileId: a.profileId,
-      accuracy: 1,
-      localDate: "2027-01-01",
-    });
+    const r1 = await complete(t, a, { localDate: "2027-01-01" });
     expect(r1.newStreakDays).toBe(5);
-    const r2 = await a.client.mutation(api.profiles.completedBoard, {
-      profileId: a.profileId,
-      accuracy: 1,
-      localDate: "2026-12-30",
-    });
+    const r2 = await complete(t, a, { localDate: "2026-12-30" });
     expect(r2.newStreakDays).toBe(5);
   });
 
@@ -570,11 +607,7 @@ describe("completedBoard", () => {
       streakDays: 2,
       lastPlayedLocalDate: "2026-10-01",
     });
-    const r = await a.client.mutation(api.profiles.completedBoard, {
-      profileId: a.profileId,
-      accuracy: 1,
-      localDate: "10/02/2026",
-    });
+    const r = await complete(t, a, { localDate: "10/02/2026" });
     expect(r.newStreakDays).toBe(3);
     expect((await getProfile(t, a.profileId))?.lastPlayedLocalDate).toBe("2026-10-02");
   });
@@ -586,10 +619,7 @@ describe("completedBoard", () => {
       streakDays: 6,
       lastPlayedAt: Date.parse("2026-10-01T08:00:00Z"),
     });
-    const r = await a.client.mutation(api.profiles.completedBoard, {
-      profileId: a.profileId,
-      accuracy: 1,
-    });
+    const r = await complete(t, a);
     expect(r.newStreakDays).toBe(7);
   });
 

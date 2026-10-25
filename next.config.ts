@@ -4,6 +4,20 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  // The old Vercel address is still linked from earlier Stripe emails and
+  // settings, but sign-in only works on the real domain. API routes are left
+  // alone so webhooks that still point there keep working (they don't follow
+  // redirects).
+  async redirects() {
+    return [
+      {
+        source: "/:path((?!api/).*)",
+        has: [{ type: "host", value: "roll-and-read.vercel.app" }],
+        destination: "https://rollandreadgame.com/:path",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

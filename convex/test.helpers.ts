@@ -126,6 +126,7 @@ export async function seedSticker(
 // secret checks with wrong values) still goes through the real digest.
 export const TEST_SYNC_SECRET = "test-only-fake-sync-secret";
 export const TEST_MAINTENANCE_SECRET = "test-only-fake-maintenance-secret";
+export const TEST_DEV_SYNC_SECRET = "test-only-fake-dev-sync-secret";
 
 function bakedDigest(name: string): string {
   const m = new RegExp(`${name}\\s*=\\s*"([0-9a-f]{64})"`).exec(authHelpersSource);
@@ -140,7 +141,8 @@ function hexToBuffer(hex: string): ArrayBuffer {
 }
 
 export function installFakeTrustedSecrets() {
-  const sync = hexToBuffer(bakedDigest("SYNC_SECRET_SHA256"));
+  const sync = hexToBuffer(bakedDigest("(?<!DEV_)SYNC_SECRET_SHA256"));
+  const devSync = hexToBuffer(bakedDigest("DEV_SYNC_SECRET_SHA256"));
   const maintenance = hexToBuffer(bakedDigest("MAINTENANCE_SECRET_SHA256"));
   const subtle = crypto.subtle;
   const realDigest = subtle.digest.bind(subtle);
@@ -152,6 +154,7 @@ export function installFakeTrustedSecrets() {
         : new Uint8Array(data);
       const text = new TextDecoder().decode(bytes);
       if (text === TEST_SYNC_SECRET) return sync.slice(0);
+      if (text === TEST_DEV_SYNC_SECRET) return devSync.slice(0);
       if (text === TEST_MAINTENANCE_SECRET) return maintenance.slice(0);
       return realDigest(algorithm, data);
     });

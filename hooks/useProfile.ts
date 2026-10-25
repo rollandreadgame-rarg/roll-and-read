@@ -16,12 +16,10 @@ export function useProfile(profileId?: string) {
   );
 
   const updateProfile = useMutation(api.profiles.update);
-  const awardCoins = useMutation(api.profiles.awardCoins);
 
   return {
     profile,
     updateProfile,
-    awardCoins,
     isLoading: profile === undefined,
   };
 }

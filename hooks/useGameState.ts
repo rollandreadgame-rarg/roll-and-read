@@ -5,8 +5,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { generateBoard, checkLevelAdvancement, type GameBoard, type WordEntry } from "@/lib/game/boardGenerator";
-import { getMilestonesForBoard, type MilestoneTrigger } from "@/lib/game/milestones";
+import { generateBoard, type GameBoard, type WordEntry } from "@/lib/game/boardGenerator";
+import type { MilestoneTrigger } from "@/lib/game/milestones";
 import { parseSavedBoard, savedBoardKey, type SavedBoard } from "@/lib/game/savedBoard";
 import { getNextLevel, isValidLevel, normalizeLevel } from "@/lib/levels";
 import { isLevelAllowed, type Plan } from "@/convex/subscriptionConfig";
@@ -108,7 +108,7 @@ export function useGameState(profileId: string | null) {
   );
 
   // Mutations
-  const awardCoinsMut = useMutation(api.profiles.awardCoins);
+  const startBoardMut = useMutation(api.profiles.startBoard);
   const addWordMut = useMutation(api.wordBank.addWord);
   const completedBoardMut = useMutation(api.profiles.completedBoard);
   const advanceLevelMut = useMutation(api.profiles.advanceLevel);
@@ -195,18 +195,6 @@ export function useGameState(profileId: string | null) {
   const deferredLockedRef = useRef(false);
   const lockPromptShownRef = useRef(false);
 
-  // Unclaimed sticker picks survive a reload or a closed tab (per device), so
-  // a child who leaves before picking still gets their stickers next time.
-  const pendingKey = profileId ? `rr:pendingRewards:${profileId}` : null;
-  const savePending = (list: MilestoneTrigger[]) => {
-    if (!pendingKey) return;
-    try {
-      if (list.length) localStorage.setItem(pendingKey, JSON.stringify(list));
-      else localStorage.removeItem(pendingKey);
-    } catch {
-      // Storage unavailable (private mode): rewards just won't survive a reload.
-    }
-  };
   const restoredPicksRef = useRef(false);
   const restoreCheckedRef = useRef<string | null>(null);
 
@@ -355,6 +343,9 @@ export function useGameState(profileId: string | null) {
       practicePool: (practiceWords ?? []) as WordEntry[],
     });
     preloadWords(newBoard.rows.flatMap((r) => r.words.map((w) => w.word)));
+    if (profileId) {
+      safeMutate(() => startBoardMut({ profileId: profileId as Id<"profiles"> }), "startBoard");
+    }
 
     busyRef.current = false;
     rollingRef.current = false;
@@ -494,12 +485,8 @@ export function useGameState(profileId: string | null) {
             ...prev.slice(0, 19),
           ]);
 
-          // Persist to Convex (optimistic with retry)
-          safeMutate(
-            () => awardCoinsMut({ profileId: profileId as Id<"profiles">, amount: target.coinValue }),
-            "awardCoins"
-          );
-
+          // Persist to Convex (optimistic with retry). The server pays the
+          // word's coins when it banks the word.
           safeMutate(
             () => addWordMut({
               profileId: profileId as Id<"profiles">,
@@ -690,42 +677,27 @@ export function useGameState(profileId: string | null) {
 
       await sleep(500);
 
-      // Determine if this board triggers a level-up before showing the modal
-      // so we can roll the level-up sticker into the same award batch.
-      const newBoardsCleared = (profile.boardsClearedAtLevel || 0) + 1;
-      const newHistory = [...(profile.accuracyHistory || []), accuracy].slice(-10);
-      // No level-up (or level-up sticker) when the plan doesn't include the
-      // next level — the upgrade prompt is shown instead.
-      const passed = checkLevelAdvancement(newBoardsCleared, newHistory) && nextLevel !== null;
-      const isLevelUp = passed && canAdvance;
-      deferredLockedRef.current = passed && !canAdvance && !lockPromptShownRef.current;
-
-      // Mutate the streak first so we know previous→new streak before rendering.
-      const streakResult = await safeMutate(
+      // The server records the board and decides what it earned: accuracy
+      // from its own count of answers, sticker picks, and whether the reader
+      // moves up (or would, if the plan included the next level).
+      const result = await safeMutate(
         () => completedBoardMut({ profileId: profileId as Id<"profiles">, accuracy, localDate: localDateString() }),
         "completedBoard"
       );
+      const boardAccuracy = result?.accuracy ?? accuracy;
+      const milestones = (result?.milestones ?? []) as MilestoneTrigger[];
+      deferredLockedRef.current = !!result?.levelLocked && !lockPromptShownRef.current;
 
-      const milestones: MilestoneTrigger[] = streakResult
-        ? getMilestonesForBoard({
-            totalBoardsCleared: streakResult.totalBoardsCleared,
-            accuracy,
-            previousStreakDays: streakResult.previousStreakDays,
-            newStreakDays: streakResult.newStreakDays,
-            isLevelUp,
-          })
-        : [];
-
-      // Do NOT auto-grant. Queue the milestone choices for the pick flow, and
-      // stash the level-up so it fires only after every reward is claimed.
+      // Do NOT auto-grant. Queue the milestone choices for the pick flow (the
+      // server holds the same queue), and stash the level-up so it fires only
+      // after every reward is claimed.
       setPendingRewards(milestones);
-      savePending(milestones);
-      deferredLevelUpRef.current = isLevelUp ? nextLevel : null;
+      deferredLevelUpRef.current = result?.levelUp ?? null;
 
       setBoardCompleteData({
         wordsAdded: sess.wordsCorrect,
         coinsEarned: sess.coinsEarned,
-        accuracy,
+        accuracy: boardAccuracy,
         pendingRewardCount: milestones.length,
       });
       setShowBoardComplete(true);
@@ -747,7 +719,7 @@ export function useGameState(profileId: string | null) {
         "saveSession"
       );
     },
-    [profile, profileId, level, nextLevel, canAdvance]
+    [profile, profileId, level]
   );
 
   // After the reward queue empties, resolve a deferred level-up or start a new board.
@@ -792,7 +764,6 @@ export function useGameState(profileId: string | null) {
   const handleRewardClaimed = useCallback(() => {
     setPendingRewards((prev) => {
       const next = prev.slice(1);
-      savePending(next);
       if (next.length === 0) {
         setShowPickCategory(false);
         if (restoredPicksRef.current) {
@@ -804,24 +775,31 @@ export function useGameState(profileId: string | null) {
       }
       return next;
     });
-  }, [resolveAfterRewards, pendingKey]);
+  }, [resolveAfterRewards]);
 
-  // On arriving with a board ready, offer any picks left unclaimed last time.
+  // On arriving with a board ready, offer any picks left unclaimed last time
+  // (kept on the server, so they follow the reader to any device).
   useEffect(() => {
-    if (!pendingKey || !board || restoreCheckedRef.current === pendingKey) return;
-    restoreCheckedRef.current = pendingKey;
-    if (showBoardComplete || showPickCategory || pendingRewards.length > 0) return;
-    let stored: MilestoneTrigger[] = [];
+    if (!profileId || !board || !profile || restoreCheckedRef.current === profileId) return;
+    restoreCheckedRef.current = profileId;
+    // Picks saved in this browser before the server kept them: offered once
+    // for readers the server has no record for (it allows a few such claims).
+    let legacy: MilestoneTrigger[] = [];
     try {
-      stored = JSON.parse(localStorage.getItem(pendingKey) ?? "[]");
+      const key = `rr:pendingRewards:${profileId}`;
+      const parsed = JSON.parse(localStorage.getItem(key) ?? "[]");
+      if (Array.isArray(parsed)) legacy = parsed.slice(0, 3);
+      localStorage.removeItem(key);
     } catch {
-      stored = [];
+      legacy = [];
     }
-    if (!Array.isArray(stored) || stored.length === 0) return;
+    if (showBoardComplete || showPickCategory || pendingRewards.length > 0) return;
+    const stored = (profile.pendingRewards ?? legacy) as MilestoneTrigger[];
+    if (stored.length === 0) return;
     restoredPicksRef.current = true;
     setPendingRewards(stored);
     setShowPickCategory(true);
-  }, [pendingKey, board]);
+  }, [profileId, board, profile]);
 
   const handleLevelUpClose = useCallback(() => {
     setShowLevelUp(false);

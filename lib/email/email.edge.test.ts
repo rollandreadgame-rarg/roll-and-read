@@ -57,13 +57,11 @@ describe("sendEmail", () => {
 describe("templates", () => {
   test("a trailing slash on NEXT_PUBLIC_APP_URL never produces '//' links", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://rollandreadgame.com/");
-    const { welcomeEmail, paymentFailedEmail } = await import("./templates");
-    for (const m of [welcomeEmail(), paymentFailedEmail({})]) {
-      expect(m.html).not.toMatch(/rollandreadgame\.com\/\//);
-      expect(m.text).not.toMatch(/rollandreadgame\.com\/\//);
-    }
-    expect(welcomeEmail().text).toContain("https://rollandreadgame.com/play");
-    expect(paymentFailedEmail({}).text).toContain("https://rollandreadgame.com/billing");
+    const { welcomeEmail } = await import("./templates");
+    const m = welcomeEmail();
+    expect(m.html).not.toMatch(/rollandreadgame\.com\/\//);
+    expect(m.text).not.toMatch(/rollandreadgame\.com\/\//);
+    expect(m.text).toContain("https://rollandreadgame.com/play");
   });
 
   test("defaults to the production domain when NEXT_PUBLIC_APP_URL is unset", async () => {
@@ -72,33 +70,9 @@ describe("templates", () => {
     expect(welcomeEmail().text).toContain("https://rollandreadgame.com/play");
   });
 
-  test("no 'undefined'/'null' leaks into any variant of the payment email", async () => {
-    const { paymentFailedEmail } = await import("./templates");
-    const variants = [
-      {},
-      { planName: "Family" },
-      { amount: "$14.99" },
-      { payUrl: null },
-      { planName: "Classroom", amount: "$49.00", payUrl: "https://invoice.stripe.com/i/x" },
-    ];
-    for (const v of variants) {
-      const m = paymentFailedEmail(v);
-      for (const s of [m.subject, m.html, m.text]) {
-        expect(s).not.toMatch(/undefined|null|NaN|\[object/);
-      }
-    }
-  });
-
-  test("amount is HTML-escaped", async () => {
-    const { paymentFailedEmail } = await import("./templates");
-    const m = paymentFailedEmail({ amount: "<b>$1</b>" });
-    expect(m.html).toContain("&lt;b&gt;$1&lt;/b&gt;");
-    expect(m.html).not.toContain("<b>$1</b>");
-  });
-
   test("every email has a matching plain-text twin with the support address", async () => {
-    const { welcomeEmail, paymentFailedEmail } = await import("./templates");
-    for (const m of [welcomeEmail(), paymentFailedEmail({ planName: "Family" })]) {
+    const { welcomeEmail } = await import("./templates");
+    for (const m of [welcomeEmail()]) {
       expect(m.text).toContain("support@rollandreadgame.com");
       expect(m.html).toContain("mailto:support@rollandreadgame.com");
       expect(m.html).toMatch(/^<!doctype html>/);

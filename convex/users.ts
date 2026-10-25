@@ -18,16 +18,29 @@ export const createUser = mutation({
     if (!(await isCallerOrTrusted(ctx, args.clerkId, args.syncSecret))) {
       throw new Error("Forbidden");
     }
+    // The webhook's email comes from Clerk. A signed-in browser's comes from
+    // its verified token (the "convex" JWT template's email claim), never
+    // from the request, so nobody can file an account under someone else's
+    // address. The webhook fills it in later if the token has none.
+    const identity = await ctx.auth.getUserIdentity();
+    const trusted = !identity;
+    const email = trusted ? args.email : typeof identity.email === "string" ? identity.email : "";
+
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
-    if (existing) return existing._id;
+    if (existing) {
+      if (trusted && email && existing.email !== email) {
+        await ctx.db.patch(existing._id, { email, updatedAt: Date.now() });
+      }
+      return existing._id;
+    }
 
     return await ctx.db.insert("users", {
       clerkId: args.clerkId,
-      email: args.email,
+      email,
       plan: "free",
       createdAt: Date.now(),
       updatedAt: Date.now(),

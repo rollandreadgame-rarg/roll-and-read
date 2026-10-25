@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireProfileOwner, ownsProfile } from "./authHelpers";
 
@@ -21,13 +21,15 @@ export const getForProfile = query({
   },
 });
 
-export const grantSticker = mutation({
+// Operator tools only (dashboard / internal calls; no browser can reach them).
+// Players earn stickers through awardStickerFromCategory.
+export const grantSticker = internalMutation({
   args: {
     profileId: v.id("profiles"),
     stickerId: v.id("stickers"),
   },
   handler: async (ctx, args) => {
-    await requireProfileOwner(ctx, args.profileId);
+    if (!(await ctx.db.get(args.profileId))) throw new Error("Profile not found");
     if (!(await ctx.db.get(args.stickerId))) throw new Error("Sticker not found");
     // Already collected → keep the one row (no double-counting in the album).
     const owned = await ctx.db
@@ -48,7 +50,7 @@ export const grantSticker = mutation({
 // Falls back through rarity tiers (rare → uncommon → common) if the preferred
 // tier is fully owned. Returns the granted sticker (or null if every sticker
 // of every tier is already owned).
-export const awardMilestoneSticker = mutation({
+export const awardMilestoneSticker = internalMutation({
   args: {
     profileId: v.id("profiles"),
     preferredRarity: v.union(
@@ -59,7 +61,7 @@ export const awardMilestoneSticker = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    await requireProfileOwner(ctx, args.profileId);
+    if (!(await ctx.db.get(args.profileId))) throw new Error("Profile not found");
     const owned = await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -96,6 +98,12 @@ export const awardMilestoneSticker = mutation({
 // Grant a random UNOWNED sticker from a chosen category, preferring the requested
 // rarity and falling through tiers within that category, then any unowned in it.
 // Returns the granted sticker, or null if the category is fully collected.
+//
+// Each call claims the oldest pick the server issued for a finished board
+// (profiles.completedBoard); its rarity wins over the client's. Readers from
+// before picks were stored on the server get up to 3 claims to finish picks
+// they already had waiting.
+const LEGACY_PICKS = 3;
 export const awardStickerFromCategory = mutation({
   args: {
     profileId: v.id("profiles"),
@@ -108,7 +116,20 @@ export const awardStickerFromCategory = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    await requireProfileOwner(ctx, args.profileId);
+    const { profile } = await requireProfileOwner(ctx, args.profileId);
+    const queue =
+      profile.pendingRewards ??
+      Array.from({ length: LEGACY_PICKS }, () => ({
+        type: "legacy",
+        rarity: args.preferredRarity,
+        label: "Sticker",
+      }));
+    if (queue.length === 0) throw new Error("NO_PENDING_REWARD");
+    const [claim, ...rest] = queue;
+    await ctx.db.patch(args.profileId, { pendingRewards: rest });
+    const preferredRarity = ["common", "uncommon", "rare", "legendary"].includes(claim.rarity)
+      ? claim.rarity
+      : "common";
     const owned = await ctx.db
       .query("profile_stickers")
       .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
@@ -125,7 +146,7 @@ export const awardStickerFromCategory = mutation({
     // Prefer the requested rarity, then degrade, then upgrade — so a high-tier
     // milestone still grants *something* from this category.
     const tiers = ["legendary", "rare", "uncommon", "common"];
-    const startIdx = tiers.indexOf(args.preferredRarity);
+    const startIdx = tiers.indexOf(preferredRarity);
     const order = [...tiers.slice(startIdx), ...tiers.slice(0, startIdx)];
 
     let pickPool = [];

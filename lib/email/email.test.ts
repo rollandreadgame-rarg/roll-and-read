@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { sendEmail } from "./send";
-import { paymentFailedEmail, welcomeEmail } from "./templates";
+import { welcomeEmail } from "./templates";
 
 test("welcome email has html and plain text with the play link", () => {
   const e = welcomeEmail();
@@ -10,25 +10,6 @@ test("welcome email has html and plain text with the play link", () => {
   assert.match(e.html, /https:\/\/rollandreadgame\.com\/play/);
   assert.match(e.text, /https:\/\/rollandreadgame\.com\/play/);
   assert.doesNotMatch(e.text, /<[a-z]/i);
-});
-
-test("payment failed email names the plan, amount and invoice link", () => {
-  const e = paymentFailedEmail({ planName: "Family", amount: "$14.99", payUrl: "https://invoice.stripe.com/i/x" });
-  assert.match(e.html, /Family plan \(\$14\.99\)/);
-  assert.match(e.html, /\/billing/);
-  assert.match(e.text, /https:\/\/invoice\.stripe\.com\/i\/x/);
-});
-
-test("payment failed email reads cleanly without optional details", () => {
-  const e = paymentFailedEmail({});
-  assert.match(e.text, /your Roll & Read subscription\. This/);
-  assert.doesNotMatch(e.text, /pay this invoice/);
-  assert.doesNotMatch(e.html, /undefined|null/);
-});
-
-test("plan names are escaped in html", () => {
-  const e = paymentFailedEmail({ planName: "<b>x</b>" });
-  assert.match(e.html, /&lt;b&gt;x&lt;\/b&gt; plan/);
 });
 
 test("sendEmail is a no-op without RESEND_API_KEY", async () => {

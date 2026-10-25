@@ -40,7 +40,7 @@ describe("createUser", () => {
 
   test("self-bootstrap always starts on free, whatever plan is sent", async () => {
     const t = setup();
-    const me = as(t, "user_a");
+    const me = t.withIdentity({ subject: "user_a", email: "a@x.test" });
     const id = await me.mutation(api.users.createUser, {
       clerkId: "user_a",
       email: "a@x.test",
@@ -51,20 +51,58 @@ describe("createUser", () => {
     expect(user?.email).toBe("a@x.test");
   });
 
-  test("is idempotent (webhook + client fallback race creates one row)", async () => {
+  // Regression: the browser's own email argument was stored, so anyone could
+  // file their account under another person's address (operators find
+  // accounts by email, e.g. to comp a plan).
+  test("a signed-in browser's email comes from its verified token, not the request", async () => {
     const t = setup();
-    installFakeTrustedSecrets();
-    const me = as(t, "user_a");
-    const first = await me.mutation(api.users.createUser, { clerkId: "user_a", email: "a@x.test" });
-    const second = await t.mutation(api.users.createUser, {
-      clerkId: "user_a",
-      email: "other@x.test",
-      syncSecret: TEST_SYNC_SECRET,
-    });
-    expect(second).toBe(first);
-    const rows = await usersByClerk(t, "user_a");
-    expect(rows).toHaveLength(1);
-    expect(rows[0].email).toBe("a@x.test");
+    const me = t.withIdentity({ subject: "user_a", email: "real@x.test" });
+    const id = await me.mutation(api.users.createUser, { clerkId: "user_a", email: "victim@x.test" });
+    expect((await t.run((ctx) => ctx.db.get(id)))?.email).toBe("real@x.test");
+  });
+
+  test("no email in the token: stored blank until the webhook fills it in", async () => {
+    const t = setup();
+    const spy = installFakeTrustedSecrets();
+    try {
+      const id = await as(t, "user_a").mutation(api.users.createUser, { clerkId: "user_a", email: "victim@x.test" });
+      expect((await t.run((ctx) => ctx.db.get(id)))?.email).toBe("");
+      const again = await t.mutation(api.users.createUser, {
+        clerkId: "user_a",
+        email: "a@x.test",
+        syncSecret: TEST_SYNC_SECRET,
+      });
+      expect(again).toBe(id);
+      expect((await t.run((ctx) => ctx.db.get(id)))?.email).toBe("a@x.test");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("is idempotent (webhook + client fallback race creates one row; webhook email wins)", async () => {
+    const t = setup();
+    const spy = installFakeTrustedSecrets();
+    try {
+      const me = t.withIdentity({ subject: "user_a", email: "a@x.test" });
+      const first = await me.mutation(api.users.createUser, { clerkId: "user_a", email: "a@x.test" });
+      const second = await t.mutation(api.users.createUser, {
+        clerkId: "user_a",
+        email: "new@x.test",
+        syncSecret: TEST_SYNC_SECRET,
+      });
+      expect(second).toBe(first);
+      const rows = await usersByClerk(t, "user_a");
+      expect(rows).toHaveLength(1);
+      expect(rows[0].email).toBe("new@x.test");
+      // A browser re-running the fallback never changes the stored email.
+      await t.withIdentity({ subject: "user_a", email: "x@x.test" }).mutation(api.users.createUser, {
+        clerkId: "user_a",
+        email: "x@x.test",
+      });
+      expect((await usersByClerk(t, "user_a"))[0].email).toBe("new@x.test");
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("re-creating never downgrades an existing paid user", async () => {

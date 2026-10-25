@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { assertSyncSecret } from "./authHelpers";
 import {
   isValidPinFormat,
   hashPin,
@@ -120,11 +121,20 @@ export const removeParentPin = mutation({
   },
 });
 
+// Forgot-PIN reset. Only the site's server route calls this
+// (app/api/parent-pin/reset), after Clerk has re-verified the grown-up
+// (password or emailed code within the last 10 minutes). A browser calling it
+// directly has no sync secret and is refused.
 export const resetParentPin = mutation({
-  args: { newPin: v.string() },
+  args: { clerkId: v.string(), newPin: v.string(), syncSecret: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    await assertSyncSecret(args.syncSecret);
     if (!isValidPinFormat(args.newPin)) throw new Error("PIN must be 4 digits");
-    const user = await requireUser(ctx);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) throw new Error("User not found");
     const parentPinHash = await hashPin(user._id, args.newPin);
     await ctx.db.patch(user._id, {
       parentPinHash,

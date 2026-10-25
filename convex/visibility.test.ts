@@ -26,11 +26,10 @@ const PUBLIC = new Set([
   "profiles:advanceLevel",
   "profiles:setLevel",
   "profiles:completedBoard",
+  "profiles:startBoard",
   "shop:openPack",
   "stickersDb:getAll",
   "stickersDb:getForProfile",
-  "stickersDb:grantSticker",
-  "stickersDb:awardMilestoneSticker",
   "stickersDb:awardStickerFromCategory",
   "subscriptions:getByClerkId",
   "subscriptions:setStripeCustomerId", // sync-secret gated

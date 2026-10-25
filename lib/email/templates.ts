@@ -56,24 +56,3 @@ Start playing: ${APP_URL}/play
 Each reader's level and accuracy are on the Progress page whenever you want to check in.${footerText}`;
   return { subject, html, text };
 }
-
-export function paymentFailedEmail(opts: { planName?: string; amount?: string; payUrl?: string | null }) {
-  const plan = opts.planName ? `${opts.planName} plan` : "subscription";
-  const subject = "Your Roll & Read payment didn't go through";
-  const updateUrl = `${APP_URL}/billing`;
-  const html = layout(
-    subject,
-    `<p style="margin:0 0 16px;">We couldn't charge your card for your Roll &amp; Read ${escape(plan)}${opts.amount ? ` (${escape(opts.amount)})` : ""}. This usually means the card expired or the bank declined it.</p>
-<p style="margin:0 0 16px;">Your readers can keep playing for now. We'll try the card again over the next few days. To fix it now, update your card on the Billing page.</p>
-${button(updateUrl, "Update payment method")}
-${opts.payUrl ? `<p style="margin:0 0 16px;">Or pay this invoice directly: <a href="${opts.payUrl}" style="color:#1a4fd6;">pay invoice</a>.</p>` : ""}
-<p style="margin:0;">If the payment can't be collected, the account goes back to the free plan. Your readers' progress is kept.</p>`
-  );
-  const text = `We couldn't charge your card for your Roll & Read ${plan}${opts.amount ? ` (${opts.amount})` : ""}. This usually means the card expired or the bank declined it.
-
-Your readers can keep playing for now. We'll try the card again over the next few days. To fix it now, update your card on the Billing page:
-${updateUrl}
-${opts.payUrl ? `\nOr pay this invoice directly: ${opts.payUrl}\n` : ""}
-If the payment can't be collected, the account goes back to the free plan. Your readers' progress is kept.${footerText}`;
-  return { subject, html, text };
-}

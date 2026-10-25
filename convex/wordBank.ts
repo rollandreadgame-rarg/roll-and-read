@@ -3,6 +3,35 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireProfileOwner, ownsProfile } from "./authHelpers";
 import { levelIndex, normalizeLevel } from "../lib/levels";
+import { BOARD_SIZE } from "../lib/game/levelUp";
+
+// Answers closer together than this earn no coins: a child has to hear the
+// word (the game itself waits ~600ms between words), so faster is a script.
+export const MIN_ANSWER_GAP_MS = 400;
+// Coins for a practice word read correctly (Practice "Got it").
+export const PRACTICE_COIN_REWARD = 3;
+
+// Counts one answer toward the board in progress and pays the word's coins.
+// Coins need: a correct read, a word within the reader's reach (current level,
+// the next one, or review/practice below), a board not already full, and a
+// human pace between answers.
+async function recordAnswer(ctx, profile, wordDoc, { correct, firstTry }) {
+  const now = Date.now();
+  const boardWords = profile.boardWords ?? 0;
+  const reach = levelIndex(normalizeLevel(profile.currentLevel)) + 1;
+  const inReach = levelIndex(normalizeLevel(wordDoc.level)) <= reach;
+  if (!inReach || boardWords >= BOARD_SIZE) return;
+  const patch = {
+    boardWords: boardWords + 1,
+    boardFirstTry: (profile.boardFirstTry ?? 0) + (correct && firstTry ? 1 : 0),
+  };
+  if (correct && now - (profile.lastCoinAt ?? 0) >= MIN_ANSWER_GAP_MS) {
+    patch.coins = profile.coins + wordDoc.coinValue;
+    patch.lifetimeCoins = profile.lifetimeCoins + wordDoc.coinValue;
+    patch.lastCoinAt = now;
+  }
+  await ctx.db.patch(profile._id, patch);
+}
 
 export const getForProfile = query({
   args: { profileId: v.id("profiles") },
@@ -29,11 +58,15 @@ export const addWord = mutation({
     missesBeforeCorrect: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireProfileOwner(ctx, args.profileId);
+    const { profile } = await requireProfileOwner(ctx, args.profileId);
     // Word text, level and coin value come from the curriculum, never from
     // the client. A word removed from the curriculum mid-game is not banked.
     const wordDoc = await ctx.db.get(args.wordId);
     if (!wordDoc) return null;
+    await recordAnswer(ctx, profile, wordDoc, {
+      correct: !args.needsPractice,
+      firstTry: !args.missesBeforeCorrect,
+    });
     const existing = await ctx.db
       .query("word_bank")
       .withIndex("by_profile_word", (q) =>
@@ -149,7 +182,14 @@ export const markPracticed = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.wordBankId);
     if (!existing) throw new Error("Word bank entry not found");
-    await requireProfileOwner(ctx, existing.profileId);
+    const { profile } = await requireProfileOwner(ctx, existing.profileId);
+    // Reading a word that was waiting for practice pays a small reward, once.
+    if (existing.needsPractice && !args.stillNeedsPractice) {
+      await ctx.db.patch(profile._id, {
+        coins: profile.coins + PRACTICE_COIN_REWARD,
+        lifetimeCoins: profile.lifetimeCoins + PRACTICE_COIN_REWARD,
+      });
+    }
     await ctx.db.patch(args.wordBankId, {
       needsPractice: args.stillNeedsPractice,
       timesCorrect: args.stillNeedsPractice

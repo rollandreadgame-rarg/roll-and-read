@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { LOCKOUT_MS, MAX_ATTEMPTS } from "../lib/parentPin/parentPinLogic.mjs";
-import { as, seedUser, setup } from "./test.helpers";
+import { as, installFakeTrustedSecrets, seedUser, setup, TEST_SYNC_SECRET } from "./test.helpers";
 import type { T } from "./test.helpers";
 
 const START = Date.parse("2026-10-23T12:00:00Z");
@@ -238,39 +238,48 @@ describe("removeParentPin", () => {
 });
 
 describe("resetParentPin", () => {
-  test("sets a new PIN and clears any lockout", async () => {
+  // Only the site's server route may reset (after Clerk re-verifies the
+  // grown-up); it proves itself with the sync secret.
+  const reset = (t: T, newPin: string, clerkId = "user_a", syncSecret?: string) =>
+    t.mutation(api.parentPin.resetParentPin, { clerkId, newPin, syncSecret });
+
+  test("with the server's secret: sets a new PIN and clears any lockout", async () => {
     clock();
-    const { t, id, me } = await withPin("1111");
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      await me.mutation(api.parentPin.verifyParentPin, { pin: "0000" });
+    const spy = installFakeTrustedSecrets();
+    try {
+      const { t, id, me } = await withPin("1111");
+      for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        await me.mutation(api.parentPin.verifyParentPin, { pin: "0000" });
+      }
+      await reset(t, "5555", "user_a", TEST_SYNC_SECRET);
+      expect(await userRow(t, id)).toMatchObject({ parentPinAttempts: 0, parentPinLockedUntil: 0 });
+      expect((await me.mutation(api.parentPin.verifyParentPin, { pin: "5555" })).ok).toBe(true);
+    } finally {
+      spy.mockRestore();
     }
-    await me.mutation(api.parentPin.resetParentPin, { newPin: "5555" });
-    expect(await userRow(t, id)).toMatchObject({ parentPinAttempts: 0, parentPinLockedUntil: 0 });
-    expect((await me.mutation(api.parentPin.verifyParentPin, { pin: "5555" })).ok).toBe(true);
   });
 
-  test("rejects malformed PINs and anonymous callers", async () => {
-    const t = setup();
-    await seedUser(t, "user_a");
+  // Regression: a signed-in browser (a child on the grown-up's device) could
+  // replace the PIN from the console with no proof at all.
+  test("a signed-in browser can't reset the PIN itself, with or without a guessed secret", async () => {
+    const { t, me } = await withPin("1111");
     await expect(
-      as(t, "user_a").mutation(api.parentPin.resetParentPin, { newPin: "12" })
-    ).rejects.toThrow("PIN must be 4 digits");
-    await expect(
-      t.mutation(api.parentPin.resetParentPin, { newPin: "1234" })
-    ).rejects.toThrow("Not authenticated");
-  });
-
-  // NOT FIXED (needs a design decision): the "email me a code" step happens
-  // only in the browser (ParentPinForgot → Clerk email verification), and the
-  // server accepts resetParentPin from any signed-in session with no proof.
-  // A child on the grown-up's signed-in device who opens the browser console
-  // (or a student on a classroom computer) can replace the PIN without the
-  // email code, defeating the gate. The fix needs a server-checked proof,
-  // e.g. a one-time code issued and verified in Convex.
-  test.fails("reset requires server-verified proof (email code)", async () => {
-    const { me } = await withPin("1111");
-    await expect(
-      me.mutation(api.parentPin.resetParentPin, { newPin: "0000" })
+      me.mutation(api.parentPin.resetParentPin, { clerkId: "user_a", newPin: "0000" })
     ).rejects.toThrow();
+    await expect(reset(t, "0000", "user_a", "guess")).rejects.toThrow("Forbidden");
+    await expect(reset(t, "0000")).rejects.toThrow("Forbidden");
+    expect((await me.mutation(api.parentPin.verifyParentPin, { pin: "1111" })).ok).toBe(true);
+  });
+
+  test("rejects malformed PINs and unknown users even from the server", async () => {
+    const spy = installFakeTrustedSecrets();
+    try {
+      const t = setup();
+      await seedUser(t, "user_a");
+      await expect(reset(t, "12", "user_a", TEST_SYNC_SECRET)).rejects.toThrow("PIN must be 4 digits");
+      await expect(reset(t, "1234", "user_nobody", TEST_SYNC_SECRET)).rejects.toThrow("User not found");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

@@ -299,8 +299,8 @@ export default function HelpPage() {
 
         <h3>I forgot the PIN. What do I do?</h3>
         <p>
-          On the PIN screen, choose “Forgot PIN?”. We’ll email a code to the address on your account.
-          Enter the code, then choose a new PIN.
+          On the PIN screen, choose “Forgot PIN?” and pick a new PIN. Then confirm it’s you with your
+          password or a code we email to the address on your account.
         </p>
 
         <h3>What if someone keeps guessing?</h3>

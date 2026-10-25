@@ -9,7 +9,9 @@ import {
   requireProfileOwner,
   requireUser,
 } from "./authHelpers";
+import { api } from "./_generated/api";
 import {
+  TEST_DEV_SYNC_SECRET,
   TEST_MAINTENANCE_SECRET,
   TEST_SYNC_SECRET,
   as,
@@ -19,7 +21,10 @@ import {
   setup,
 } from "./test.helpers";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 describe("sync secret", () => {
   test.each([undefined, null, "", "wrong", " ", 123, {}, "x".repeat(10_000)])(
@@ -110,5 +115,30 @@ describe("user / profile resolvers", () => {
     expect((await a.client.run((ctx) => ownsProfile(ctx, a.profileId)))?.profile._id).toBe(
       a.profileId
     );
+  });
+});
+
+describe("dev-only sync secret", () => {
+  const create = (syncSecret: string) =>
+    setup().mutation(api.users.createUser, { clerkId: "user_a", email: "a@x.test", syncSecret });
+
+  test("the local dev server's secret is trusted by the DEV deployment", async () => {
+    installFakeTrustedSecrets();
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://adamant-hound-452.convex.cloud");
+    await expect(create(TEST_DEV_SYNC_SECRET)).resolves.toBeTruthy();
+  });
+
+  test("production never trusts the dev secret", async () => {
+    installFakeTrustedSecrets();
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://giddy-lapwing-388.convex.cloud");
+    await expect(create(TEST_DEV_SYNC_SECRET)).rejects.toThrow("Forbidden");
+    vi.stubEnv("CONVEX_CLOUD_URL", "");
+    await expect(create(TEST_DEV_SYNC_SECRET)).rejects.toThrow("Forbidden");
+  });
+
+  test("the production secret works on both", async () => {
+    installFakeTrustedSecrets();
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://giddy-lapwing-388.convex.cloud");
+    await expect(create(TEST_SYNC_SECRET)).resolves.toBeTruthy();
   });
 });

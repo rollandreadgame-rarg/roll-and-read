@@ -3,9 +3,8 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { PROFILE_LIMITS, isLevelAllowed } from "./subscriptionConfig";
 import { getNextLevel, isValidLevel, normalizeLevel } from "../lib/levels";
-
-// Largest single award the game makes (a level-5 word is 25 coins).
-const MAX_COIN_AWARD = 100;
+import { MIN_BOARD_ANSWERS, checkLevelAdvancement } from "../lib/game/levelUp";
+import { getMilestonesForBoard } from "../lib/game/milestones";
 import {
   requireUser,
   requireProfileOwner,
@@ -156,21 +155,26 @@ export const remove = mutation({
   },
 });
 
+// Coins are awarded by the server when a word is read (wordBank.addWord) or
+// practised (wordBank.markPracticed). Kept so older browsers that still call
+// it don't error; it no longer changes anything.
 export const awardCoins = mutation({
   args: {
     profileId: v.id("profiles"),
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    if (!Number.isFinite(args.amount) || args.amount < 0 || args.amount > MAX_COIN_AWARD) {
-      throw new Error("Invalid coin amount");
-    }
-    const { profile } = await requireProfileOwner(ctx, args.profileId);
+    await requireProfileOwner(ctx, args.profileId);
+    return null;
+  },
+});
 
-    await ctx.db.patch(args.profileId, {
-      coins: profile.coins + args.amount,
-      lifetimeCoins: profile.lifetimeCoins + args.amount,
-    });
+// A fresh board starts: forget answers from a board that was abandoned.
+export const startBoard = mutation({
+  args: { profileId: v.id("profiles") },
+  handler: async (ctx, args) => {
+    await requireProfileOwner(ctx, args.profileId);
+    await ctx.db.patch(args.profileId, { boardWords: 0, boardFirstTry: 0 });
   },
 });
 
@@ -208,6 +212,14 @@ export const advanceLevel = mutation({
       : normalizeLevel(profile.currentLevel);
     if (!isValidLevel(args.nextLevel) || args.nextLevel !== legal) {
       throw new Error(`Invalid level advance ${profile.currentLevel} → ${args.nextLevel}`);
+    }
+    // Moving up is earned on the server's record of finished boards. (A
+    // grown-up can still place a reader anywhere their plan allows: setLevel.)
+    if (
+      isValidLevel(profile.currentLevel) &&
+      !checkLevelAdvancement(profile.boardsClearedAtLevel, profile.accuracyHistory ?? [])
+    ) {
+      throw new Error("NOT_READY: this reader hasn't met the level-up goal yet");
     }
 
     if (!isLevelAllowed(user.plan, args.nextLevel)) {
@@ -249,18 +261,31 @@ export const setLevel = mutation({
   },
 });
 
+// Most sticker picks a reader can have waiting at once.
+const MAX_PENDING_REWARDS = 10;
+
 export const completedBoard = mutation({
   args: {
     profileId: v.id("profiles"),
+    // Ignored once the server has counted the board's answers (see addWord);
+    // used only for readers mid-board when that counting was added.
     accuracy: v.number(),
     // Player's local calendar day "YYYY-MM-DD". Streaks follow the family's
     // day, not UTC (UTC flips at 7pm US Central). Optional for old clients.
     localDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { profile } = await requireProfileOwner(ctx, args.profileId);
+    const { user, profile } = await requireProfileOwner(ctx, args.profileId);
 
-    const accuracy = Number.isFinite(args.accuracy) ? Math.min(1, Math.max(0, args.accuracy)) : 0;
+    // A board counts only once (nearly) every word on it was answered.
+    const counted = typeof profile.boardWords === "number";
+    if (counted && profile.boardWords < MIN_BOARD_ANSWERS) {
+      throw new Error("BOARD_NOT_FINISHED");
+    }
+    const clientAccuracy = Number.isFinite(args.accuracy) ? Math.min(1, Math.max(0, args.accuracy)) : 0;
+    const accuracy = counted
+      ? Math.min(1, (profile.boardFirstTry ?? 0) / profile.boardWords)
+      : clientAccuracy;
     const newHistory = [...(profile.accuracyHistory ?? []), accuracy].slice(-10);
 
     const now = Date.now();
@@ -291,19 +316,45 @@ export const completedBoard = mutation({
       }
     }
 
+    const boardsAtLevel = profile.boardsClearedAtLevel + 1;
+    const totalBoardsCleared = profile.totalBoardsCleared + 1;
+    const next = isValidLevel(profile.currentLevel) ? getNextLevel(profile.currentLevel) : null;
+    const passed = !!next && checkLevelAdvancement(boardsAtLevel, newHistory);
+    const levelUp = passed && isLevelAllowed(user.plan, next) ? next : null;
+
+    const milestones = getMilestonesForBoard({
+      totalBoardsCleared,
+      accuracy,
+      previousStreakDays: profile.streakDays,
+      newStreakDays: newStreak,
+      isLevelUp: !!levelUp,
+    });
+    const pendingRewards = [...(profile.pendingRewards ?? []), ...milestones]
+      .slice(-MAX_PENDING_REWARDS)
+      .map(({ type, rarity, label }) => ({ type, rarity, label }));
+
     await ctx.db.patch(args.profileId, {
-      boardsClearedAtLevel: profile.boardsClearedAtLevel + 1,
-      totalBoardsCleared: profile.totalBoardsCleared + 1,
+      boardsClearedAtLevel: boardsAtLevel,
+      totalBoardsCleared,
       accuracyHistory: newHistory,
       streakDays: newStreak,
       lastPlayedAt: now,
       lastPlayedLocalDate: today,
+      boardWords: 0,
+      boardFirstTry: 0,
+      pendingRewards,
     });
 
     return {
       newStreakDays: newStreak,
       previousStreakDays: profile.streakDays,
-      totalBoardsCleared: profile.totalBoardsCleared + 1,
+      totalBoardsCleared,
+      accuracy,
+      milestones,
+      // The next sublevel when this board earned it and the plan includes it.
+      levelUp,
+      // Earned, but the plan doesn't include the next level.
+      levelLocked: passed && !levelUp,
     };
   },
 });

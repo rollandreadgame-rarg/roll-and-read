@@ -1,4 +1,7 @@
 import { shuffle } from "@/lib/utils";
+import { ACCURACY_EPSILON } from "./levelUp";
+
+export { checkLevelAdvancement, LEVEL_UP_ACCURACY, LEVEL_UP_MIN_BOARDS } from "./levelUp";
 
 export interface WordEntry {
   _id: string;
@@ -44,16 +47,8 @@ export interface BoardConfig {
 }
 
 const BLEND_MIN_ACCURACY = 0.7;
-/** First-try accuracy the last 3 boards must average to move up a level. */
-export const LEVEL_UP_ACCURACY = 0.8;
-/** Boards a reader must clear at a level before moving up. */
-export const LEVEL_UP_MIN_BOARDS = 7;
 const REVIEW_PER_BOARD = 6;
 const PRACTICE_PER_BOARD = 4;
-// Accuracies are fractions like 21/30; their average can land a hair under the
-// threshold in floating point (21/30 + 24/30 + 27/30 averages 0.7999999999999999).
-// Anything this close to the threshold counts as meeting it.
-const ACCURACY_EPSILON = 1e-9;
 
 export function generateBoard(config: BoardConfig): GameBoard {
   const {
@@ -134,13 +129,3 @@ export function generateBoard(config: BoardConfig): GameBoard {
   };
 }
 
-export function checkLevelAdvancement(
-  boardsClearedAtLevel: number,
-  accuracyHistory: number[]
-): boolean {
-  if (boardsClearedAtLevel < LEVEL_UP_MIN_BOARDS) return false;
-  const recent = accuracyHistory.slice(-3);
-  if (recent.length < 3) return false;
-  const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  return avg >= LEVEL_UP_ACCURACY - ACCURACY_EPSILON;
-}

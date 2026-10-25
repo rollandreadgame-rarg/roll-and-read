@@ -61,6 +61,13 @@ export async function ownsProfile(ctx, profileId) {
 const SYNC_SECRET_SHA256 =
   "55f872a2c31c47ce8dc5e7dc5ecc89784b2ec424fe468e35ff490a54b664e05f";
 
+// The local dev server has its own secret (CONVEX_SYNC_SECRET in .env.local),
+// accepted only by the DEV deployment, so production never trusts it.
+const DEV_DEPLOYMENT = "adamant-hound-452";
+const DEV_SYNC_SECRET_SHA256 =
+  "38e990ec3d6e26f18471117b46881d0360b2072823812aec4ab42b90e7b66e5d";
+const isDevDeployment = () => (process.env.CONVEX_CLOUD_URL ?? "").includes(DEV_DEPLOYMENT);
+
 // Unauthenticated callers must present the sync secret. (Was false only while
 // the backend deployed ahead of the Vercel routes that send it — 2026-10-21.)
 const ENFORCE_TRUSTED_CALLERS = true;
@@ -74,7 +81,8 @@ async function sha256Hex(str) {
 
 export async function isValidSyncSecret(provided) {
   if (typeof provided !== "string" || provided.length === 0) return false;
-  return (await sha256Hex(provided)) === SYNC_SECRET_SHA256;
+  const digest = await sha256Hex(provided);
+  return digest === SYNC_SECRET_SHA256 || (isDevDeployment() && digest === DEV_SYNC_SECRET_SHA256);
 }
 
 export async function assertSyncSecret(provided) {
