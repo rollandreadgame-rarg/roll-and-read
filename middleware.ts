@@ -16,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   "/terms",
   "/api/webhooks(.*)",
   "/audio(.*)",
+  "/fonts(.*)",
 ]);
 
 function e2eMiddleware() {

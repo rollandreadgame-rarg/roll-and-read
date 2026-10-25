@@ -51,6 +51,7 @@ describe("public routes are reachable signed out", () => {
     "/api/webhooks/stripe",
     "/api/webhooks/clerk",
     "/audio/words/cat.mp3",
+    "/fonts/opendyslexic/LICENSE.txt",
   ])("%s", async (path) => {
     const { res, protect } = await run(path, null);
     expect(protect).not.toHaveBeenCalled();
